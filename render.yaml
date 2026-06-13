@@ -2,8 +2,8 @@ services:
   - type: web
     name: smartcare
     runtime: python
-    buildCommand: cd Backend && pip install -r requirements.txt
-    startCommand: cd Backend && gunicorn Hospital.wsgi:application
+    rootDir: Backend
+    buildCommand: pip install -r requirements.txt
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
