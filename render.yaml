@@ -4,6 +4,7 @@ services:
     runtime: python
     rootDir: Backend
     buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn Hospital.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
