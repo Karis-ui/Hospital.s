@@ -4,7 +4,6 @@ services:
     runtime: python
     rootDir: Backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn Hospital.wsgi:application
     envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
@@ -16,7 +15,7 @@ services:
           property: connectionString
 
   - type: web
-    name: hospital-frontend
+    name: smart-front
     runtime: static
     rootDir: client
     buildCommand: npm install && npm run build
