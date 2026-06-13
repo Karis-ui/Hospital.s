@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: hospital-backend
+    name: smartcare
     runtime: python
     rootDir: Backend
     buildCommand: pip install -r requirements.txt
@@ -16,14 +16,14 @@ services:
           property: connectionString
 
   - type: web
-    name: hospital-frontend
+    name: smart-front
     runtime: static
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: ./build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://hospital-backend.onrender.com/api
+        value: https://smartcare.onrender.com/api
 
 databases:
   - name: hospital-db
