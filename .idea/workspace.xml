@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d0770ec6-6aec-4562-aa76-4fd765c66ecf" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/Backend/Hospital/Api/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Hospital/Api/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Lab/API.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Lab/API.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Lab/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Lab/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/Lab/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/Lab/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/core/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/client/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/client/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/common/Header.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/common/Header.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/assets/Doctors/PatientDetails.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/assets/Doctors/PatientDetails.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/pages/assets/LabTech/RequestList.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/pages/assets/LabTech/RequestList.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/services/users/labtech.ts" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/services/users/labtech.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="3BwDicHDgEeBHomPhgF1js4Wuho" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-b3d66beaba9a-c6efb3732140-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.26199.168" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d0770ec6-6aec-4562-aa76-4fd765c66ecf" name="Changes" comment="" />
+      <created>1775391372388</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1775391372388</updated>
+    </task>
+    <servers />
+  </component>
+</project>
