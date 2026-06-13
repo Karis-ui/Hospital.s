@@ -30,9 +30,9 @@ load_dotenv()
 SECRET_KEY = "PsW7TDUv322R7SHW4kK6JpEyy8k3BTU7cT9x3Kc39KMDhHV6zjOzU0hpkRgkFC02fms"
 if not SECRET_KEY:
     SECRET_KEY = 'development-secret-key-do-not-use-in-production'
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 SECURE_HSTS_SECONDS = 31536000 
