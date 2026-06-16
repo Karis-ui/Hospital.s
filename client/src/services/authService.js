@@ -1,4 +1,4 @@
-import { data } from "react-router-dom";
+import { useLoaderData } from "react-router-dom";
 import api from "./api";
 import { useEffect } from "react";
 
