@@ -27,7 +27,9 @@
     "react-toastify": "^11.1.0",
     "react-transition-group": "^4.4.5",
     "recharts": "^2.15.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
