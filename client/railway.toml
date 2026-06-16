@@ -1,0 +1,11 @@
+[build]
+builder = "nixpacks"
+
+[build.buildCommand]
+cmd = "npm install --legacy-peer-deps && npm run build"
+
+[build.startCommand]
+cmd = "npx serve -s build"
+
+[env]
+RAILWAY_BUILDER = "nixpacks"
