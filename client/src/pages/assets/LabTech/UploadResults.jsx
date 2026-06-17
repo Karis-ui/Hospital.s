@@ -35,7 +35,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   InputAdornment,
-  LinearProgress,
+  LinearProgress, Tab, Tabs, TableHead
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -57,12 +57,14 @@ import {
   MedicalServices as MedicalIcon,
   Schedule as ScheduleIcon,
   Verified as VerifiedIcon,
+  TrendingUp as TrendingUpIcon,
+  UploadSharp as UploadArea,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 import { labServices } from '../../../services/users/labtech';
 import { bg } from 'date-fns/locale';
-import {formatTestParameter,validateResultsFormatter} from '../../../formatters';
+import { formatTestParameter, validateResultsFormatter } from '../../../formatters';
 
 const PageHeader = styled(Paper)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.info.main} 100%)`,
@@ -87,15 +89,15 @@ const ResultTable = styled(TableContainer)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }));
 
-const StatusChip = styled(Chip)(({ theme ,status}) => {
+const StatusChip = styled(Chip)(({ theme, status }) => {
   const colors = {
-    normal: {bg: '#e8f5e9',color: '#2e7d32'},
-    high: {bg: '#ffebee',color: '#c62828'},
-    low: {bg: '#fff3e0',color: '#ed6c02'},
-    critical: {bg: '#ffebee',color: '#d32f2f2f'},
+    normal: { bg: '#e8f5e9', color: '#2e7d32' },
+    high: { bg: '#ffebee', color: '#c62828' },
+    low: { bg: '#fff3e0', color: '#ed6c02' },
+    critical: { bg: '#ffebee', color: '#d32f2f2f' },
   };
   const config = colors[status] || colors.normal;
-  return{backgroundColor: config.bg, color: config.color,fontWeight: 600,};
+  return { backgroundColor: config.bg, color: config.color, fontWeight: 600, };
 });
 
 const SectionTitle = styled(Typography)(({ theme }) => ({
@@ -113,148 +115,169 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   },
 }));
 
-export const UploadResult = ()=>{
-    const {id} = useParams();
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const [saving, setSaving] = useState(false);
-    const [loading,setLoading] = useState(false);
-    const [request, setRequest] = useState(null);
-    const [parameters, setParameters] = useState([]);
-    const [results, setResults] = useState({});
-    const [uploadedFile, setUploadedFile] = useState(null);
-    const [remarks, setRemarks] = useState('');
-    const [equipmentUsed, setEquipmentUsed] = useState('');
-    const [performedBy, setPerformedBy] = useState('');
-    const [qualityControlPassed, setQualityControlPassed] = useState(true);
-    const [qualityControlNotes, setQualityControlNotes] = useState('');
-    const [criticalAlerts, setCriticalAlerts] = useState([]);
-    const [activeTab, setActiveTab] = useState(0);
+const TEST_TEMPLATES = {
+  test_name: {
+    parameters: [
+      {
+        id: 1,
+        name: 'Parameter 1',
+        unit: 'mg/dL',
+        reference_range: '10-20',
+        is_critical: false,
+      },
+      {
+        id: 2,
+        name: 'Parameter 2',
+        unit: 'mg/dL',
+        reference_range: '10-20',
+        is_critical: true,
+      },
+    ],
+  },
+};
 
-    useEffect(()=>{
-      fetchRequestAndTemplate();
-    },[id]);
+export const UploadResult = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [request, setRequest] = useState(null);
+  const [parameters, setParameters] = useState([]);
+  const [results, setResults] = useState({});
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [remarks, setRemarks] = useState('');
+  const [equipmentUsed, setEquipmentUsed] = useState('');
+  const [performedBy, setPerformedBy] = useState('');
+  const [qualityControlPassed, setQualityControlPassed] = useState(true);
+  const [qualityControlNotes, setQualityControlNotes] = useState('');
+  const [criticalAlerts, setCriticalAlerts] = useState([]);
+  const [activeTab, setActiveTab] = useState(0);
 
-    const fetchRequestAndTemplate = async()=>{
-      try{
-        const response = await labServices.getDetailRequestView(id);
-        if(response.data.status === 'success'){
-          const data = response.data.data;
-          setRequest(data);
+  useEffect(() => {
+    fetchRequestAndTemplate();
+  }, [id]);
 
-          const testName = data.test_name;
-          let template = null;
-          for (const [key,value] of Object.entries(TEST_TEMPLATES)){
-            if(testName?.includes(key)){
-              template = value;
-              break;
-            }
-          }
-          if (template){
-            setParameters(template.parameters);
-            const initialResults = {};
-            template.parameters.forEach(param =>{
-              initialResults[param.id] = {value:'',status:'pending'};
-            });
-            setResults(initialResults);
-          }
-        }
-      }
-      catch(err){
-        toast.error('Failed to load test details.');
-      }finally{
-        setLoading(false);
-      }
-    };
+  const fetchRequestAndTemplate = async () => {
+    try {
+      const response = await labServices.getDetailRequestView(id);
+      if (response.data.status === 'success') {
+        const data = response.data.data;
+        setRequest(data);
 
-    const handleValueChange = (paramId,value,param)=>{
-      const numValue = parseFloat(value);
-      let status = 'pending';
-
-      if(!isNaN(numValue)){
-        const range = param.reference_range;
-        if(range.includes('-')){
-          const [min,max] = range.split('-').map(Number);
-          if(numValue < min) status = 'low';
-          else if(numValue > max) status = 'high';
-          else status = 'normal';
-        }
-        else if(range.startsWith('<')){
-          const max = parseFloat(range.subString(1));
-          status = numValue < max ? 'normal':'high';
-        }else if(range.startsWith('>')){
-          const min = parseFloat(range.subString(1));
-          status = numValue > min? 'normal':'low';
-        }
-
-        if(param.is_critical && status !== 'normal'){
-          if(!criticalAlerts.includes(param.name)){
-            setCriticalAlerts(prev => [...prev,param.name]);
-            toast.warning(`Critical: ${param.name} = ${value} ${param.unit}`);
+        const testName = data.test_name;
+        let template = null;
+        for (const [key, value] of Object.entries(TEST_TEMPLATES)) {
+          if (testName?.includes(key)) {
+            template = value;
+            break;
           }
         }
-      }
-
-      setResults(prev =>({
-        ...prev,[paramId]: {value,status}
-      }));
-    };
-
-    const handleFileUpload = (event)=>{
-      const file = event.target.files[0];
-      if(file && file.type === 'application/pdf'){
-        setUploadedFile(file);
-      }else{
-        toast.error('Please upload a pdf file.');
-      }
-    };
-
-    const handleSubmit = async()=>{
-      setSaving(true);
-      try{
-        const formData = new FormData();
-        if(uploadedFile){
-          formData.append('report_file',uploadedFile);
+        if (template) {
+          setParameters(template.parameters);
+          const initialResults = {};
+          template.parameters.forEach(param => {
+            initialResults[param.id] = { value: '', status: 'pending' };
+          });
+          setResults(initialResults);
         }
+      }
+    }
+    catch (err) {
+      toast.error('Failed to load test details.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        formData.append('results_data',JSON.stringify(results));
-        formData.append('remarks',remarks);
-        formData.append('performed_by',performedBy);
-        formData.append('quality_control_passed',qualityControlPassed);
-        formData.append('quality_control_notes',qualityControlNotes);
+  const handleValueChange = (paramId, value, param) => {
+    const numValue = parseFloat(value);
+    let status = 'pending';
 
-        const response = await labServices.saveResultEntry(id,formData);
-        if(response.data.status === 'success'){
-          toast.success(`Results saved ${criticalAlerts.length > 0? 'Critical alerts sent.': ''}`);
-          navigate(`/labTechnician/detail_view/${id}/request`);
+    if (!isNaN(numValue)) {
+      const range = param.reference_range;
+      if (range.includes('-')) {
+        const [min, max] = range.split('-').map(Number);
+        if (numValue < min) status = 'low';
+        else if (numValue > max) status = 'high';
+        else status = 'normal';
+      }
+      else if (range.startsWith('<')) {
+        const max = parseFloat(range.subString(1));
+        status = numValue < max ? 'normal' : 'high';
+      } else if (range.startsWith('>')) {
+        const min = parseFloat(range.subString(1));
+        status = numValue > min ? 'normal' : 'low';
+      }
+
+      if (param.is_critical && status !== 'normal') {
+        if (!criticalAlerts.includes(param.name)) {
+          setCriticalAlerts(prev => [...prev, param.name]);
+          toast.warning(`Critical: ${param.name} = ${value} ${param.unit}`);
         }
-      }catch(err){
-        toast.error('Failed to save Results');
-      }finally{
-        setSaving(true);
       }
-    };
-
-    const getStatusColor = (status)=>{
-      switch(status){
-        case 'normal': return '#2e7d32';
-        case 'high': return '#c62828';
-        case 'low': return '#ed6c02';
-        case 'critical': return '#d32f2f';
-        default :return '#757575';
-      }
-    };
-
-    if(loading){
-      return(
-        <Box sx={{p:3}}>
-          <LinearProgress/>
-          <Typography sx={{mt:2,textAlign:'center'}}>Loading...</Typography>
-        </Box>
-      );
     }
 
+    setResults(prev => ({
+      ...prev, [paramId]: { value, status }
+    }));
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadedFile(file);
+    } else {
+      toast.error('Please upload a pdf file.');
+    }
+  };
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      if (uploadedFile) {
+        formData.append('report_file', uploadedFile);
+      }
+
+      formData.append('results_data', JSON.stringify(results));
+      formData.append('remarks', remarks);
+      formData.append('performed_by', performedBy);
+      formData.append('quality_control_passed', qualityControlPassed);
+      formData.append('quality_control_notes', qualityControlNotes);
+
+      const response = await labServices.saveResultEntry(id, formData);
+      if (response.data.status === 'success') {
+        toast.success(`Results saved ${criticalAlerts.length > 0 ? 'Critical alerts sent.' : ''}`);
+        navigate(`/labTechnician/detail_view/${id}/request`);
+      }
+    } catch (err) {
+      toast.error('Failed to save Results');
+    } finally {
+      setSaving(true);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'normal': return '#2e7d32';
+      case 'high': return '#c62828';
+      case 'low': return '#ed6c02';
+      case 'critical': return '#d32f2f';
+      default: return '#757575';
+    }
+  };
+
+  if (loading) {
     return (
+      <Box sx={{ p: 3 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>Loading...</Typography>
+      </Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: 3 }}>
       <Button
         startIcon={<BackIcon />}
@@ -353,7 +376,7 @@ export const UploadResult = ()=>{
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, mt: 3 }}>
               Additional Information
             </Typography>
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <TextField

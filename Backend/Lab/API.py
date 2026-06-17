@@ -1,3 +1,7 @@
+from django.conf import settings
+from django.core.serializers import json
+from django.db.models import Count
+from datetime import timedelta
 from django.shortcuts import get_object_or_404
 from .models import labRequest,LabReport,LabTech,TestParameter,TestProfile
 from rest_framework import status
@@ -8,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from Hospital.Api.serializers import (
     PatientSerializer,AppointmentSerializer,DoctorSerializer,BillSerializer,LabReportSerializer,LabRequestSerializer,ReportSerializer,LabTechSerializer,TestProfileSerializer,TestParameterSerializer
 )
+import os
 from decimal import Decimal
 from django.db import transaction
 from django.core.mail import send_email
@@ -27,11 +32,11 @@ class DashboardAnalytics(APIView):
         week_ago = today - timezone.timedelta(days=7)
         month_ago = today - timezone.timedelta(days=30)
         
-        total_requests = LabRequest.objects.count()
-        pending_requests = LabRequest.objects.filter(status='requested').count()
-        processing_requests = LabRequest.objects.filter(status='processing').count()
-        completed_requests = LabRequest.objects.filter(status='completed').count()
-        approved_requests = LabRequest.objects.filter(status='approved').count()
+        total_requests = labRequest.objects.count()
+        pending_requests = labRequest.objects.filter(status='requested').count()
+        processing_requests = labRequest.objects.filter(status='processing').count()
+        completed_requests = labRequest.objects.filter(status='completed').count()
+        approved_requests = labRequest.objects.filter(status='approved').count()
         
         total_reports = LabReport.objects.count()
         reports_today = LabReport.objects.filter(uploaded_at__date=today).count()
@@ -319,6 +324,12 @@ class LabSearch(APIView):
     def get(self,request):
         query = request.GET.get('q','')
         results = {}
+        if not query:
+            return Response({
+                'status':'error',
+                'message':'Query is required'
+            },status=status.HTTP_400_BAD_REQUEST)
+        Q = None
         requests = labRequest.objects.filter(
             Q(test_name__icontains=query)|
             Q(patient__first_name=query)|
@@ -353,6 +364,7 @@ class LabRequestListView(APIView):
         if priority_filter and priority_filter != 'all':
             queryset = queryset.filter(urgency=priority_filter)
         if search_query:
+            Q = None
             queryset = queryset.filter(
                 Q(id__icontains=search_query)|
                 Q(patient__first_name__icontains=search_query)|
@@ -396,6 +408,7 @@ class LabReportListView(APIView):
             queryset = queryset.filter(is_approved=False)
             
         if search_query:
+            Q = None
             queryset = queryset.filter(
                 Q(lab_request__patient__first_name__icontains=search_query)|
                 Q(lab_request__patient__last_name__icontains=search_query)|
@@ -458,7 +471,7 @@ class LabStats(APIView):
         this_week = today - timezone.timedelta(days=7)
         this_month = today - timezone.timedelta(days=30)
         
-        test_tye_stats = labReuqest.objects.values('test_type').annotate(
+        test_tye_stats = labRequest.objects.values('test_type').annotate(
             total = Count('id'),
             completed = Count('id',filter=Q(status='ready')),
             pending = Count('id',filter=Q(status='requested')),
@@ -485,13 +498,13 @@ class LabStats(APIView):
                 created_at__date__lte=month_end
             ).count()
             
-            monthyly_trends.append({
+            monthly_trends.append({
                 'month': month_start.strftime("%B %Y"),
                 'requests': monthly_requests,
                 'completed': monthly_completed
             })
-            
-            technician_stats = LabReqport.valuews('by__username').annotate(
+            Q = None
+            technician_stats = LabReport.valuews('by__username').annotate(
                 total_reports=Count('id'),
                 approved_reports=Count('id',filter=Q(is_approved=True)),
                 pending_reports=Count('id',filter=Q(is_approved=False))
@@ -500,7 +513,7 @@ class LabStats(APIView):
             return Response({
                 'status': 'success',
                 'data': {
-                    'test_type_stats': list(test_type_stats),
+                    'test_type_stats': list(test_tye_stats),
                     'monthly_trends': monthly_trends,
                     'technician_stats': list(technician_stats)
                 }
@@ -535,9 +548,9 @@ class UpdateLabProfile(APIView):
             allowed_extensions = ['jpg','jpeg','png','gif','webp']
             file_extension = photo.name.split('.')[-1].lower()
             
-            if file_extension not in allowed_extension:
+            if file_extension not in allowed_extensions:
                 return Response({
-                    'error': f'file type not allowed. Try {", ".join(allowed_extension)}'
+                    'error': f'file type not allowed. Try {", ".join(allowed_extensions)}'
                 },status = status.HTTP_400_BAD_REQUEST)
             max_size = 5 * 1024 * 1024
             if photo.size > max_size:
@@ -552,9 +565,7 @@ class UpdateLabProfile(APIView):
                     
             lab_tech.photo = photo
             lab_tech.save()
-            
-            if serializer.is_valid():
-                serializer.save()
+            serializer = LabTechSerializer(lab_tech,context={'request':request})
             return Response({
                 'message':'Profile updated successfully',
                 'labTech':serializer.data
@@ -786,7 +797,6 @@ class SaveStructuredResultsView(APIView):
                     lab_request=lab_request,
                     uploaded_by=request.user,
                     remarks=remarks,
-                    equipment_used=equipment_used,
                     by=performed_by,
                     quality_control_passed=quality_control_passed,
                     quality_control_notes=quality_control_notes,
@@ -802,7 +812,7 @@ class SaveStructuredResultsView(APIView):
                 }
             })
             
-        except LabRequest.DoesNotExist:
+        except labRequest.DoesNotExist:
             return Response({
                 'status': 'error',
                 'message': 'Lab request not found'

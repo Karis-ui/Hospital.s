@@ -36,9 +36,10 @@ import {
   DialogContent,
   DialogActions,
   alpha,
-  useTheme,
+  useTheme, Stack,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { useAuth } from '../../../context/authContext';
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -62,6 +63,10 @@ import {
   ThumbUp as ThumbUpIcon,
   ThumbDown as ThumbDownIcon,
   Assessment as AssessmentIcon,
+  Assignment as AssignmentIcon,
+  Biotech as BiotechIcon,
+  Check as CheckIcon,
+  FileDownload as ReadyIcon,
 } from '@mui/icons-material';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -125,104 +130,109 @@ const GlassSearchBar = styled(Paper)(({ theme }) => ({
 }));
 
 export const RequestList = () => {
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const {theme} = useTheme();
-    const [requests, setRequests] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [page, setPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [filteredRequests, setFilteredRequests] = useState([]);
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [anchorE1, setAnchorE1] = useState(null);
-    const [tabValue, setTabValue] = useState(0);
-    const [stats,setStats] = useState({
-        total: 0,
-        requested: 0,
-        sample_taken: 0,
-        ready: 0,
-        cancelled: 0,
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { theme } = useTheme();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [filteredRequests, setFilteredRequests] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [anchorE1, setAnchorE1] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    requested: 0,
+    sample_taken: 0,
+    ready: 0,
+    cancelled: 0,
+  });
+  const [opensendingDialog, setOpenSendingDialog] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  useEffect(() => {
+    filteredRequests = requests.filter(req => {
+      const matchesSearch = req.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) || req.test_name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
+      const matchesTab = tabValue === 0 || (tabValue === 1 && req.status === 'requested') || (tabValue === 2 && req.status === 'sample_taken') || (tabValue === 3 && req.status === 'ready') || (tabValue === 4 && req.status === 'cancelled');
+      return matchesSearch && matchesStatus && matchesTab;
     });
-    const [opensendingDialog, setOpenSendingDialog] = useState(false);
+    setFilteredRequests(filteredRequests);
+    setPage(1);
+    calculateStats();
+  }, [requests, searchTerm, statusFilter]);
 
-    useEffect(()=>{
-        fetchRequests();
-    },[]);
-
-    useEffect(()=>{
-        filteredRequests = requests.filter(req=>{
-            const matchesSearch = req.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) || req.test_name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
-            const matchesTab = tabValue === 0 || (tabValue === 1 && req.status === 'requested') || (tabValue === 2 && req.status === 'sample_taken') || (tabValue === 3 && req.status === 'ready') || (tabValue === 4 && req.status === 'cancelled');
-            return matchesSearch && matchesStatus && matchesTab;
-        });
-        setFilteredRequests(filteredRequests);
-        setPage(1);
-        calculateStats();
-    },[requests,searchTerm,statusFilter]);
-
-    const fetchRequests = async ()=>{
-        try{
-            const response = await labServices.getLabRequestList({ordering: '-created_at'});
-            if(response.data.status !== 'success') throw new Error('Failed to fetch requests');
-            setRequests(response.data.requests);
-            setStats(response.data.stats);
-            setLoading(true);
-        }catch(err){
-          setSnackbar({ open: true, message: 'Failed to load requests. Please try again later.', severity: 'error' });
-          setRequests([]);
-          setError('Failed to load requests. Please try again later.');
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    const getTabCount = (type)=>{
-      if(type === 'all') return stats.total;
-      if(type === 'requested') return stats.requested;
-      if(type === 'sample_taken') return stats.sample_taken;
-      if(type === 'ready') return stats.ready;
-      if(type === 'cancelled') return stats.cancelled;
-      return 0;
-    };
-
-    const paginatedRequests = filteredRequests.slice(
-      (page - 1) * rowsPerPage,
-      page * rowsPerPage
-    );
-
-    const calculateStats = ()=>{
-        const total = filteredRequests.length;
-        const requested = filteredRequests.reduce((count,req)=> count + (req.status === 'requested'? 1: 0),0);
-        const sample_taken = filteredRequests.reduce((count,req)=> count + (req.status === 'sample_taken'? 1: 0),0);
-        const ready = filteredRequests.reduce((count,req)=> count + (req.status === 'ready'? 1: 0),0);
-        const cancelled = filteredRequests.reduce((count,req)=> count + (req.status === 'cancelled'? 1: 0),0);
-        setStats({ total, requested, sample_taken, ready, cancelled });
-    };
-
-    const handleViewRequest = (requestId)=> navigate(`/labTechnician/detail_view/${requestId}/request`);
-    const handleStatusChange = async (requestId, newStatus)=>{
-        try{
-          const res = await labServices.updateRequestStatus(requestId,newStatus);
-          toast.success(`Request ${requestId} status changed to ${newStatus}`);
-          fetchRequests();
-          setLoading(true);
-        }catch(err){
-            toast.error('Failed to update request status. Please try again.');
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    if(loading && requests.length === 0){
-      return(
-        <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'400px'}}><CircularProgress/></Box>
-      );
+  const fetchRequests = async () => {
+    try {
+      const response = await labServices.getLabRequestList({ ordering: '-created_at' });
+      if (response.data.status !== 'success') throw new Error('Failed to fetch requests');
+      setRequests(response.data.requests);
+      setStats(response.data.stats);
+      setLoading(true);
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Failed to load requests. Please try again later.', severity: 'error' });
+      setRequests([]);
+      setError('Failed to load requests. Please try again later.');
+    } finally {
+      setLoading(false);
     }
+  };
 
-     return (
+  const getTabCount = (type) => {
+    if (type === 'all') return stats.total;
+    if (type === 'requested') return stats.requested;
+    if (type === 'sample_taken') return stats.sample_taken;
+    if (type === 'ready') return stats.ready;
+    if (type === 'cancelled') return stats.cancelled;
+    return 0;
+  };
+
+  const handleProcessTest = (requestId) => {
+    navigate(`/labTechnician/detail_view/${requestId}/request`);
+  };
+
+  const paginatedRequests = filteredRequests.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const calculateStats = () => {
+    const total = filteredRequests.length;
+    const requested = filteredRequests.reduce((count, req) => count + (req.status === 'requested' ? 1 : 0), 0);
+    const sample_taken = filteredRequests.reduce((count, req) => count + (req.status === 'sample_taken' ? 1 : 0), 0);
+    const ready = filteredRequests.reduce((count, req) => count + (req.status === 'ready' ? 1 : 0), 0);
+    const cancelled = filteredRequests.reduce((count, req) => count + (req.status === 'cancelled' ? 1 : 0), 0);
+    setStats({ total, requested, sample_taken, ready, cancelled });
+  };
+
+  const handleViewRequest = (requestId) => navigate(`/labTechnician/detail_view/${requestId}/request`);
+  const handleStatusChange = async (requestId, newStatus) => {
+    try {
+      const res = await labServices.updateRequestStatus(requestId, newStatus);
+      toast.success(`Request ${requestId} status changed to ${newStatus}`);
+      fetchRequests();
+      setLoading(true);
+    } catch (err) {
+      toast.error('Failed to update request status. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && requests.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}><CircularProgress /></Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
@@ -239,14 +249,14 @@ export const RequestList = () => {
             <CardContent>
               <Typography variant="caption" color="textSecondary" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
                 Total
-                  </Typography>
+              </Typography>
               <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>
                 {stats.total}
               </Typography>
             </CardContent>
           </StatsCard>
         </Grid>
-        
+
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#ed6c02" onClick={() => setTabValue(1)}>
             <CardContent>
@@ -259,7 +269,7 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-        
+
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#0288d1" onClick={() => setTabValue(2)}>
             <CardContent>
@@ -272,7 +282,7 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-        
+
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#2e7d32" onClick={() => setTabValue(3)}>
             <CardContent>
@@ -285,7 +295,7 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-        
+
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#1b5e20" onClick={() => setTabValue(4)}>
             <CardContent>
@@ -298,7 +308,7 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-        
+
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#c62828" onClick={() => setTabValue(5)}>
             <CardContent>
@@ -426,7 +436,7 @@ export const RequestList = () => {
                           </Box>
                         </Box>
                       </Grid>
-                      
+
                       <Grid item xs={12} md={3}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar sx={{ width: 28, height: 28, bgcolor: alpha(theme.palette.info.main, 0.1) }}>
@@ -442,7 +452,7 @@ export const RequestList = () => {
                           </Box>
                         </Box>
                       </Grid>
-                      
+
                       <Grid item xs={12} md={2}>
                         <Typography variant="body2" color="textSecondary">
                           Doctor:
@@ -451,19 +461,19 @@ export const RequestList = () => {
                           Dr. {request.doctor?.user?.full_name || 'N/A'}
                         </Typography>
                       </Grid>
-                      
+
                       <Grid item xs={12} md={2}>
                         <StatusChip
-                          icon={request.status === 'requested' ? <PendingIcon /> : 
-                                request.status === 'processing' ? <BiotechIcon /> :
-                                request.status === 'sample_taken' ? <CheckIcon /> :
+                          icon={request.status === 'requested' ? <PendingIcon /> :
+                            request.status === 'processing' ? <BiotechIcon /> :
+                              request.status === 'sample_taken' ? <CheckIcon /> :
                                 <ReadyIcon />}
                           label={request.status}
                           status={request.status}
                           size="small"
                         />
                       </Grid>
-                      
+
                       <Grid item xs={12} md={2}>
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {request.status === 'requested' && (

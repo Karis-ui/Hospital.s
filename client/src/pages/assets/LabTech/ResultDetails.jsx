@@ -29,7 +29,9 @@ import {
   TextField,
   Tooltip,
   IconButton,
-  LinearProgress,} from '@mui/material';
+  LinearProgress,
+  TableHead
+} from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
   ArrowBack as BackIcon,
@@ -56,7 +58,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
 import { labServices } from '../../../services/users/labtech';
 import { el } from 'date-fns/locale';
-import {useConfirm} from '../../../theme/useConfirm';
+import { useConfirm } from '../../../theme/useConfirm';
 
 const HeroSection = styled(Paper)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.info.main} 100%)`,
@@ -167,161 +169,175 @@ const ActionButton = styled(Button)(({ theme, variant, color }) => ({
   },
 }));
 
-export const ResultDetails = ()=>{
-    const {id} = useParams();
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const confirm = useConfirm();
-    const [report,setReport] = useState(null);
-    const [loading,setLoading] = useState(true);
-    const [openRejectDialog,setOpenRejectDialog] = useState(false);
-    const [openApproveDialog,setOpenApproveDialog] = useState(false);
-    const [rejectReason,setRejectReason] = useState('');
-    const [sending,setSending] = useState(false);
+export const ResultDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const confirm = useConfirm();
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [openRejectDialog, setOpenRejectDialog] = useState(false);
+  const [openApproveDialog, setOpenApproveDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [sending, setSending] = useState(false);
 
-    useEffect(()=>{
-        fetchReportDetails();
-    },[id]);
+  useEffect(() => {
+    fetchReportDetails();
+  }, [id]);
 
-    const fetchReportDetails = async()=>{
-        setLoading(true);
-        try{
-            const res = await labServices.getDetailReportView(id);
-            if(res.data.status === 'success'){
-                setReport(res.data.data);
-            }else{
-                throw new Error('Failed to load report details.');
-            }
-        }catch(err){
-            console.error('Error fetching report details:',err);
-            toast.error('Failed to load report details.');
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    const handleApprove = async()=>{
-        const confirmed = await confirm({
-            title: 'Approve Report',
-            content: 'Are you sure you want to approve this report?',
-            type:'success',
-            confirmText:'Approve',
-            confirmColor:'success',
-        });
-        if (!confirmed) return;
-        try{
-            const response = await labServices.approveResult(id);
-            if(response.data.status === 'success'){
-                toast.success('Report approved successfully');
-                fetchReportDetails();
-                setOpenApproveDialog(false);
-            }else{
-                throw new Error('Failed to approve report.');
-            }
-        }catch(err){
-            toast.error(err.response?.data?.message || 'Failed to approve result.');
-        }
-    };
-
-    const handleReject = async()=>{
-      const confirmed = await confirm({
-        title: 'Reject Report',
-        content: 'Are you sure you want to reject this report? Please provide a reason for rejection.',
-        type:'warning',
-        confirmText:'Reject',
-        confirmColor:'error',
-      });
-      if (!confirmed) return; 
-        if(!rejectReason.trim()){
-            toast.warning('Please provide enough reason for rejection.');
-            return;
-        }
-        try{
-            const response = await labServices.rejectResult(id,{reason: rejectReason});
-            if(response.data.status === 'success'){
-                toast.success('Report rejected successfully.');
-                fetchReportDetails();
-                setOpenRejectDialog(false);
-                setRejectReason('');
-            }else{
-                throw new Error('Failed to uphold rejection!');
-            }
-        }catch(err){
-            toast.error(err.response?.data?.message || 'Failed to reject report.');
-        }
-    };
-
-    const handleSendToDoctor = async()=>{
-        setSending(true);
-        try{
-            const response = await labServices.sendToDoctor(id);
-            if(response.data.status === 'success'){
-                toast.success('Report sent to doctor successfully.');
-                fetchReportDetails();
-            }else{
-                throw new Error('Failed to send report.');
-            }
-        }catch(err){
-            toast.error(err.response?.data?.message || 'Failed to send report!');
-        }finally{
-            setSending(false);
-        }
-    };
-
-    const handleDownloadPrint = ()=>{
-        if(report?.report_file){
-            window.open(report.report_file,'_blank');
-        }else{
-            toast.info('No report file available.');
-        }
-        window.print();
-    };
-
-    const getStatusConfig = ()=>{
-        if(report?.is_approved) return {label: 'Approved',status: 'approved',icon:<ApprovedIcon/>,color:'#2e7d32'};
-        if(report?.reject_reason) return {label: 'Rejected',status: 'rejected',icon:<RejectedIcon/>,color:'#c62828'};
-        return {label:'Pending Approval',status:'pending',icon:<PendingIcon/>,color:'#ed6c02'};
-    };
-
-    const isAbnormal = (value,referenceRange)=>{
-        if(!value || !referenceRange) return false;
-        const numValue = parseFloat(value);
-        if(isNaN(numValue)) return false;
-
-        if(referenceRange.includes('-')){
-            const [min,max] = referenceRange.split('-').map(Number);
-            return numValue < min || numValue > max;
-        }
-        if(referenceRange.startsWith('<')){
-            const max = parseFloat(referenceRange.subString(1));
-            return numValue >= max;
-        }
-        if(referenceRange.startsWith('>')){
-            const min = parseFloat(referenceRange.subString(1));
-            return numValue <= min;
-        }
-        return false;
-    };
-
-    if(loading){
-        return(
-        <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'400px'}}><CircularProgress/></Box>
-    );}
-    if(!report){
-        return(
-            <Box sx={{p:3}}>
-                <Alert severity='error' sx={{borderRadius:3}}>Report not found</Alert>
-                <Button sx={{mt:2}} onClick={()=> navigate('/lab/report-list/')}>Back to Results.</Button>
-            </Box>
-        );
+  const fetchReportDetails = async () => {
+    setLoading(true);
+    try {
+      const res = await labServices.getDetailReportView(id);
+      if (res.data.status === 'success') {
+        setReport(res.data.data);
+      } else {
+        throw new Error('Failed to load report details.');
+      }
+    } catch (err) {
+      console.error('Error fetching report details:', err);
+      toast.error('Failed to load report details.');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const statusConfig = getStatusConfig();
-    const patient = report.lab_request?.patient;
-    const doctor = report.lab_request?.doctor;
-    const testRequest = report.lab_request;
+  const handleApprove = async () => {
+    const confirmed = await confirm({
+      title: 'Approve Report',
+      content: 'Are you sure you want to approve this report?',
+      type: 'success',
+      confirmText: 'Approve',
+      confirmColor: 'success',
+    });
+    if (!confirmed) return;
+    try {
+      const response = await labServices.approveResult(id);
+      if (response.data.status === 'success') {
+        toast.success('Report approved successfully');
+        fetchReportDetails();
+        setOpenApproveDialog(false);
+      } else {
+        throw new Error('Failed to approve report.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve result.');
+    }
+  };
 
+  const handleReject = async () => {
+    const confirmed = await confirm({
+      title: 'Reject Report',
+      content: 'Are you sure you want to reject this report? Please provide a reason for rejection.',
+      type: 'warning',
+      confirmText: 'Reject',
+      confirmColor: 'error',
+    });
+    if (!confirmed) return;
+    if (!rejectReason.trim()) {
+      toast.warning('Please provide enough reason for rejection.');
+      return;
+    }
+    try {
+      const response = await labServices.rejectResult(id, { reason: rejectReason });
+      if (response.data.status === 'success') {
+        toast.success('Report rejected successfully.');
+        fetchReportDetails();
+        setOpenRejectDialog(false);
+        setRejectReason('');
+      } else {
+        throw new Error('Failed to uphold rejection!');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reject report.');
+    }
+  };
+
+  const handleSendToDoctor = async () => {
+    setSending(true);
+    try {
+      const response = await labServices.sendToDoctor(id);
+      if (response.data.status === 'success') {
+        toast.success('Report sent to doctor successfully.');
+        fetchReportDetails();
+      } else {
+        throw new Error('Failed to send report.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send report!');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (report?.report_file) {
+      const link = document.createElement('a');
+      link.href = report.report_file;
+      link.download = `report_${report.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      toast.info('No report file available.');
+    }
+  };
+
+  const handlePrint = () => {
+    if (report?.report_file) {
+      window.open(report.report_file, '_blank');
+    } else {
+      toast.info('No report file available.');
+    }
+    window.print();
+  };
+
+  const getStatusConfig = () => {
+    if (report?.is_approved) return { label: 'Approved', status: 'approved', icon: <ApprovedIcon />, color: '#2e7d32' };
+    if (report?.reject_reason) return { label: 'Rejected', status: 'rejected', icon: <RejectedIcon />, color: '#c62828' };
+    return { label: 'Pending Approval', status: 'pending', icon: <PendingIcon />, color: '#ed6c02' };
+  };
+
+  const isAbnormal = (value, referenceRange) => {
+    if (!value || !referenceRange) return false;
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return false;
+
+    if (referenceRange.includes('-')) {
+      const [min, max] = referenceRange.split('-').map(Number);
+      return numValue < min || numValue > max;
+    }
+    if (referenceRange.startsWith('<')) {
+      const max = parseFloat(referenceRange.subString(1));
+      return numValue >= max;
+    }
+    if (referenceRange.startsWith('>')) {
+      const min = parseFloat(referenceRange.subString(1));
+      return numValue <= min;
+    }
+    return false;
+  };
+
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}><CircularProgress /></Box>
+    );
+  }
+  if (!report) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity='error' sx={{ borderRadius: 3 }}>Report not found</Alert>
+        <Button sx={{ mt: 2 }} onClick={() => navigate('/lab/report-list/')}>Back to Results.</Button>
+      </Box>
+    );
+  }
+
+  const statusConfig = getStatusConfig();
+  const patient = report.lab_request?.patient;
+  const doctor = report.lab_request?.doctor;
+  const testRequest = report.lab_request;
+
+  return (
     <Box sx={{ p: 3 }}>
       <HeroSection>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
@@ -361,7 +377,7 @@ export const ResultDetails = ()=>{
               <SectionTitle variant="h6">
                 <LabIcon /> Test Results
               </SectionTitle>
-              
+
               {report.results_data?.parameters && report.results_data.parameters.length > 0 ? (
                 <ParameterTable>
                   <Table>
@@ -396,12 +412,12 @@ export const ResultDetails = ()=>{
                                   size="small"
                                   sx={{
                                     bgcolor: alpha(
-                                      param.status === 'normal' ? '#2e7d32' : 
-                                      param.status === 'high' ? '#c62828' : '#ed6c02',
+                                      param.status === 'normal' ? '#2e7d32' :
+                                        param.status === 'high' ? '#c62828' : '#ed6c02',
                                       0.1
                                     ),
-                                    color: param.status === 'normal' ? '#2e7d32' : 
-                                           param.status === 'high' ? '#c62828' : '#ed6c02',
+                                    color: param.status === 'normal' ? '#2e7d32' :
+                                      param.status === 'high' ? '#c62828' : '#ed6c02',
                                   }}
                                 />
                               )}
@@ -474,7 +490,7 @@ export const ResultDetails = ()=>{
               <SectionTitle variant="h6">
                 <AssessmentIcon /> Report Information
               </SectionTitle>
-              
+
               <Stack spacing={2}>
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Report ID:</Typography>
@@ -514,7 +530,7 @@ export const ResultDetails = ()=>{
               <SectionTitle variant="h6">
                 <PersonIcon /> Patient Information
               </SectionTitle>
-              
+
               <Stack spacing={2}>
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Name:</Typography>
@@ -547,7 +563,7 @@ export const ResultDetails = ()=>{
               <SectionTitle variant="h6">
                 <MedicalIcon /> Referring Doctor
               </SectionTitle>
-              
+
               <Stack spacing={2}>
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Name:</Typography>
@@ -624,7 +640,7 @@ export const ResultDetails = ()=>{
               <SectionTitle variant="h6">
                 <ScheduleIcon /> Actions
               </SectionTitle>
-              
+
               <Stack spacing={2}>
                 {!report.is_approved && !report.rejected_reason && (
                   <>
@@ -648,7 +664,7 @@ export const ResultDetails = ()=>{
                     </ActionButton>
                   </>
                 )}
-                
+
                 {report.is_approved && !report.is_sent_to_doctor && (
                   <ActionButton
                     fullWidth
@@ -660,7 +676,7 @@ export const ResultDetails = ()=>{
                     {sending ? 'Sending...' : 'Send to Doctor'}
                   </ActionButton>
                 )}
-                
+
                 <ActionButton
                   fullWidth
                   variant="outlined"
@@ -669,7 +685,7 @@ export const ResultDetails = ()=>{
                 >
                   Download Report
                 </ActionButton>
-                
+
                 <ActionButton
                   fullWidth
                   variant="outlined"
