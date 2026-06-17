@@ -186,7 +186,7 @@ export const SearchResults = () =>{
         setFilteredResults(null);
     };
 
-    const handleSaveResults = (result) =>{
+    const handleSaveResult = (result) =>{
         const isSaved = savedResults.some(r => r.id === result.id);
         if(isSaved){
             setSavedResults(savedResults.filter(r => r.id !== result.id));

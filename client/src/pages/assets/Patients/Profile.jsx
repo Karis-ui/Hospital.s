@@ -30,11 +30,13 @@ import {
   Autocomplete,
   List,
   ListItem,
+  ListItemIcon,
   ListItemText,
   ListItemAvatar,
   ListItemButton,
   styled,
-  Tab,
+  Tab,Badge,Tooltip,LinearProgress,Tabs,
+  DialogActions,DialogContent,Dialog,DialogTitle,Switch,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -42,7 +44,7 @@ import {
   AccessTime as TimeIcon,
   Person as PersonIcon,
   CheckCircle as CheckIcon,
-  LocalHospital as HospitalIcon,
+  LocalHospital as LocalHospitalIcon,
   MedicalServices as ServiceIcon,
   Star as StarIcon,
   LocationOn as LocationIcon,
@@ -55,6 +57,9 @@ import {
   Ear as EarIcon,
   ChildCare as PediatricIcon,
   Emergency as EmergencyIcon,
+  Edit as EditIcon,Security as SecurityIcon,Save as SaveIcon,Cancel as CancelIcon,Verified as VerifiedIcon,Email as EmailIcon,
+  Phone as PhoneIcon,HealthAndSafety as HealthIcon,Payment as PaymentIcon,Settings as SettingsIcon,Lock as LockIcon,Fingerprint as FingerprintIcon,
+  Warning as WarningIcon,Bloodtype as BloodIcon,Height as HeightIcon,LineWeight as WeightIcon,Medication as MedicationIcon,Info as InfoIcon,Dangerous as AllergyIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -204,9 +209,15 @@ export const PatientProfile = () =>{
     }
   };
 
-  const handleAddAllergy = (allergy) =>{
+  const handleAddAllergy = (index) =>{
     setFormData({
       ...formData,allergies: formData.allergies.filter((_,i) => i !== index),
+    });
+  };
+
+  const handleRemoveAllergy = (index)=>{
+    setFormData({
+      ...formData,allergies: formData.allergies.filter((_,i)=> i == index),
     });
   };
 
@@ -296,7 +307,7 @@ export const PatientProfile = () =>{
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Chip icon={<EmailIcon />} label={formData.email} variant="outlined" />
               <Chip icon={<PhoneIcon />} label={formData.phone} variant="outlined" />
-              <Chip icon={<CalendarIcon />} label={`Member since ${format(profile?.memberSince || new Date(), 'MMMM yyyy')}`} variant="outlined" />
+              <Chip icon={<CalendarIcon />} label={`Member since ${formatDate(profile?.memberSince || new Date(), 'MMMM yyyy')}`} variant="outlined" />
             </Box>
           </Grid>
           

@@ -42,6 +42,7 @@ import {
   Grow,
   Slide,
   Zoom as ZoomTransition,
+  Dialog,DialogActions,DialogContent,DialogTitle
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import {
@@ -80,6 +81,8 @@ import {
   CheckCircleOutline as CheckCircleOutlineIcon,
   ErrorOutline as ErrorOutlineIcon,
   HelpOutline as HelpOutlineIcon,
+  Medication as MedicationIcon,
+  PrintSharp as PrintReceiptIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -90,6 +93,7 @@ import { useAuth } from '../../../context/authContext';
 import { doctorSevice } from '../../../services/users/doctor';
 import { formatDate, getInitials } from '../../../formatters';
 import { el } from 'date-fns/locale';
+import { platinumTheme as theme } from '../../../theme/adminComponents';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -221,6 +225,7 @@ export const WritePrescription = () =>{
   const [prescriptionData,setPrescriptionData] = useState({
     diagnosis: '',clinicalNotes: '',startDate: new Date(),endDate: addDays(new Date,30),refills: 0,is_controlled: false,
   });
+  const getDosageOptions = useState(DOSAGE_SUGGESTIONS);
   const [activeStep,setActiveStep] = useState(0);
   const [pageLoaded,setPageLoaded] = useState(false);
   const steps = ['Select Patient',['Add Medications','Review & Send']];
@@ -697,7 +702,7 @@ export const WritePrescription = () =>{
                         </Box>
                         <Tooltip title="Change Patient" TransitionComponent={ZoomTransition}>
                           <IconButton 
-                            onClick={() => setSelectedPatient(null)}
+                            onClick={() => setSlectedPatient(null)}
                             sx={{ 
                               bgcolor: alpha('#f44336', 0.1),
                               '&:hover': { bgcolor: alpha('#f44336', 0.2) },
@@ -729,7 +734,7 @@ export const WritePrescription = () =>{
                   <Card
                     sx={{
                       borderRadius: 3,
-                      border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                      border: `2px solid ${alpha(theme.primary.main, 0.1)}`,
                       background: `linear-gradient(135deg, ${alpha('#fff', 0.9)} 0%, ${alpha('#f5f5f5', 0.9)} 100%)`,
                     }}
                   >
@@ -841,10 +846,10 @@ export const WritePrescription = () =>{
                           mt: 2,
                           borderRadius: 3,
                           py: 1.5,
-                          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                          background: `linear-gradient(45deg, ${theme.primary.main}, ${theme.primary.light})`,
                           '&:hover': {
                             transform: 'translateY(-2px)',
-                            boxShadow: theme.shadows[5],
+                            boxShadow: theme.background.dark,
                           },
                         }}
                       >
@@ -889,7 +894,7 @@ export const WritePrescription = () =>{
                                   <CardContent sx={{ py: 1.5 }}>
                                     <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                                       <ListItemAvatar>
-                                        <Avatar sx={{ bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.main }}>
+                                        <Avatar sx={{ bgcolor: alpha(theme.primary.main), color: theme.primary.main }}>
                                           <MedicationIcon />
                                         </Avatar>
                                       </ListItemAvatar>
@@ -924,7 +929,7 @@ export const WritePrescription = () =>{
                                         <IconButton
                                           size="small"
                                           onClick={() => handleRemoveMedication(item.id)}
-                                          sx={{ color: theme.palette.error.main }}
+                                          sx={{ color: theme.status.error }}
                                         >
                                           <DeleteIcon />
                                         </IconButton>
@@ -1082,10 +1087,10 @@ export const WritePrescription = () =>{
                             mb: 1,
                             borderRadius: 2,
                             bgcolor: alpha(theme.palette.info.main, 0.05),
-                            border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+                            border: `1px solid ${alpha(theme.primary.main, 0.1)}`,
                           }}
                         >
-                          <MedicationIcon sx={{ color: theme.palette.info.main, mr: 2 }} />
+                          <MedicationIcon sx={{ color: theme.primary.main, mr: 2 }} />
                           <Box sx={{ flex: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
                               {item.medication} {item.dosage}
@@ -1230,7 +1235,7 @@ export const WritePrescription = () =>{
                         sx={{ 
                           mt: 1,
                           borderRadius: 2,
-                          bgcolor: alpha(theme.palette.info.main, 0.1),
+                          bgcolor: alpha(theme.primary.main, 0.1),
                         }}
                       >
                         <Typography variant="body2">
@@ -1358,10 +1363,10 @@ export const WritePrescription = () =>{
                     borderRadius: 3,
                     px: 4,
                     py: 1.5,
-                    background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.light})`,
+                    background: `linear-gradient(45deg, ${theme.status.success}, ${theme.status.success})`,
                     '&:hover': {
                       transform: 'translateY(-2px)',
-                      boxShadow: theme.shadows[5],
+                      boxShadow: theme.background.dark,
                     },
                   }}
                 >
@@ -1375,10 +1380,10 @@ export const WritePrescription = () =>{
                     borderRadius: 3,
                     px: 4,
                     py: 1.5,
-                    background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                    background: `linear-gradient(45deg, ${theme.primary.main}, ${theme.primary.light})`,
                     '&:hover': {
                       transform: 'translateY(-2px)',
-                      boxShadow: theme.shadows[5],
+                      boxShadow: theme.background.dark,
                     },
                   }}
                 >

@@ -1,5 +1,4 @@
 import api from "../api";
-import { data } from "react-router-dom";
 
 export const PatientService = {
     getDashboard: () => api.get(`/patient/dashboard/`),
@@ -20,11 +19,12 @@ export const PatientService = {
     confirmAppointment: (id) => api.post(`/appointment/${id}/confirm/`),
     getAllAppointments: () => api.get(`/appointment/list/`),
     rescheduleAppointments: (id) => api.get(`/appointments/${id}/reschedule/`),
+    detailAppointmentView: (id) => api.get(`/patient/${id}/appointment/`),
 
     getMedicalRecords: () => api.get(`/patient/medical-records/`),
-    addMedicalrecords: () => api.post(`/patient/medical-records/`, data),
+    addMedicalrecords: (data) => api.post(`/patient/medical-records/`, data),
     getVitals: () => api.get(`/patient/vital-views/`),
-    addVital: () => api.post(`patient/vital-views/`, data),
+    addVital: (data) => api.post(`patient/vital-views/`, data),
     detailAppointmentView: (id) => api.get(`/patient/${id}/appointment/`),
     searchAll: async (query = {}, filters = {}) => {
         const response = await api.get('/patient/search', {

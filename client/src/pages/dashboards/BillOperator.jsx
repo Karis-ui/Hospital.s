@@ -45,7 +45,7 @@ import {
   Stack,
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
-import { DataGrid } from '@mui/x-data-grid';
+import {DataGrid} from '@mui/x-data-grid';
 import {
   Dashboard as DashboardIcon,
   Receipt as ReceiptIcon,

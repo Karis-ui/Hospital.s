@@ -1,5 +1,4 @@
 import api from "../api";
-import { data } from "react-router-dom";
 
 export const doctorSevice = {
     getDashboard: () => api.get(`/doctor/dashboard/`),
@@ -24,9 +23,9 @@ export const doctorSevice = {
     rescheduleAppointments: (id) => api.get(`/appointments/${id}/reschedule/`),
 
     getPatientMedicalRecords: (id) => api.get(`/doctor/get/${id}/medical-records/`),
-    addPatientMedicalrecords: (id) => api.post(`/doctor/create/${id}/medical-records/`, data),
+    addPatientMedicalrecords: (id,data) => api.post(`/doctor/create/${id}/medical-records/`, data),
     getPatientVitals: (id) => api.get(`/doctor/get/${id}/vital-views/`),
-    addPatientVital: (id) => api.post(`/doctor/create/${id}/vital-views/`, data),
+    addPatientVital: (id,data) => api.post(`/doctor/create/${id}/vital-views/`, data),
 };
 
 export default doctorSevice;

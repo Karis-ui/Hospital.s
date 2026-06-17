@@ -40,6 +40,7 @@ import {
   SpeedDialAction,
   SpeedDialIcon,
   Backdrop,
+  MenuItem
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -149,7 +150,8 @@ export const MedicalRecords = () =>{
     const [formData,setFormData] = useState({});
     const [submitting,setSubmitting] = useState(false);
     const [speedDialOpen,setSpeedDialOpen] = useState(false);
-
+    const [actions,setActions] = useState([]);
+ 
     useEffect(() =>{
         fetchMedicalRecords();
     },[]);
@@ -229,6 +231,41 @@ export const MedicalRecords = () =>{
             setSubmitting(false);
         }
     };
+
+    const handleExportAll = ()=>{
+      if(filteredRecords.length === 0){
+        alert('No records present.');
+        return;
+      }
+      const dataStr = JSON.stringify(filteredRecords,null,2);
+      const blob = new Blob([dataStr],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `records-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
+    const handleViewRecord = async()=>{
+      navigate(`/patient/medical-records/`);
+    };
+
+    const handleDownload = (record)=>{
+      if(!record) return;
+      const dataStr = JSON.stringify(record,null,2);
+      const blob = new Blob([dataStr],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${record.name || record.id}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
 
     const action = [
         {icon: <DiagnosisIcon/>,name:'Add Diagnosis',action: ()=>{setRecordType('diagnosis');setAddDialog(true);}},
@@ -465,7 +502,6 @@ export const MedicalRecords = () =>{
         ))}
       </SpeedDial>
 
-      {/* Add Record Dialog */}
       <Dialog open={addDialog} onClose={() => setAddDialog(false)} maxWidth="sm" fullWidth TransitionComponent={Zoom}>
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

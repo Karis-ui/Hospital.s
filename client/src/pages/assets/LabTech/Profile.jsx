@@ -184,7 +184,7 @@ export const Profile = ()=>{
         pending: 0,
         approvalRate: 0,
     });
-    const [snackBar,setSnackBar] = useState({open:false,message:'',severity:'success'});
+    const [snackbar,setSnackbar] = useState({open:false,message:'',severity:'success'});
 
     useEffect(()=>{
         fetchProfile();
@@ -234,15 +234,24 @@ export const Profile = ()=>{
                 setProfile(response.data.data);
                 setEditing(false);
                 toast.success('Profile updated successfully.');
-                setSnackBar({open:true,message:'Profile updated successfully.',severity:'success'});
+                setSnackbar({open:true,message:'Profile updated successfully.',severity:'success'});
             }else{
                 throw new Error('Failed to update profile.Try again.');
             }
         }catch(err){
             toast.error(err.response?.data?.message);
-            setSnackBar({open:true,message:'Failed to update profile',severity:'error'});
+            setSnackbar({open:true,message:'Failed to update profile',severity:'error'});
         }finally{setLoading(false);}
     };
+
+const handleToggleAvailability = (id) => {
+  console.log('Toggle availability for:', id);
+};
+
+const handleCancel = () => {
+  console.log('Cancel action');
+  navigate('/lab-techs');
+};
 
     const handleChange = (field,value)=>{
         setEditForm(prev =>({...prev,[field]:value}));

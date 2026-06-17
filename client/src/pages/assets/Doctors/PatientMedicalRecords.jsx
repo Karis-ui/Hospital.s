@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -76,6 +76,7 @@ import {
   Schedule as ScheduleIcon,
   History as HistoryIcon,
   LocalHospital as HospitalIcon,
+  Dashboard as DashboardIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../context/authContext';
 import { doctorSevice } from '../../../services/users/doctor';
@@ -208,7 +209,7 @@ export const PatientMedicalRecords = () =>{
     const navigate = useNavigate();
     const {user} = useAuth();
     const theme = useTheme();
-
+    const Refgrid = React.useRef();
     const [loading,setLoading] = useState(true);
     const [patient,setPatient] = useState(null);
     const [records,setRecords] = useState(null);
@@ -306,7 +307,7 @@ export const PatientMedicalRecords = () =>{
         }
     };
 
-    const handleRecordCunt = ()=>{
+    const handleRecordCunt = (type)=>{
       if(type === 'all') return records.length;
       return records.filter(r => r.record_type === type.length);
     };
@@ -322,6 +323,17 @@ export const PatientMedicalRecords = () =>{
         window.location.href = `mailto:${patient.email}`;
       }
     };
+
+    const handleExport = ()=>{
+      const csvExport = {
+        delimiter:'',utfWithBom:true
+      };
+      Refgrid.current.exportDataAsCsv(csvExport);
+    };
+
+    const handleViewRecord = (record)=>{
+      navigate(`/doctor/get/${record.id}/medical-records`)
+    }
     
     const quickActions = [
         {icon: <DiagnosisIcon/>,name:'Add Diagnosis',color:theme.palette.primary.main,action: ()=>{setRecordType('diagnosis');setAddDialog(true);}},
@@ -348,7 +360,7 @@ export const PatientMedicalRecords = () =>{
 
     if(error){
         return(
-            <Box sx={{p:{xs: 2,md:3},maxWidth1400,mx:'auto'}}>
+            <Box sx={{p:{xs: 2,md:3},maxWidth:1400,mx:'auto'}}>
                 <Alert severity='error'>{error}</Alert>
             </Box>
         );
@@ -403,7 +415,7 @@ export const PatientMedicalRecords = () =>{
                   onClick={handleContactPatient}
                   sx={{ bgcolor: alpha('#fff', 0.2), '&:hover': { bgcolor: alpha('#fff', 0.3) } }}
                 >
-                  Call Patient
+                  Contact Patient
                 </Button>
                 <Button
                   variant="contained"
@@ -416,10 +428,10 @@ export const PatientMedicalRecords = () =>{
                 <Button
                   variant="contained"
                   startIcon={<FileDownloadIcon />}
-                  onClick={handleExportAll}
+                  onClick={handleExport}
                   sx={{ bgcolor: alpha('#fff', 0.2), '&:hover': { bgcolor: alpha('#fff', 0.3) } }}
                 >
-                  Export All
+                  Export as CSV
                 </Button>
               </Stack>
             </Box>
@@ -538,7 +550,6 @@ export const PatientMedicalRecords = () =>{
                       <RecordCard
                         record={record}
                         onClick={handleViewRecord}
-                        onDownload={handleDownload}
                       />
                     </div>
                   </Grow>

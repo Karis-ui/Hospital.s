@@ -152,14 +152,14 @@ const VitalCard = styled(Card)(({ theme, color }) => ({
 }));
 
 const RiskBadge = styled(Chip)(({ theme, level }) => ({
-  backgroundColor: 
+  backgroundColor:
     level === 'high' ? alpha(theme.palette.error.main, 0.1) :
-    level === 'moderate' ? alpha(theme.palette.warning.main, 0.1) :
-    alpha(theme.palette.success.main, 0.1),
-  color: 
+      level === 'moderate' ? alpha(theme.palette.warning.main, 0.1) :
+        alpha(theme.palette.success.main, 0.1),
+  color:
     level === 'high' ? theme.palette.error.main :
-    level === 'moderate' ? theme.palette.warning.main :
-    theme.palette.success.main,
+      level === 'moderate' ? theme.palette.warning.main :
+        theme.palette.success.main,
   fontWeight: 600,
 }));
 
@@ -179,143 +179,143 @@ const SectionHeader = styled(Box)(({ theme }) => ({
 const StatusChip = styled(Chip)(({ theme, status }) => ({
   backgroundColor: alpha(
     status === 'completed' || status === 'paid' ? theme.palette.success.main :
-    status === 'pending' || status === 'scheduled' ? theme.palette.warning.main :
-    theme.palette.error.main, 0.1
+      status === 'pending' || status === 'scheduled' ? theme.palette.warning.main :
+        theme.palette.error.main, 0.1
   ),
-  color: 
+  color:
     status === 'completed' || status === 'paid' ? theme.palette.success.main :
-    status === 'pending' || status === 'scheduled' ? theme.palette.warning.main :
-    theme.palette.error.main,
+      status === 'pending' || status === 'scheduled' ? theme.palette.warning.main :
+        theme.palette.error.main,
   fontWeight: 600,
 }));
 
-export const PatientDetails = () =>{
-    const {id} = useParams();
-    const navigate = useNavigate();
-    const {user} = useAuth();
-    const [loading,setLoading] = useState(true);
-    const [patient,setPatient] = useState(null);
-    const [error,setError] = useState('');
-    const [tabValue,setTabValue] = useState(0);
-    const [appointments,setAppointments] = useState([]);
-    const [labResults, setLabResults] = useState([]);
-    const [sendDialog, setSendDialog] = useState(false);
-    const [anchorE1,setAnchorE1] = useState('');
-    const [messageText, setMessageText] = useState('');
-    const [appointmentData, setAppointmentData] = useState({
+export const PatientDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [patient, setPatient] = useState(null);
+  const [error, setError] = useState('');
+  const [tabValue, setTabValue] = useState(0);
+  const [appointments, setAppointments] = useState([]);
+  const [labResults, setLabResults] = useState([]);
+  const [sendDialog, setSendDialog] = useState(false);
+  const [anchorE1, setAnchorE1] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [appointmentData, setAppointmentData] = useState({
     date: null,
     time: '',
     reason: '',
   });
 
-   useEffect(() =>{
+  useEffect(() => {
     fetchPatientData();
-   },[id]);
+  }, [id]);
 
-  const fetchPatientData = async () =>{
-    try{
-        setLoading(true);
-        const patientResponse = await doctorSevice.patientDetail(id);
-        setPatient(patientResponse.data);
+  const fetchPatientData = async () => {
+    try {
+      setLoading(true);
+      const patientResponse = await doctorSevice.patientDetail(id);
+      setPatient(patientResponse.data);
 
-        const appointmentResponse = await doctorSevice.getAllAppointments();
-        const patientAppointments = appointmentResponse.data.filter(apt => apt.patient_id === parseInt(id));
-        setAppointments(patientAppointments);
+      const appointmentResponse = await doctorSevice.getAllAppointments();
+      const patientAppointments = appointmentResponse.data.filter(apt => apt.patient_id === parseInt(id));
+      setAppointments(patientAppointments);
 
-        const labResponse = await doctorSevice.getlabRequest(id);
-        setLabResults(labResponse.data || []);
-        setError('');
-    }catch(err){
-      console.error('Failed to fetch patient: ',err);
+      const labResponse = await doctorSevice.getlabRequest(id);
+      setLabResults(labResponse.data || []);
+      setError('');
+    } catch (err) {
+      console.error('Failed to fetch patient: ', err);
       setError(err?.response?.data?.message || 'Failed to load patient data');
-    }finally{
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleSendToPatient = async()=>{
-    try{
-      await doctorSevice.sendToPatient(id,{message: messageText});
+  const handleSendToPatient = async () => {
+    try {
+      await doctorSevice.sendToPatient(id, { message: messageText });
       toast.success('Message sent to patient successfully');
       setSendDialog(false);
       setMessageText('');
-    }catch(err){
+    } catch (err) {
       toast.error('Failed to send message');
     }
   };
 
-  const handleDownloadPDF = async() =>{
-    try{
+  const handleDownloadPDF = async () => {
+    try {
       const response = await doctorSevice.patientPdf(id);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download',`patient_${id}_summary.pdf`);
+      link.setAttribute('download', `patient_${id}_summary.pdf`);
       document.body.appendChild(link);
       link.click();
       toast.success('PDF downloaded');
-    }catch(err){
+    } catch (err) {
       toast.error('Failed to download PDF');
     }
   };
 
-  const handleViewAppointment = (appointmentId) =>{
+  const handleViewAppointment = (appointmentId) => {
     navigate(`/appointment/${appointmentId}/view`);
   };
 
-  const handleCreateLabRequest = () =>{
-    navigate('/lab/requests',{state: {patientId:id}});
+  const handleCreateLabRequest = () => {
+    navigate('/lab/requests', { state: { patientId: id } });
   };
 
-  const handleRescheduleAppointment = (appointmentId) =>{
+  const handleRescheduleAppointment = (appointmentId) => {
     navigate(`/appointments/${appointmentId}/reschedule`);
   };
 
-  const handleMessagePatient = () =>{
+  const handleMessagePatient = () => {
     setSendDialog(true);
   };
 
-  const handleContactPatient = () =>{
-    if(patient?.phone){
+  const handleContactPatient = () => {
+    if (patient?.phone) {
       window.location.href = `Tel: ${patient.phone}`;
     }
   };
 
-  const handleEmailPatient = () =>{
-    if(patient?.email){
+  const handleEmailPatient = () => {
+    if (patient?.email) {
       window.location.href = `Mail: ${patient.email}`;
     }
   };
 
-  const getInitialsFromPatient = () =>{
-    if(!patient) return 'P';
-    return getInitials(patient.first_name,patient.last_name);
+  const getInitialsFromPatient = () => {
+    if (!patient) return 'P';
+    return getInitials(patient.first_name, patient.last_name);
   };
 
-  if(loading){
-    return(
-      <Box sx={{p:3}}>
-        <Box sx={{display: 'flex',alignItems:'center',mb:3}}>
-          <Skeleton variant='circular' width={40} height={40} sx={{mr:2}}/>
-          <Skeleton variant='text' width={300} height={40}/>
+  if (loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Skeleton variant='circular' width={40} height={40} sx={{ mr: 2 }} />
+          <Skeleton variant='text' width={300} height={40} />
         </Box>
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
-            <Skeleton variant='rectangular' height={300} sx={{borderRadius: 2}}/>
+            <Skeleton variant='rectangular' height={300} sx={{ borderRadius: 2 }} />
           </Grid>
         </Grid>
       </Box>
     );
   }
-  if(error || !patient){
-    return(
-      <Box sx={{p: 3}}>
+  if (error || !patient) {
+    return (
+      <Box sx={{ p: 3 }}>
         <Alert severity='error' action={<Button color='inherit' size='small' onClick={() => navigate('/my/patients')}>Back to Patients.</Button>}>{error || 'Patient not found'}</Alert>
       </Box>
     );
   }
 
-   return (
+  return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <IconButton onClick={() => navigate('/doctor/patients')} sx={{ mr: 2 }}>
@@ -362,7 +362,7 @@ export const PatientDetails = () =>{
                 <Typography variant="h4" gutterBottom>
                   {patient.first_name} {patient.last_name}
                 </Typography>
-                
+
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
                   <Chip
                     icon={<CalendarIcon />}
@@ -416,8 +416,8 @@ export const PatientDetails = () =>{
         </Grid>
       </Paper>
 
-      <StyledTabs 
-        value={tabValue} 
+      <StyledTabs
+        value={tabValue}
         onChange={(e, v) => setTabValue(v)}
         sx={{ mb: 3 }}
       >
@@ -434,7 +434,7 @@ export const PatientDetails = () =>{
                 <SectionHeader>
                   <Typography variant="h6">Personal Information</Typography>
                 </SectionHeader>
-                
+
                 <List dense>
                   <ListItem>
                     <ListItemIcon><CalendarIcon /></ListItemIcon>
@@ -466,7 +466,7 @@ export const PatientDetails = () =>{
                 <Typography variant="h6" gutterBottom>
                   Medical Information
                 </Typography>
-                
+
                 <List dense>
                   <ListItem>
                     <ListItemIcon><HospitalIcon /></ListItemIcon>
@@ -502,7 +502,7 @@ export const PatientDetails = () =>{
             <SectionHeader>
               <Typography variant="h6">Appointment History</Typography>
             </SectionHeader>
-            
+
             {appointments.length > 0 ? (
               <TableContainer>
                 <Table>
@@ -571,7 +571,7 @@ export const PatientDetails = () =>{
                 New Lab Request
               </Button>
             </SectionHeader>
-            
+
             {labResults.length > 0 ? (
               <TableContainer>
                 <Table>
@@ -684,4 +684,6 @@ export const PatientDetails = () =>{
       </Menu>
     </Box>
   );
-}
+};
+
+export default PatientDetails;

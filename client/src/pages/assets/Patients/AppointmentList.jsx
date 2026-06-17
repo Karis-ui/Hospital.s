@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useConfirm } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -43,134 +43,155 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { toast } from 'react-toastify';
-import {useAuth} from '../../../context/authContext';
+import { useAuth } from '../../../context/authContext';
 import PatientService from '../../../services/users/patient';
 import { formatDate, formatTime } from '../../../formatters';
 import { da } from 'date-fns/locale';
 
 const AppointmentList = () => {
-    const navigate = useNavigate();
-    const { user} = useAuth();
-    const [loading ,setLoading] = useState(true);
-    const [appointments, setAppointments] = useState([]);
-    const [filteredAppointments, setFilteredAppoiynmebt] = useState([]);
-    const [error, setError] = useState('');
-    const [searchTerms,setSerachTerm] = useState('');
-    const [statusFilter,setstatusFilter] = useState('all');
-    const [dateFilter,setDateFilter] = useState(null);
-    const [tabValue,setTabValue] = useState(0);
-    const [page,setPage] = useState(1);
-    const [totalPage, setTotalPage] = useState(1);
-    const itemPerPage = 10;
-    const [selectedAppointment, setSelectedAppointment] = useState(null);
-    const [anchor, setAnchor] = useState(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const confirm = useConfirm();
+  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState([]);
+  const [filteredAppointments, setFilteredAppoiynmebt] = useState([]);
+  const [error, setError] = useState('');
+  const [searchTerms, setSerachTerm] = useState('');
+  const [statusFilter, setstatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const itemPerPage = 10;
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [anchor, setAnchor] = useState(null);
 
-    useEffect(() =>{
+  useEffect(() => {
+    fetchAppointments();
+  }, [tabValue]);
+  useEffect(() => {
+    applyFilters();
+  }, [appointments, searchTerms, statusFilter, dateFilter]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+
+      let status = null;
+      if (tabValue === 0) status = 'upcoming';
+      else if (tabValue === 1) status = 'confirmed';
+      else if (tabValue === 2) status = 'cancelled';
+      else if (tabValue === 3) status = 'completed';
+
+      const response = await PatientService.getAllAppointments({ status });
+      setAppointments(response.data);
+      setError('');
+    } catch (err) {
+      console.error('Failed to fetch appointments: ', err);
+      setError('Failed to load appointments.');
+      toast.error('Failed to load appointments.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFilters = async () => {
+    let filtered = [...appointments];
+    if (searchTerms) {
+      filtered = filtered.filter(apt =>
+        apt.doctor_name?.toLowerCase().includes(searchTerms.toLowerCase()) ||
+        apt.doctor_speciality?.toLowerCase().includes(searchTerms.toLowerCase()) ||
+        apt.purpose?.toLowerCase().includes(searchTerms.toLowerCase())
+      );
+    }
+    if (statusFilter != 'all') {
+      const filterDate = new Date(dateFilter).toDateString();
+      filtered = filtered.filter(apt =>
+        new Date(apt.appointment_date).toDateString() === filterDate
+      );
+    }
+    setFilteredAppoiynmebt(filtered);
+    setTotalPage(Math.ceil(filtered.length / itemPerPage));
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setSerachTerm('');
+    setstatusFilter('all');
+    setDateFilter(null);
+  };
+
+  const handleCancelAppointment = async (appointmentId) => {
+    const confirmed = confirm({
+      title: 'Cancel Appointment',
+      content: 'Are you sure you want to cancel this appointment?',
+      type: 'error',
+      confirmText: 'Cancel',
+      confirmColor: 'error',
+    });
+    if (confirmed) {
+      try {
+        await PatientService.cancelAppointment(appointmentId);
+        toast.success('Appointment cancelled successfully!');
         fetchAppointments();
-    },[tabValue]);
-    useEffect(() =>{
-        applyFilters();
-    },[appointments,searchTerms,statusFilter,dateFilter]);
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to cancel appointment. Try again.');
+      }
+    }
+  };
 
-    const fetchAppointments = async () =>{
-        try{
-            setLoading(true);
+  const MenuOpen = (event, appointments) => {
+    setAnchor(event.currentTarget);
+    setSelectedAppointment(appointments);
+  };
 
-            let status = null;
-            if(tabValue === 0) status = 'upcoming';
-            else if (tabValue === 1) status = 'confirmed';
-            else if (tabValue === 2) status = 'cancelled';
-            else if(tabValue === 3) status = 'completed';
+  const MenuClose = () => {
+    setAnchor(null);
+    setSelectedAppointment(null);
+  };
 
-            const response = await PatientService.getAllAppointments({status});
-            setAppointments(response.data);
-            setError('');
-        }catch(err){
-            console.error('Failed to fetch appointments: ',err);
-            setError('Failed to load appointments.');
-            toast.error('Failed to load appointments.');
-        }finally{
-            setLoading(false);
-        }
-    };
+  const handleViewDetails = () => {
+    if (selectedAppointment) {
+      navigate(`/patient/${selectedAppointment.id}/appointment`);
+    }
+    MenuClose();
+  };
 
-    const applyFilters = async() =>{
-        let filtered = [...appointments];
-        if(searchTerms){
-            filtered = filtered.filter(apt =>
-                apt.doctor_name?.toLowerCase().includes(searchTerms.toLowerCase()) ||
-                apt.doctor_speciality?.toLowerCase().includes(searchTerms.toLowerCase()) ||
-                apt.purpose?.toLowerCase().includes(searchTerms.toLowerCase()) 
-            );
-        }
-        if(statusFilter != 'all'){
-            const filterDate = new Date(dateFilter).toDateString();
-            filtered = filtered.filter(apt =>
-                new Date(apt.appointment_date).toDateString() === filterDate
-            );
-        }
-        setFilteredAppoiynmebt(filtered);
-        setTotalPage(Math.ceil(filtered.length / itemPerPage));
-        setPage(1);
-    };
+  const Reschedule = () => {
+    if (selectedAppointment) {
+      navigate(`/appointments/${selectedAppointment.id}/reschedule/`);
+    }
+    MenuClose();
+  };
 
-    const handleCancelAppointment = async(appointmentId) =>{
-        if(confirm('Are you sure you wanna cancel the appointment?')){
-            try{
-                await PatientService.cancelAppointment(appointmentId);
-                toast.success('Appointment cancelled successfully!');
-                fetchAppointments();
-            }catch(err){
-                toast.error(err.response?.data?.message || 'Failed to cancel appointment. Try again.');
-            }
-        }
-    };
+  const handleTabChange = () => {
+    searchTerms('');
+    setstatusFilter('all');
+    setDateFilter(null);
+  };
 
-    const MenuOpen = (event,appointments) =>{
-        setAnchor(event.currentTarget);
-        setSelectedAppointment(appointments);
-    };
+  const paginatedAppointments = filteredAppointments.slice(
+    (page - 1) * itemPerPage, page * itemPerPage
+  );
 
-    const MenuClose = () =>{
-        setAnchor(null);
-        setSelectedAppointment(null);
-    };
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed': return 'success';
+      case 'pending':
+      case 'requested': return 'warning';
+      case 'cancelled': return 'error';
+      case 'completed': return 'info';
+      default: return 'default';
+    }
+  };
 
-    const Reschedule = () =>{
-        if(selectedAppointment){
-            navigate(`/appointments/${selectedAppointment.id}/reschedule/`);
-        }
-        MenuClose();
-    };
-
-    const handleTabChange = () =>{
-        searchTerms('');
-        setstatusFilter('all');
-        setDateFilter(null);
-    };
-
-    const paginatedAppointments = filteredAppointments.slice(
-        (page - 1) * itemPerPage, page * itemPerPage
-    );
-
-    const getStatusColor = (status) =>{
-        switch(status?.toLowerCase()){
-            case 'confirmed': return 'success';
-            case 'pending':
-            case 'requested': return 'warning';
-            case 'cancelled': return 'error';
-            case 'completed': return 'info';
-            default: return 'default';
-        }
-    };
-
-    if(loading){
-        return (
+  if (loading) {
+    return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress />
       </Box>
-      );
-    }
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -200,7 +221,7 @@ const AppointmentList = () => {
             <TextField
               fullWidth
               placeholder="Search by doctor, specialization, reason..."
-              value={searchTerm}
+              value={searchTerms}
               onChange={(e) => setSerachTerm(e.target.value)}
               InputProps={{
                 startAdornment: (
@@ -242,7 +263,7 @@ const AppointmentList = () => {
             <Button
               fullWidth
               variant="outlined"
-              onClick={handleClearFilters}
+              onClick={clearFilters}
               startIcon={<RefreshIcon />}
             >
               Clear
@@ -302,16 +323,16 @@ const AppointmentList = () => {
                     >
                       <ViewIcon fontSize="small" />
                     </IconButton>
-                    {apt.status?.toLowerCase() !== 'cancelled' && 
-                     apt.status?.toLowerCase() !== 'completed' && (
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleCancelAppointment(apt.id)}
-                      >
-                        <CancelIcon fontSize="small" />
-                      </IconButton>
-                    )}
+                    {apt.status?.toLowerCase() !== 'cancelled' &&
+                      apt.status?.toLowerCase() !== 'completed' && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleCancelAppointment(apt.id)}
+                        >
+                          <CancelIcon fontSize="small" />
+                        </IconButton>
+                      )}
                     <IconButton
                       size="small"
                       onClick={(e) => MenuOpen(e, apt)}
@@ -340,7 +361,7 @@ const AppointmentList = () => {
         </Paper>
       )}
 
-      {totalPages > 1 && (
+      {totalPage > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Pagination
             count={totalPage}
@@ -354,13 +375,13 @@ const AppointmentList = () => {
       <Menu
         anchorEl={anchor}
         open={Boolean(anchor)}
-        onClose={handleMenuClose}
+        onClose={MenuClose}
       >
         <MenuItem onClick={handleViewDetails}>View Details</MenuItem>
-        {selectedAppointment?.status?.toLowerCase() !== 'cancelled' && 
-         selectedAppointment?.status?.toLowerCase() !== 'completed' && (
-          <MenuItem onClick={handleReschedule}>Reschedule</MenuItem>
-        )}
+        {selectedAppointment?.status?.toLowerCase() !== 'cancelled' &&
+          selectedAppointment?.status?.toLowerCase() !== 'completed' && (
+            <MenuItem onClick={Reschedule}>Reschedule</MenuItem>
+          )}
       </Menu>
     </Box>
   );
