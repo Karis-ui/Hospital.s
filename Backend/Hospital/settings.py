@@ -94,7 +94,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Hospital.urls'
 CORS_ALLOWED_ORIGINS = [
-    smartcare.up.railway.app
+    'smartcare.up.railway.app'
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
