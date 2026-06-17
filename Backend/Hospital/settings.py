@@ -34,9 +34,10 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 SECURE_HSTS_SECONDS = 31536000 
-ALLOWED_HOSTS = ['localhost','127.0.0.1','*']
+RAILWAY_DOMAIN = os.environ.get('RAILWAY_STATIC_URL', '').replace('https://', '')
+ALLOWED_HOSTS = ['localhost','127.0.0.1','.railway.app','hospitals-production.up.railway.app']
 SECURE_HSTS_INCLUDE_SUBDOMAINS =True
 SECURE_HSTS_PRELOAD = True
 
