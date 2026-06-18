@@ -30,9 +30,9 @@ load_dotenv()
 SECRET_KEY = "PsW7TDUv322R7SHW4kK6JpEyy8k3BTU7cT9x3Kc39KMDhHV6zjOzU0hpkRgkFC02fms"
 if not SECRET_KEY:
     SECRET_KEY = 'development-secret-key-do-not-use-in-production'
-SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 SECURE_HSTS_SECONDS = 31536000 
@@ -94,7 +94,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Hospital.urls'
 CORS_ALLOWED_ORIGINS = [
-    'smartcare.up.railway.app'
+    'https://smartcare.up.railway.app'
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
