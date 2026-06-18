@@ -1,6 +1,7 @@
 from django.db import models
 
 class SystemSettings(models.Model):
+    hospital_name = "Smartcare Hospital"
     timezone = models.CharField(max_length=50,default='UTC')
     working_hours_start = models.TimeField(null=True,blank=True,default='08.00')
     working_hours_end = models.TimeField(null=True,blank=True,default='18.00')
@@ -33,7 +34,7 @@ class SystemSettings(models.Model):
     data_retention_days = models.PositiveIntegerField(null=True,default=365)
     updated_at = models.DateTimeField(auto_now=True)
     
-    site_name = models.CharField(max_length=100,default='Hospital Management System')
+    site_name = models.CharField(max_length=100,default='SMartcare Management System')
     site_logo = models.ImageField(upload_to='logos/',null=True,blank=True)
     favicon = models.ImageField(upload_to='favicons/',null=True,blank=True)
     email_host = models.CharField(max_length=100,default='smtp.email.com')
