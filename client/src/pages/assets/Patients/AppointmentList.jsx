@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useConfirm } from '../../../theme/useConfirm';
+import React, { useState, useEffect, useConfirm } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -116,12 +115,6 @@ const AppointmentList = () => {
     setPage(1);
   };
 
-  const clearFilters = () => {
-    setSerachTerm('');
-    setstatusFilter('all');
-    setDateFilter(null);
-  };
-
   const handleCancelAppointment = async (appointmentId) => {
     const confirmed = confirm({
       title: 'Cancel Appointment',
@@ -149,13 +142,6 @@ const AppointmentList = () => {
   const MenuClose = () => {
     setAnchor(null);
     setSelectedAppointment(null);
-  };
-
-  const handleViewDetails = () => {
-    if (selectedAppointment) {
-      navigate(`/patient/${selectedAppointment.id}/appointment`);
-    }
-    MenuClose();
   };
 
   const Reschedule = () => {
@@ -264,7 +250,7 @@ const AppointmentList = () => {
             <Button
               fullWidth
               variant="outlined"
-              onClick={clearFilters}
+              onClick={handleCl}
               startIcon={<RefreshIcon />}
             >
               Clear
@@ -362,7 +348,7 @@ const AppointmentList = () => {
         </Paper>
       )}
 
-      {totalPage > 1 && (
+      {totalPages > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Pagination
             count={totalPage}
@@ -376,12 +362,12 @@ const AppointmentList = () => {
       <Menu
         anchorEl={anchor}
         open={Boolean(anchor)}
-        onClose={MenuClose}
+        onClose={handleMenuClose}
       >
         <MenuItem onClick={handleViewDetails}>View Details</MenuItem>
         {selectedAppointment?.status?.toLowerCase() !== 'cancelled' &&
           selectedAppointment?.status?.toLowerCase() !== 'completed' && (
-            <MenuItem onClick={Reschedule}>Reschedule</MenuItem>
+            <MenuItem onClick={handleReschedule}>Reschedule</MenuItem>
           )}
       </Menu>
     </Box>
