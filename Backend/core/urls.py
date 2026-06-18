@@ -2,11 +2,7 @@ from django.urls import path
 from . import views,view_appointments
 from django.http import JsonResponse
 
-def core_home(request):
-    return JsonResponse({'message': 'Core API is running.'})
-
 urlpatterns = [
-    path('',core_home,name='core_home'),
     path('home/',views.Home.as_view(),name='home'),
     path('patient/list/',views.PatientList.as_view(),name='patient_list'),
     path('secure/download/<int:report_id>/',views.SecureReportDownload.as_view(),name='secure_download'),
