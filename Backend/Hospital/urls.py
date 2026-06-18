@@ -19,7 +19,7 @@ def root_view(request):
     })
 
 urlpatterns = [
-    path('home/', Home, name='home'),
+    path('', Home, name='home'),
     path('health/', health_check, name='health_check'),
     
     # Admin
