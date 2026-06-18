@@ -2,6 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
+    "nixpacksConfig": {
+      "pythonVersion": "3.11",
+      "systemPackages": ["cairo", "pkg-config", "gcc"]
+    },
     "buildCommand": "pip install -r requirements.txt"
   },
   "deploy": {
