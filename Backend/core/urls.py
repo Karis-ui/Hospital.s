@@ -2,6 +2,9 @@ from django.urls import path
 from . import views,view_appointments
 from django.http import JsonResponse
 
+def core_home(request):
+    return JsonResponse({'message':'Backend is running'})
+
 urlpatterns = [
     path('home/',views.Home.as_view(),name='home'),
     path('patient/list/',views.PatientList.as_view(),name='patient_list'),

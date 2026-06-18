@@ -15,7 +15,7 @@ from Hospital.Api.serializers import (
 import os
 from decimal import Decimal
 from django.db import transaction
-from django.core.mail import send_email
+from django.core.mail import send_mail
 from Hospital.Api.permissions import IsLabTechnician
 from core.models import Doctor, Patient
 from accounts.models import CustomUser

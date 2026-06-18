@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('dashboard/',API.DashboardAnalytics.as_view(),name='lab_dashboard'),
-    path('lab_report/<int:request_id>/',API.LabReport.as_view(),name='lab_report_upload'),
+    path('lab_report/<int:request_id>/',API.UpdateLabReport.as_view(),name='lab_report_upload'),
     path('labTechnician/detail_view/<int:request_id>/request/',API.DetailLabRequest.as_view(),name='lab_detail_request_view'),
     path('labTechnician/detail_view/<int:request_id>/report/',API.DetailLabReport.as_view(),name='lab_detail_report_view'),
     path('request/status/<int:request_id>/update/',API.UpdateLabRequestStatus.as_view(),name='update_lab_request_status'),
@@ -15,8 +15,8 @@ urlpatterns = [
     path('result/<int:request_id>/reject/',API.RejectResult.as_view(),name='lab_reject_result'),
     path('send/to/doctor/<int:bill_id>/',API.SendToDoctor.as_view(),name='send_to_doctor'),
     path('search/lab-views/',API.LabSearch.as_view(),name='search'),
-    path('lab/request-list/',API.LabRequestList.as_view(),name='lab_request_list'),
-    path('lab/report-list/',API.LabReportList.as_view(),name='lab_report_list'),
+    path('lab/request-list/',API.LabRequestListView.as_view(),name='lab_request_list'),
+    path('lab/report-list/',API.LabReportListView.as_view(),name='lab_report_list'),
     path('lab/patient/<int:patient_id>/history/',API.PatientLabHistory.as_view(),name='patient_lab_history'),
     path('lab/profile/',API.GetLabTechProfile.as_view(),name='profile'),
     path('lab/profile/update/',API.UpdateLabProfile.as_view(),name='update-profile'),

@@ -1,4 +1,4 @@
-from Backend.Hospital.Api.serializers import BillSerializer
+from Hospital.Api.serializers import BillSerializer
 from PIL.Image import module
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
