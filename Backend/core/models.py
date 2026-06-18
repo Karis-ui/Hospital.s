@@ -170,7 +170,7 @@ class Appointment(models.Model):
     status = models.CharField(max_length=100, choices=status_choices,default='Requested')
 
     is_emergency = models.BooleanField(default=False)
-    priority = models.CharField(default='Normal')
+    priority = models.CharField(default='Normal',max_length=100)
     emergency_reason = models.TextField(null=True, blank=True)
     created_by = models.ForeignKey(CustomUser,null=True,on_delete=models.CASCADE)
     def __str__(self):
