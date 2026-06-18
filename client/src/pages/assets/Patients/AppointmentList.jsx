@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {useConfirm} from '../../../theme/useConfirm';
+import { useConfirm } from '../../../theme/useConfirm';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -152,8 +152,16 @@ const AppointmentList = () => {
     MenuClose();
   };
 
+  const handleCl = () => {
+    setSerachTerm('');
+    setstatusFilter('all');
+    setDateFilter(null);
+    setPage(1);
+    setTotalPage(1);
+  };
+
   const handleTabChange = () => {
-    searchTerms('');
+    setSerachTerm('');
     setstatusFilter('all');
     setDateFilter(null);
   };
@@ -349,7 +357,7 @@ const AppointmentList = () => {
         </Paper>
       )}
 
-      {totalPages > 1 && (
+      {totalPage > 1 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Pagination
             count={totalPage}
@@ -363,12 +371,12 @@ const AppointmentList = () => {
       <Menu
         anchorEl={anchor}
         open={Boolean(anchor)}
-        onClose={handleMenuClose}
+        onClose={MenuClose}
       >
-        <MenuItem onClick={handleViewDetails}>View Details</MenuItem>
+        <MenuItem onClick={() => navigate(`/patient/appointments/${selectedAppointment.id}`)}>View Details</MenuItem>
         {selectedAppointment?.status?.toLowerCase() !== 'cancelled' &&
           selectedAppointment?.status?.toLowerCase() !== 'completed' && (
-            <MenuItem onClick={handleReschedule}>Reschedule</MenuItem>
+            <MenuItem onClick={Reschedule}>Reschedule</MenuItem>
           )}
       </Menu>
     </Box>

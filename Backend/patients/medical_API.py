@@ -2,7 +2,6 @@ from core.models import Patient,Doctor,Prescription,MedicalRecords
 from Lab.models import labRequest,LabReport
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from fontTools.ttLib.tables.ttProgram import instructions
 from rest_framework import status,viewsets,generics
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
