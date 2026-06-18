@@ -40,7 +40,7 @@ class Home(APIView):
             doctor_serializer = DoctorSerializer(featured_doctors,many=True,context={'request',request})
             home_data = {
                 'hospital_info':{
-                    'name': 'SmartCare Hospital',
+                    'name': settings.hospital_name if settings else 'SmartCare Hospital',
                     'tagline': 'Quality Healthcare for all',
                     'description': 'SmartCare Hospital provides comprehensive health care with most recent and specialized personel as well as state-of-the-art facilities.',
                     'address': '485 Fifth Avenue, Kagwe town',
