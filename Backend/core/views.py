@@ -36,7 +36,7 @@ class Home(APIView):
             featured_doctors = Doctor.objects.select_related('user').filter(user__is_approved=True).order_by('-user__date_joined')[:4]
             
             upcoming_appointments = Appointment.objects.filter(appointment_date__gte=today).order_by('appointment_date')[:4]
-            announcements = AdminAnnouncement.objects.filter(created_at=today)
+            announcements = AdminAnnouncement.objects.filter(created_at__date=today)
             doctor_serializer = DoctorSerializer(featured_doctors,many=True,context={'request',request})
             home_data = {
                 'hospital_info':{
