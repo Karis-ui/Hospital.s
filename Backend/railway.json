@@ -1,12 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "nixpacksConfig": {
-      "pythonVersion": "3.11",
-      "systemPackages": ["cairo", "pkg-config", "gcc"]
-    },
-    "buildCommand": "pip install -r requirements.txt"
+    "builder": "DOCKERFILE"
   },
   "deploy": {
     "startCommand": "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
