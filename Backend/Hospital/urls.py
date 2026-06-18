@@ -13,7 +13,7 @@ def health_check(request):
 
 def root_view(request):
     return JsonResponse({
-        "message": "Hospital Management System API",
+        "message": "Smartcare Hospital Management System API",
         "status": "running"
     })
 
