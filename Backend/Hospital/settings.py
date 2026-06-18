@@ -37,7 +37,7 @@ CSRF_COOKIE_SECURE = True
 DEBUG = False
 SECURE_HSTS_SECONDS = 31536000 
 RAILWAY_DOMAIN = os.environ.get('RAILWAY_STATIC_URL', '').replace('https://', '')
-ALLOWED_HOSTS = ['localhost','127.0.0.1','.railway.app','hospitals-production.up.railway.app']
+ALLOWED_HOSTS = ['localhost','127.0.0.1','.railway.app','https://hospitals-production.up.railway.app']
 SECURE_HSTS_INCLUDE_SUBDOMAINS =True
 SECURE_HSTS_PRELOAD = True
 
