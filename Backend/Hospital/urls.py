@@ -28,10 +28,10 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view()),
     path('api/token/refresh/', TokenRefreshView.as_view()),
     
-    path('', include('core.urls')),
-    path('accounts/', include('accounts.urls')),
-    path('patients/', include('patients.urls')),
-    path('doctors/', include('doctors.urls')),
-    path('billoperator/', include('billoperator.urls')),
-    path('Lab/',include('Lab.urls')),
+    path('api/', include('core.urls')),
+    path('api/accounts/', include('accounts.urls')),
+    path('api/patients/', include('patients.urls')),
+    path('api/doctors/', include('doctors.urls')),
+    path('api/billoperator/', include('billoperator.urls')),
+    path('api/Lab/',include('Lab.urls')),
 ]
