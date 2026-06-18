@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.views.generic import RedirectView
-from core.views import Home
 from rest_framework_simplejwt.views import (
     TokenObtainPairView, TokenRefreshView
 )
@@ -19,7 +18,7 @@ def root_view(request):
     })
 
 urlpatterns = [
-    path('', Home, name='home'),
+    path('', root_view, name='root'),
     path('health/', health_check, name='health_check'),
     
     # Admin
