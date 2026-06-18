@@ -16,11 +16,31 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.http import JsonResponse
 from rest_framework_simplejwt.views import(
     TokenObtainPairView,TokenRefreshView
 )
 
+def home(request):
+    return JsonResponse({
+        "message": "Welcome to SmartCare Hospital Management API",
+        "endpoints": {
+            "admin": "/admin/",
+            "api_token": "/api/token/",
+            "api_token_refresh": "/api/token/refresh/",
+            "api_accounts": "/api/accounts/",
+            "api_patients": "/api/patients/",
+            "api_doctors": "/api/doctors/",
+            "api_billoperator": "/api/billoperator/",
+        }
+    })
+    
+def health_check(request):
+    return JsonResponse({'status':'ok','message':'Backend is up and running'})
+
 urlpatterns = [
+    path('',home,name='home'),
+    path('health/',health_check,name='health_check`'),
     path('admin/', admin.site.urls),
     path('api/token/',TokenObtainPairView.as_view()),
     path('api/token/refresh/',TokenRefreshView.as_view()),
@@ -29,4 +49,5 @@ urlpatterns = [
     path('api/patients/',include('patients.urls')),
     path('api/doctors/',include('doctors.urls')),
     path('api/billoperator/',include('billoperator.urls')),
+    path('api/labtech/',include('Lab.urls')),
 ]
