@@ -1,3 +1,5 @@
+from django.db.models import Q
+from Backend.accounts import models
 from Hospital.Api.serializers import BillSerializer
 from PIL.Image import module
 from django.shortcuts import get_object_or_404
@@ -1114,12 +1116,13 @@ class TestEmailView(APIView):
 class BackUpView(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
     def get(self,request):
-        settings = SystemSettings.objects.get(id=1)
-        backup_data = {
-            'timestamp': datetime.now().isoformat(),
-            'settings' : {
-                'timezone': settings.timezone,
-                'working_hours_stats': str(settings.working_hours_start),
+        try:
+            settings = SystemSettings.objects.get(id=1)
+            backup_data = {
+                'timestamp': datetime.now().isoformat(),
+                'settings' : {
+                    'timezone': settings.timezone,
+                    'working_hours_stats': str(settings.working_hours_start),
                 'working_hours_end': str(settings.working_hours_end),
                 'appointment_duration': settings.appointment_duration,
                 'session_timer': settings.session_timer,
@@ -1131,10 +1134,15 @@ class BackUpView(APIView):
                 'data_retention_days': settings.data_retention_days,
             }
         }
+        except Exception as e:
+            logger.error(f'Backup failed: {str(e)}')
+            return Response({
+                'status': 'error','message':f'Backup failed: {str(e)}'
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({
-            'status': 'success','message':f'Backup failed: {str(e)}'
-        },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            'status': 'success','message':f'Backup created successfully'
+        },status=status.HTTP_200_OK)
 
 class AuditView(APIView):
     permission_classes = [IsAdmin,IsAuthenticated]
