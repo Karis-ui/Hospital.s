@@ -25,66 +25,15 @@ from Hospital.settings import EMAIL_HOST_USER,EMERGENCY_CONTACT
 
 class Home(APIView):
     permission_classes = [AllowAny]
-    def get(self,request):
-        try:
-            settings = get_system_settings()
-            today = timezone.now().date()
-            
-            total_doctors = Doctor.objects.filter(user__is_approved=True).count()
-            total_appointments = Appointment.objects.filter(status='Completed').count()
-            appointments_today = Appointment.objects.filter(appointment_date=today).count()
-            featured_doctors = Doctor.objects.select_related('user').filter(user__is_approved=True).order_by('-user__date_joined')[:4]
-            
-            upcoming_appointments = Appointment.objects.filter(appointment_date__gte=today).order_by('appointment_date')[:4]
-            announcements = AdminAnnouncement.objects.filter(created_at__date=today)
-            doctor_serializer = DoctorSerializer(featured_doctors,many=True,context={'request',request})
-            home_data = {
-                'hospital_info':{
-                    'name': settings.hospital_name if settings else 'SmartCare Hospital',
-                    'tagline': 'Quality Healthcare for all',
-                    'description': 'SmartCare Hospital provides comprehensive health care with most recent and specialized personel as well as state-of-the-art facilities.',
-                    'address': '485 Fifth Avenue, Kagwe town',
-                    'email': EMAIL_HOST_USER,
-                    'emergency_contact': EMERGENCY_CONTACT,
-                    'visiting_hours': '24/7 Emergency Services',
-                },
-                'statistics':{
-                    'appointments': total_appointments,
-                    'doctors': total_doctors,
-                    'appointments_today': appointments_today,
-                    'statisfaction_rate': '98%',
-                    'ambulance_services': 'available',
-                },
-                'featured_doctors': doctor_serializer.data,
-                'departments':[
-                    {'name':'Radiology','icon':'fa-xray','description':'Imanging services','doctors_count':'6'},
-                    {'name':'Cardiology','icon':'fa-heart','description':'Heart Sservices','doctors_count':'4'},
-                    {'name':'Pediactrics','icon':'fa-brain','description':'Child health care','doctors_count':'4'},
-                    {'name':'Emergency','icon':'fa-ambulance','description':'24/7 Emergency services','doctors_count':'10'},
-                ],
-                'services':[
-                    {'name':'Emergency Care','icon':'fa-truck-medical','description':'24/7 Emergency services'},
-                    {'name':'Pharmacy','icon':'fa-pills','description':'Expertise medication'},
-                    {'name':'Laboratory','icon':'fa-flask','description':'Proffesional lab skills available'},
-                    {'name':'Outpatient','icon':'fa-user-md','description':'Consultation & Check-up services'},
-                    {'name':'Inpatient','icon':'fa-procedures','description':'Readily available ward both Male and Female'},
-                ],
-                'quick_actions':[
-                    {'name':'Book Appointment','icon':'fa-calendar-check','url':'/appointment/book/'},
-                    {'name':'Patient Account','icon':'fa-hospital-user','url':'/login/'},
-                    {'name':'Contact Us','icon':'fa-envelope','url':'/contact'},
-                    {'name':'Emergency','icon':'fa-phone-alt','url':'/emrgency'},
-                ]
+    def get(self, request):
+        return Response({
+            "status": "success",
+            "message": "Smartcare Hospital API is running",
+            "data": {
+                "hospital_name": "Smartcare Hospital",
+                "version": "1.0.0"
             }
-            return Response({
-                'status': 'success',
-                'data': home_data
-            },status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'Message': str(e)
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        })
     
 class PatientList(APIView):
     permission_classes = [IsAuthenticated]
