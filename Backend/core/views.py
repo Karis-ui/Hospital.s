@@ -1,3 +1,4 @@
+from django.db.models import Q
 from datetime import timezone
 from ipaddress import ip_address
 from rest_framework import status
@@ -8,7 +9,7 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.views import AuthenticationForm
 from django.contrib.auth.models import User
-from core.models import Patient, Report, ReportAccessLog, Doctor, Appointment,AdminAnnouncement,Notification
+from core.models import Patient, Report, ReportAccessLog, Doctor, Appointment,AdminAnnouncement,Notification,Activity
 from Hospital.Api.serializers import AppointmentSerializer,ReportSerializer,PatientSerializer,DoctorSerializer,AuditLogSerializer,NotificationSerializer
 from Hospital.Api.permissions import IsAdmin,IsDoctor,IsPatient
 from rest_framework.response import Response
@@ -184,9 +185,10 @@ class Notification(APIView):
 class Annnouncements(APIView):
     permission_classes = [AllowAny]
     def get(self,request):
+        title = request.data.get('title')
+        message = request.data.get('message')
         announcement = AdminAnnouncement.objects.create(title=title,message=message)
-        Activity.objects.create(message=f"Admin posted new announcement {title} with message {message}")
-        log_activity(
+        log_activity = Activity.objects.create(
             request=request,
             action='CREATE',
             module='Announcement',
