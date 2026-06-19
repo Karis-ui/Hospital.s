@@ -1,3 +1,4 @@
+from rest_framework.permissions import AllowAny
 from django.db.models import Q
 from Backend.accounts import models
 from Hospital.Api.serializers import BillSerializer
@@ -45,7 +46,7 @@ class IsAdmin(BasePermission):
 User = get_user_model()
 
 class AdminDashboard(APIView):
-    permission_classes = [IsAuthenticated,IsAdmin]
+    permission_classes = [AllowAny]
     def get(self,request):
         today = date.today()
         appointments_today = Appointment.objects.filter(appointment_date=today).select_related('doctor__user','patient__user').order_by('time')
