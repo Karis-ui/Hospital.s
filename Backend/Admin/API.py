@@ -1,6 +1,6 @@
 from rest_framework.permissions import AllowAny
 from django.db.models import Q
-from Backend.accounts import models
+from accounts import models
 from Hospital.Api.serializers import BillSerializer
 from PIL.Image import module
 from django.shortcuts import get_object_or_404
