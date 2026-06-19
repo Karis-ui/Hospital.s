@@ -23,7 +23,7 @@ const validateTransaction = (t) => {
 };
 
 export const OperatorService = {
-    getDashboard: () => api.get(`/operator/dashboard/`),
+    getDashboard: () => api.get(`/dashboard/`),
 
     processPayment: (id) =>
         api.post(`/process/payment/${id}/`),
@@ -35,7 +35,7 @@ export const OperatorService = {
         api.get(`/view/receipt/${id}/`),
 
     getBills: () =>
-        api.get(`/operator/bills/`),
+        api.get(`/bills/`),
 
     createBill: (data) =>
         api.post(`/create/bill/`, data),
@@ -62,7 +62,7 @@ export const OperatorService = {
         api.delete(`/bill/detailView/${id}/`),
 
     searchStaff: (query) =>
-        api.get(`/staff/search/`, { params: { q: query } }),
+        api.get(`/search/`, { params: { q: query } }),
 
     sendReminder: (id) =>
         api.post(`/send/${id}/reminder/`),
@@ -72,7 +72,7 @@ export const OperatorService = {
      * @returns {Promise<{data: {transactions: Transaction[]}}>}
      */
     getTransactions: async (filters) => {
-        const response = await api.get(`/operator/transaction-list/`, {
+        const response = await api.get(`/transaction-list/`, {
             params: filters,
         });
 
@@ -81,18 +81,18 @@ export const OperatorService = {
 
         return response;
     },
-    downloadInvoicePdf: (id)=>
-        api.get(`operator/invoice-bill/${id}/download-pdf/`),
+    downloadInvoicePdf: (id) =>
+        api.get(`/invoice-bill/${id}/download-pdf/`),
 
     exportTransactions: (params) =>
-        api.get(`/operator/transaction-list/export/`, {
+        api.get(`/transaction-list/export/`, {
             params,
             responseType: 'blob',
         }),
     getStaffProfile: () =>
-        api.get(`/operator/get/profile`),
-    
+        api.get(`/get/profile`),
+
     updateStaffProfile: (data) =>
-        api.put(`/operator/update/profile`, data),
+        api.put(`/update/profile`, data),
 };
 export default OperatorService;

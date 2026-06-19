@@ -1,4 +1,16 @@
+from django.http import HttpResponse
+from Backend.accounts import models
+from Hospital.Api.serializers import PrescriptionSerializer
+from django.db.models import Q
+from Hospital.Api.serializers import NotificationSerializer
+from django.http import FileResponse
+from django.http import Http404
+from system.utils import get_system_settings
+from django.db import transaction
+from Backend.accounts.models import User
+from datetime import datetime
 from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription
+from core.util.pdf_generator import generate_pdf
 from Lab.models import labRequest,LabReport
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -10,6 +22,7 @@ from rest_framework.permissions import IsAuthenticated
 from Hospital.Api.serializers import (
     PatientSerializer,AppointmentSerializer,DoctorSerializer,BillSerializer,LabReportSerializer,LabRequestSerializer,ReportSerializer
 )
+import os
 from Hospital.Api.permissions import IsPatient,IsDoctor
 from Hospital import settings
 
@@ -75,15 +88,15 @@ class BookAppointment(APIView):
                             username = patient_data['email'],
                             email=patient_data['email'],
                             password=patient_data.get('password',User.objects.make_random_password()),
-                            first_name = patient_data.get['first_name'],
-                            last_name = patient_data.get['last_name']
+                            first_name = patient_data.get('first_name',''),
+                            last_name = patient_data.get('last_name','')
                         )
                         user.user_type = 'patient'
                         user.save()
                             
                         patient = Patient.objects.create(
                             user=user,
-                            first_name = patiet_data.get('first_name',''),
+                            first_name = patient_data.get('first_name',''),
                             last_name=patient_data.get('last_name',''),
                             email=patient_data['email'],
                             phone=patient_data.get('phone',''),
@@ -105,7 +118,7 @@ class BookAppointment(APIView):
                     'Message': 'Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time'
                 },status=status.HTTP_400_BAD_REQUEST)
                     
-            if not is_valid:
+            if not Doctor.is_available(doctor,app_date,app_time):
                 return Response({
                     'status': 'error',
                     'Message': 'Selected time slot is not available'
@@ -314,9 +327,9 @@ class UpdateProfile(APIView):
             allowed_extensions = ['jpg','jpeg','png','gif','webp']
             file_extension = photo.name.split('.')[-1].lower()
             
-            if file_extension not in allowed_extension:
+            if file_extension not in allowed_extensions:
                 return Response({
-                    'error': f'file type not allowed. Try {", ".join(allowed_extension)}'
+                    'error': f'file type not allowed. Try {", ".join(allowed_extensions)}'
                 },status = status.HTTP_400_BAD_REQUEST)
             max_size = 5 * 1024 * 1024
             if photo.size > max_size:
@@ -324,14 +337,14 @@ class UpdateProfile(APIView):
                     'error': f'File too large. Max size: {max_size}MB'
                 },status=status.HTTP_400_BAD_REQUEST)
             
-            if doctor_profile.doctor_photo:
+            if patient_profile.patient_photo:
                 old_photo_path = os.path.join(settings.MEDIA_ROOT,str(patient_profile.patient_photo))
                 if os.path.exists(old_photo_path):
                     os.remove(old_photo_path)
                     
-            patient_profile.doctor_photo = photo
+            patient_profile.patient_photo = photo
             patient_profile.save()
-            
+            serializer = PatientSerializer(patient_profile,context={'request':request})
             if (serializer.is_valid()):
                 serializer.save()
             return Response({
@@ -343,18 +356,20 @@ class UpdateProfile(APIView):
     def delete(self, request):
         patient_profile = get_object_or_404(Patient, user=request.user)
         
-        if not patient_profile.doctor_profile:
+        if not patient_profile.patient_photo:
             return Response({
                 'error': 'No profile photo to delete'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        photo_path = os.path.join(settings.MEDIA_ROOT, str(doctor_profile.patient_photo))
+        photo_path = os.path.join(settings.MEDIA_ROOT, str(patient_profile.patient_photo))
         if os.path.exists(photo_path):
             os.remove(photo_path)
         
         patient_profile.patient_photo = None
         patient_profile.save()
-        
+        serializer = PatientSerializer(patient_profile,context={'request':request})
+        if (serializer.is_valid()):
+            serializer.save()
         return Response({
             'message': 'Profile photo deleted successfully'
         }, status=status.HTTP_200_OK)
@@ -440,9 +455,8 @@ class LabResult(APIView):
             
             return Response({
                 'counts': len(data),
-            },
-                data=data,status=status.HTTP_200_OK
-            )
+                'data':data
+            },status=status.HTTP_200_OK)
         except Patient.DoesNotExist:
             return Response({
                 'error':'Patient profile not found'
@@ -457,6 +471,10 @@ class Notification(APIView):
     def get(self,request):
         notification = Notification.objects.filter(user=request.user).order_by('-created_at')
         serializer = NotificationSerializer(notification,many=True,context={'request',request})
+        return Response({
+            'counts': len(notification),
+            'data':serializer.data
+        },status=status.HTTP_200_OK)
 
 class AppointmentSearchView(APIView):
     permission_classes = [IsAuthenticated]
@@ -530,7 +548,7 @@ class PatientInvoice(APIView):
     def get(self,request,bill_id):
         patient = request.user.patient
         bill = get_object_or_404(Bill,id=bill_id,patient=patient)
-        pdf = generate_invoice_pdf(bill)
+        pdf = generate_pdf(bill)
         response = HttpResponse(pdf,content_type="application/pdf")
         response["Contect Disposition"] = (f'attachment; filename="invoice_{bill_id}.pdf"')
         return response
@@ -735,7 +753,6 @@ class DoctorSearchView(APIView):
             'query': query,
             'filters': {
                 'speciality': speciality,
-                'language': language
             },
             'total': doctors.count(),
             'results': doctor_data,

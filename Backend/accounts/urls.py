@@ -10,7 +10,7 @@ urlpatterns = [
     path('logout/',Logout.as_view(),name='logout'),
     path('refresh_token/',RefreshToken.as_view(),name='refresh_token'),
     path('forgot-password/',ForgotPassword.as_view(),name='forgot_password'),
-    path('api/profile/',CurrentProfileApi.as_view(),name='current_profile'),
-    path('api/change-password/',ChangePassword.as_view(),name='change_password'),
-    path('api/verify_token/',VerifyToken.as_view(),name='verify_token'),
+    path('profile/',CurrentProfileApi.as_view(),name='current_profile'),
+    path('change-password/',ChangePassword.as_view(),name='change_password'),
+    path('verify_token/',VerifyToken.as_view(),name='verify_token'),
 ]
