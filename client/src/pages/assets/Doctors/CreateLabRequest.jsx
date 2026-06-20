@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box,Step,Stepper,StepLabel,
+  Box, Step, Stepper, StepLabel,
   Paper,
   Typography,
   Grid,
@@ -382,12 +382,12 @@ export const CreateLabRequest = () => {
     setActiveStep((prev) => prev + 1);
   };
 
-  const handleBack = ()=>{
+  const handleBack = () => {
     if (activeStep === 0) {
       return;
     }
-    else{
-    setActiveStep((prev) => prev - 1);
+    else {
+      setActiveStep((prev) => prev - 1);
     }
   }
   const handleSendRequest = async () => {
@@ -406,7 +406,7 @@ export const CreateLabRequest = () => {
       };
       await doctorSevice.createLabRequest(labRequest);
       toast.success('Lab request sent sucessfully.');
-      setTimeout(() => navigate('/lab/requests'), 2000);
+      setTimeout(() => navigate('/doctor/lab/new'), 2000);
     } catch (err) {
       toast.error('Failed to send request.Try again!');
       console.error(err);

@@ -53,93 +53,95 @@ import {
   Download,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate, getInitials } from '../../../formatters';
-import { GlassSearchBar,PremiumCard } from '../../../theme/adminComponents';
+import { GlassSearchBar, PremiumCard } from '../../../theme/adminComponents';
+import PatientService from '../../../services/users/patient';
 
-export const PatientList = ()=>{
-    const theme = useTheme();
-    const showToast = toast();
-    const navigate = useNavigate();
-    const [patients, setPatients] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [anchorE1,setANchorE1] = useState(null);
-    const [filteredPatients, setFilteredPatients] = useState([]);
-    const [page, setPage] = useState(1);
-    const [selectedPatient,setSelectedPatient] = useState(null);
-    const rowsPerPage = 10;
+export const PatientList = () => {
+  const theme = useTheme();
+  const showToast = toast();
+  const navigate = useNavigate();
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [anchorE1, setANchorE1] = useState(null);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [page, setPage] = useState(1);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const rowsPerPage = 10;
 
-    useEffect(() => {
-        fetchPatients();
-    }, []);
+  useEffect(() => {
+    fetchPatients();
+  }, []);
 
-    useEffect(()=>{
-        filterPatients();
-    },[patients,searchTerm]);
+  useEffect(() => {
+    filterPatients();
+  }, [patients, searchTerm]);
 
-    const fetchPatients = async () => {
-        setLoading(true);
-        try{
-            const response = await OperatorService.searchStaff('');
-            const patientData = response.data.results?.patients || [];
-            const formattedPatients = patientData.map(patient => ({...patient,
-                totalBilled: patient.totalBilled || Math.floor(Math.random() * 5000),
-                outstanding: patient.outstanding || Math.floor(Math.random() * 2000),
-                lastBillDate: patient.lastBillDate || new Date(),
-                billCount: patient.billCount || Math.floor(Math.random() * 10),
-            }));
-            setPatients(formattedPatients);
-            setFilteredPatients(formattedPatients);
-        } catch (err) {
-            setError('Failed to fetch patients. Please try again later.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const filterPatients = () => {
-        if(searchTerm){
-            const filtered = patients.filter(p => 
-                `${p.first_name || p.firstName} ${p.last_name || p.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                p.id?.toString().includes(searchTerm) || 
-                p.phone?.includes(searchTerm) || 
-                p.email?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredPatients(filtered);
-            setPage(1);
-        } else {
-            setFilteredPatients(patients);
-        }
-    };
-
-    const handleCreateBill = (patient)=>{
-        showToast('info',`Sending statement to patient ${patient.firstName} ${patient.lastName}...`);
-    };
-
-    const handleViewHistory = (patientId)=>{
-        navigate(`/operator/patients/${patientId}/bills`);
-    };
-
-    const handleSendStatement = (patient)=>{
-        showToast('info',`Sending statement to patient ${patient.firstName} ${patient.lastName}...`);
-    };
-
-    const paginatedPatients = filteredPatients.slice((page - 1) * rowsPerPage, page * rowsPerPage);
-    const totalOutstanding = patients.reduce((sum, p) => sum + (p.outstanding || 0), 0);
-    const WithOutstanding = patients.filter(p => p.outstanding > 0).length;
-
-    if (loading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-                <CircularProgress />
-            </Box>
-        );
+  const fetchPatients = async () => {
+    setLoading(true);
+    try {
+      const response = await OperatorService.searchStaff('');
+      const patientData = response.data.results?.patients || [];
+      const formattedPatients = patientData.map(patient => ({
+        ...patient,
+        totalBilled: patient.totalBilled || Math.floor(Math.random() * 5000),
+        outstanding: patient.outstanding || Math.floor(Math.random() * 2000),
+        lastBillDate: patient.lastBillDate || new Date(),
+        billCount: patient.billCount || Math.floor(Math.random() * 10),
+      }));
+      setPatients(formattedPatients);
+      setFilteredPatients(formattedPatients);
+    } catch (err) {
+      setError('Failed to fetch patients. Please try again later.');
+    } finally {
+      setLoading(false);
     }
+  };
 
+  const filterPatients = () => {
+    if (searchTerm) {
+      const filtered = patients.filter(p =>
+        `${p.first_name || p.firstName} ${p.last_name || p.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.id?.toString().includes(searchTerm) ||
+        p.phone?.includes(searchTerm) ||
+        p.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredPatients(filtered);
+      setPage(1);
+    } else {
+      setFilteredPatients(patients);
+    }
+  };
+
+  const handleCreateBill = (patient) => {
+    showToast('info', `Sending statement to patient ${patient.firstName} ${patient.lastName}...`);
+  };
+
+  const handleViewHistory = async (patientId) => {
+    await PatientService.paymentHistory(patientId);
+  };
+
+  const handleSendStatement = (patient) => {
+    showToast('info', `Sending statement to patient ${patient.firstName} ${patient.lastName}...`);
+  };
+
+  const paginatedPatients = filteredPatients.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const totalOutstanding = patients.reduce((sum, p) => sum + (p.outstanding || 0), 0);
+  const WithOutstanding = patients.filter(p => p.outstanding > 0).length;
+
+  if (loading) {
     return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
@@ -258,11 +260,11 @@ export const PatientList = ()=>{
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="caption" color="textSecondary">Outstanding</Typography>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      fontWeight: 600, 
-                      color: patient.outstanding > 0 ? theme.palette.warning.main : theme.palette.success.main 
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      color: patient.outstanding > 0 ? theme.palette.warning.main : theme.palette.success.main
                     }}
                   >
                     {formatCurrency(patient.outstanding)}

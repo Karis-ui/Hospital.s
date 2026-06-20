@@ -18,7 +18,7 @@ import {
   Zoom,
   Link,
 } from '@mui/material';
-import {Visibility, VisibilityOff} from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import {
   Email as EmailIcon,
@@ -34,7 +34,7 @@ import {
   Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import {useAuth} from '../../context/authContext';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -149,7 +149,7 @@ const PatientRegister = () => {
 
   const validateStep = () => {
     setError('');
-    
+
     if (activeStep === 0) {
       if (!formData.email || !formData.password || !formData.confirm_password) {
         setError('All fields are required');
@@ -168,19 +168,19 @@ const PatientRegister = () => {
         return false;
       }
     }
-    
+
     if (activeStep === 1) {
       if (!formData.first_name || !formData.last_name || !formData.age || !formData.gender) {
         setError('All fields are required');
         return false;
       }
       const ageNum = parseInt(formData.age);
-      if(isNaN(ageNum) || ageNum < 0 || ageNum > 120) {
+      if (isNaN(ageNum) || ageNum < 0 || ageNum > 120) {
         setError('Please enter a valid age');
         return false;
       }
     }
-    
+
     if (activeStep === 2) {
       if (!formData.phone || !formData.address) {
         setError('All fields are required');
@@ -192,7 +192,7 @@ const PatientRegister = () => {
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -209,7 +209,7 @@ const PatientRegister = () => {
 
   const handleSubmit = async () => {
     if (!validateStep()) return;
-    
+
     setLoading(true);
     setError('');
     const submitData = {
@@ -224,10 +224,10 @@ const PatientRegister = () => {
       address: formData.address,
     };
     try {
-      await register(submitData,'patient');
+      await register(submitData, 'patient');
       setSuccess('Registration successful! Redirecting to dashboard...');
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/patient/dashboard');
       }, 2000);
     } catch (err) {
       setError('Registration failed');
@@ -341,7 +341,7 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="password"
@@ -371,7 +371,7 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="confirm_password"
@@ -412,7 +412,7 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="last_name"
@@ -429,7 +429,7 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="age"
@@ -448,7 +448,7 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="gender"
@@ -495,7 +495,7 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="address"

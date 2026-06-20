@@ -102,12 +102,12 @@ import {
   ArcElement,
   Filler,
 } from 'chart.js';
-import {useConfirm} from '../../theme/useConfirm';
-import {Line,Doughnut} from 'react-chartjs-2';
+import { useConfirm } from '../../theme/useConfirm';
+import { Line, Doughnut } from 'react-chartjs-2';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/authContext';
 import { labServices } from '../../services/users/labtech';
-import {coreService} from '../../services/users/core';
+import { coreService } from '../../services/users/core';
 import { formatDate, formatTime } from '../../formatters';
 
 ChartJS.register(
@@ -171,14 +171,13 @@ const LabAvatar = styled(Avatar)(({ theme }) => ({
 const LabStatCard = styled(Card)(({ theme, status }) => ({
   background: labTheme.background.paper,
   borderRadius: 12,
-  borderLeft: `5px solid ${
-    status === 'primary' ? labTheme.primary.main :
+  borderLeft: `5px solid ${status === 'primary' ? labTheme.primary.main :
     status === 'success' ? labTheme.accent.success :
-    status === 'warning' ? labTheme.accent.warning :
-    status === 'danger' ? labTheme.accent.danger :
-    status === 'info' ? labTheme.accent.info :
-    labTheme.secondary.main
-  }`,
+      status === 'warning' ? labTheme.accent.warning :
+        status === 'danger' ? labTheme.accent.danger :
+          status === 'info' ? labTheme.accent.info :
+            labTheme.secondary.main
+    }`,
   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
   '&:hover': { transform: 'translateY(-5px)', boxShadow: `0 10px 25px ${alpha(labTheme.primary.main, 0.15)}` },
 }));
@@ -250,12 +249,11 @@ const EquipmentItem = styled(Box)(({ theme, status }) => ({
   padding: 15,
   background: labTheme.background.elevated,
   borderRadius: 8,
-  borderLeft: `4px solid ${
-    status === 'success' ? labTheme.accent.success :
+  borderLeft: `4px solid ${status === 'success' ? labTheme.accent.success :
     status === 'warning' ? labTheme.accent.warning :
-    status === 'danger' ? labTheme.accent.danger :
-    labTheme.accent.success
-  }`,
+      status === 'danger' ? labTheme.accent.danger :
+        labTheme.accent.success
+    }`,
   transition: 'transform 0.3s ease',
   '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 5px 15px ${alpha(labTheme.primary.main, 0.1)}` },
 }));
@@ -263,7 +261,7 @@ const EquipmentItem = styled(Box)(({ theme, status }) => ({
 export const LabDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const {confirm,ConfrimDialogComponent} = useConfirm();
+  const { confirm, ConfrimDialogComponent } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
@@ -276,7 +274,7 @@ export const LabDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  
+
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [messageAnchor, setMessageAnchor] = useState(null);
   const [chartPeriod, setChartPeriod] = useState('daily');
@@ -286,7 +284,7 @@ export const LabDashboard = () => {
 
   useEffect(() => {
     fetchAllData();
-    
+
     const interval = setInterval(fetchLiveUpdates, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -296,18 +294,18 @@ export const LabDashboard = () => {
       setLoading(true);
       const response = await labServices.getDashboard();
       setDashboardData(response.data);
-      
+
       setTestQueue(response.data.testQueue || []);
       setCriticalResults(response.data.criticalResults || []);
       setRecentResults(response.data.recentResults || []);
       setEquipment(response.data.equipment || []);
-      
+
       setError('');
     } catch (err) {
       console.error('Failed to fetch lab data:', err);
       setError(err.response?.data?.message || 'Failed to load laboratory data');
       toast.error('Failed to load laboratory data');
-      
+
       setTestQueue([
         { id: 1, type: 'blood', patient: 'John Smith', patientId: 'P-1234', test: 'CBC Test', doctor: 'Dr. Sarah Johnson', department: 'Hematology', waitTime: '45 minutes' },
         { id: 2, type: 'urine', patient: 'Maria Garcia', patientId: 'P-5678', test: 'Urine Analysis', doctor: 'Dr. Michael Chen', department: 'Biochemistry', waitTime: '30 minutes' },
@@ -346,16 +344,16 @@ export const LabDashboard = () => {
       try {
         setSearchLoading(true);
         const response = await labServices.searchItems();
-        const filtered = response.data.filter(item => 
+        const filtered = response.data.filter(item =>
           item.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.test?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.id?.toString().includes(searchTerm)
         );
         setSearchResults(filtered);
-        
+
         if (filtered.length > 0) {
           toast.success(`Found ${filtered.length} results`);
-          navigate('/lab/search/results', { state: { query: searchTerm, results: filtered } });
+          navigate('/lab/search', { state: { query: searchTerm, results: filtered } });
         } else {
           toast.info('No results found');
         }
@@ -389,10 +387,10 @@ export const LabDashboard = () => {
 
   const handleApproveResult = async (resultId) => {
     const confirmed = await confirm({
-      title:'Approve result',
-      message:'Are you sure you want to approve the result.',
-      type:'success',
-      confirmText:'Approve',
+      title: 'Approve result',
+      message: 'Are you sure you want to approve the result.',
+      type: 'success',
+      confirmText: 'Approve',
     });
     if (confirmed) {
       try {
@@ -409,10 +407,10 @@ export const LabDashboard = () => {
   };
   const handleRejectResult = async (resultId) => {
     const confirmed = await confirm({
-      title:'Reject result',
-      message:'Are you sure you want to reject the result.',
-      type:'warning',
-      confirmText:'Reject',
+      title: 'Reject result',
+      message: 'Are you sure you want to reject the result.',
+      type: 'warning',
+      confirmText: 'Reject',
     });
     if (confirmed) {
       try {
@@ -440,8 +438,8 @@ export const LabDashboard = () => {
     }
   };
 
-  const handleViewDetails = (resultId) => {
-    navigate(`/lab/results/${resultId}`);
+  const handleViewDetails = (id) => {
+    navigate(`/lab/results/${id}`);
   };
 
   const handleLogout = () => {
@@ -462,12 +460,12 @@ export const LabDashboard = () => {
     setMessageAnchor(null);
   };
 
-  const handleNewTest = () => {
-    navigate('/lab/tests/new');
+  const handleNewTest = (id) => {
+    navigate(`/lab/requests/${id}`);
   };
 
   const handleProcessTest = (testId) => {
-    navigate(`/lab/tests/${testId}/process`);
+    navigate(`/lab/process/${testId}`);
   };
 
   const handleNotifyCritical = (resultId) => {
@@ -480,7 +478,7 @@ export const LabDashboard = () => {
   };
 
   const getTestIcon = (type) => {
-    switch(type) {
+    switch (type) {
       case 'blood': return <HematologyIcon />;
       case 'urine': return <BiochemistryIcon />;
       case 'microbiology': return <MicrobiologyIcon />;
@@ -491,7 +489,7 @@ export const LabDashboard = () => {
   };
 
   const getEquipmentIcon = (icon) => {
-    switch(icon) {
+    switch (icon) {
       case 'microscope': return <MicrobiologyIcon />;
       case 'vial': return <BiochemistryIcon />;
       case 'tint': return <HematologyIcon />;
@@ -580,8 +578,10 @@ export const LabDashboard = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh',
-        background: `linear-gradient(135deg, ${labTheme.primary.main}, ${labTheme.primary.dark})` }}>
+      <Box sx={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh',
+        background: `linear-gradient(135deg, ${labTheme.primary.main}, ${labTheme.primary.dark})`
+      }}>
         <CircularProgress sx={{ color: labTheme.secondary.main }} size={60} thickness={4} />
         <Typography sx={{ mt: 2, color: labTheme.text.light }}>Loading Laboratory Dashboard...</Typography>
       </Box>
@@ -612,20 +612,24 @@ export const LabDashboard = () => {
           <LabAvatar>
             {labTech.name?.split(' ').map(n => n[0]).join('') || 'LT'}
           </LabAvatar>
-          
+
           <Typography variant="h5" sx={{ fontWeight: 700, color: labTheme.text.light, mb: 0.5 }}>
             {labTech.name}
           </Typography>
-          
+
           <Chip icon={<FlaskIcon />} label={labTech.role}
-            sx={{ background: alpha(labTheme.secondary.main, 0.2), color: labTheme.secondary.main,
-              border: `1px solid ${labTheme.secondary.main}`, fontWeight: 600, mb: 2 }}
+            sx={{
+              background: alpha(labTheme.secondary.main, 0.2), color: labTheme.secondary.main,
+              border: `1px solid ${labTheme.secondary.main}`, fontWeight: 600, mb: 2
+            }}
           />
-          
+
           {labTech.isSupervisor && (
             <Chip icon={<DiamondIcon />} label="Lab Supervisor" size="small"
-              sx={{ background: alpha(labTheme.accent.success, 0.2), color: labTheme.accent.success,
-                border: `1px solid ${labTheme.accent.success}` }}
+              sx={{
+                background: alpha(labTheme.accent.success, 0.2), color: labTheme.accent.success,
+                border: `1px solid ${labTheme.accent.success}`
+              }}
             />
           )}
         </Box>
@@ -636,10 +640,12 @@ export const LabDashboard = () => {
           <Typography variant="caption" sx={{ px: 2, color: alpha(labTheme.text.light, 0.5), fontWeight: 600 }}>
             DASHBOARD
           </Typography>
-          
+
           <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemButton selected sx={{ borderRadius: 2, color: labTheme.text.light,
-              bgcolor: alpha(labTheme.secondary.main, 0.15), '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.25) } }}>
+            <ListItemButton selected sx={{
+              borderRadius: 2, color: labTheme.text.light,
+              bgcolor: alpha(labTheme.secondary.main, 0.15), '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.25) }
+            }}>
               <ListItemIcon sx={{ color: labTheme.secondary.main, minWidth: 40 }}><DashboardIcon /></ListItemIcon>
               <ListItemText primary="Dashboard Overview" />
             </ListItemButton>
@@ -656,14 +662,18 @@ export const LabDashboard = () => {
             { icon: <CriticalIcon />, text: 'Critical Results', badge: stats.criticalResults },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{ borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) } }}>
+              <ListItemButton sx={{
+                borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
                 {item.badge && (
                   <Chip label={item.badge} size="small"
-                    sx={{ bgcolor: item.text === 'Critical Results' ? labTheme.accent.danger : labTheme.secondary.main,
-                      color: labTheme.text.light, fontWeight: 600, fontSize: '0.7rem', height: 20 }}
+                    sx={{
+                      bgcolor: item.text === 'Critical Results' ? labTheme.accent.danger : labTheme.secondary.main,
+                      color: labTheme.text.light, fontWeight: 600, fontSize: '0.7rem', height: 20
+                    }}
                   />
                 )}
               </ListItemButton>
@@ -682,8 +692,10 @@ export const LabDashboard = () => {
             { icon: <RadiologyIcon />, text: 'Radiology' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{ borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) } }}>
+              <ListItemButton sx={{
+                borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
@@ -702,8 +714,10 @@ export const LabDashboard = () => {
             { icon: <SettingsIcon />, text: 'Settings' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{ borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) } }}>
+              <ListItemButton sx={{
+                borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
@@ -713,8 +727,10 @@ export const LabDashboard = () => {
 
         <Box sx={{ position: 'absolute', bottom: 20, left: 0, right: 0, px: 3 }}>
           <Button fullWidth variant="contained" startIcon={<LogoutIcon />} onClick={handleLogout}
-            sx={{ bgcolor: alpha(labTheme.text.light, 0.1), color: labTheme.text.light,
-              '&:hover': { bgcolor: labTheme.accent.danger } }}>
+            sx={{
+              bgcolor: alpha(labTheme.text.light, 0.1), color: labTheme.text.light,
+              '&:hover': { bgcolor: labTheme.accent.danger }
+            }}>
             Logout
           </Button>
         </Box>
@@ -743,8 +759,10 @@ export const LabDashboard = () => {
             />
 
             <Tooltip title="Notifications" TransitionComponent={Zoom}>
-              <IconButton onClick={handleNotificationClick} sx={{ bgcolor: alpha(labTheme.secondary.main, 0.1),
-                '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.2) } }}>
+              <IconButton onClick={handleNotificationClick} sx={{
+                bgcolor: alpha(labTheme.secondary.main, 0.1),
+                '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.2) }
+              }}>
                 <Badge badgeContent={unreadCount} color="error">
                   <NotificationsIcon sx={{ color: labTheme.secondary.main }} />
                 </Badge>
@@ -752,8 +770,10 @@ export const LabDashboard = () => {
             </Tooltip>
 
             <Tooltip title="Messages" TransitionComponent={Zoom}>
-              <IconButton onClick={handleMessageClick} sx={{ bgcolor: alpha(labTheme.accent.success, 0.1),
-                '&:hover': { bgcolor: alpha(labTheme.accent.success, 0.2) } }}>
+              <IconButton onClick={handleMessageClick} sx={{
+                bgcolor: alpha(labTheme.accent.success, 0.1),
+                '&:hover': { bgcolor: alpha(labTheme.accent.success, 0.2) }
+              }}>
                 <Badge badgeContent={messages.length} color="warning">
                   <EmailIcon sx={{ color: labTheme.accent.success }} />
                 </Badge>
@@ -787,11 +807,13 @@ export const LabDashboard = () => {
                   <LabStatCard status={stat.status}>
                     <CardContent>
                       <Typography variant="body2" color="textSecondary" gutterBottom>{stat.label}</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: 
-                        stat.status === 'primary' ? labTheme.primary.main :
-                        stat.status === 'success' ? labTheme.accent.success :
-                        stat.status === 'warning' ? labTheme.accent.warning :
-                        labTheme.accent.danger, mb: 1 }}>
+                      <Typography variant="h4" sx={{
+                        fontWeight: 700, color:
+                          stat.status === 'primary' ? labTheme.primary.main :
+                            stat.status === 'success' ? labTheme.accent.success :
+                              stat.status === 'warning' ? labTheme.accent.warning :
+                                labTheme.accent.danger, mb: 1
+                      }}>
                         {stat.value}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -822,10 +844,14 @@ export const LabDashboard = () => {
             <Grid item xs={12} sm={6} md={2.4} key={index}>
               <Grow in timeout={1800 + index * 100}>
                 <div>
-                  <Card sx={{ textAlign: 'center', p: 2, cursor: 'pointer', transition: 'all 0.3s ease',
-                    border: `2px solid transparent`, '&:hover': { transform: 'translateY(-5px)',
-                      borderColor: test.color, boxShadow: `0 10px 20px ${alpha(test.color, 0.2)}` } }}
-                    onClick={() => navigate(`/lab/tests/new?type=${test.title}`)}>
+                  <Card sx={{
+                    textAlign: 'center', p: 2, cursor: 'pointer', transition: 'all 0.3s ease',
+                    border: `2px solid transparent`, '&:hover': {
+                      transform: 'translateY(-5px)',
+                      borderColor: test.color, boxShadow: `0 10px 20px ${alpha(test.color, 0.2)}`
+                    }
+                  }}
+                    onClick={() => navigate(`/lab/requests/${id}`)}>
                     <Box sx={{ color: test.color, fontSize: '2.5rem', mb: 1 }}>{test.icon}</Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{test.title}</Typography>
                     <Typography variant="caption" color="textSecondary">{test.desc}</Typography>
@@ -849,9 +875,13 @@ export const LabDashboard = () => {
                       {['daily', 'weekly', 'monthly'].map((period) => (
                         <Button key={period} size="small" variant={chartPeriod === period ? 'contained' : 'outlined'}
                           onClick={() => handleChartPeriodChange(period)}
-                          sx={{ borderRadius: 6, textTransform: 'capitalize',
-                            ...(chartPeriod === period && { bgcolor: labTheme.secondary.main, color: 'white',
-                              '&:hover': { bgcolor: labTheme.secondary.dark } }) }}>
+                          sx={{
+                            borderRadius: 6, textTransform: 'capitalize',
+                            ...(chartPeriod === period && {
+                              bgcolor: labTheme.secondary.main, color: 'white',
+                              '&:hover': { bgcolor: labTheme.secondary.dark }
+                            })
+                          }}>
                           {period}
                         </Button>
                       ))}
@@ -892,9 +922,11 @@ export const LabDashboard = () => {
 
                   <Box sx={{ maxHeight: 350, overflowY: 'auto' }}>
                     {testQueue.map((item) => (
-                      <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
+                      <Box key={item.id} sx={{
+                        display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
                         bgcolor: labTheme.background.elevated, transition: 'all 0.3s ease',
-                        '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.05), transform: 'translateX(5px)' } }}>
+                        '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.05), transform: 'translateX(5px)' }
+                      }}>
                         <TestIcon type={item.type}>{getTestIcon(item.type)}</TestIcon>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -936,14 +968,16 @@ export const LabDashboard = () => {
 
                   <Box sx={{ maxHeight: 350, overflowY: 'auto' }}>
                     {criticalResults.map((item) => (
-                      <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
+                      <Box key={item.id} sx={{
+                        display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
                         bgcolor: alpha(labTheme.accent.danger, 0.05), border: `1px solid ${alpha(labTheme.accent.danger, 0.2)}`,
                         animation: item.severity === 'critical' ? 'pulse 2s infinite' : 'none',
                         '@keyframes pulse': {
                           '0%': { boxShadow: `0 0 0 0 ${alpha(labTheme.accent.danger, 0.4)}` },
                           '70%': { boxShadow: `0 0 0 10px ${alpha(labTheme.accent.danger, 0)}` },
                           '100%': { boxShadow: `0 0 0 0 ${alpha(labTheme.accent.danger, 0)}` },
-                        } }}>
+                        }
+                      }}>
                         <TestIcon type={item.type}>{getTestIcon(item.type)}</TestIcon>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: labTheme.accent.danger }}>
@@ -1006,9 +1040,11 @@ export const LabDashboard = () => {
                       <Box>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.name}</Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 10, height: 10, borderRadius: '50%',
+                          <Box sx={{
+                            width: 10, height: 10, borderRadius: '50%',
                             bgcolor: item.status === 'operational' ? labTheme.accent.success :
-                              item.status === 'warning' ? labTheme.accent.warning : labTheme.accent.danger }} />
+                              item.status === 'warning' ? labTheme.accent.warning : labTheme.accent.danger
+                          }} />
                           <Typography variant="caption" sx={{ color: labTheme.text.secondary }}>{item.details}</Typography>
                         </Box>
                       </Box>
@@ -1092,8 +1128,10 @@ export const LabDashboard = () => {
         </Slide>
 
         <Fade in timeout={2000}>
-          <Box component="footer" sx={{ textAlign: 'center', py: 3, color: labTheme.text.secondary,
-            borderTop: `1px solid ${alpha(labTheme.primary.main, 0.1)}` }}>
+          <Box component="footer" sx={{
+            textAlign: 'center', py: 3, color: labTheme.text.secondary,
+            borderTop: `1px solid ${alpha(labTheme.primary.main, 0.1)}`
+          }}>
             <Typography variant="body2">
               © {new Date().getFullYear()} SmartCare Hospital Laboratory Management System. All rights reserved. | Lab Portal v2.5
             </Typography>
@@ -1124,8 +1162,12 @@ export const LabDashboard = () => {
       </Dialog>
 
       <Menu anchorEl={notificationAnchor} open={Boolean(notificationAnchor)} onClose={handleClose} TransitionComponent={Zoom}
-        PaperProps={{ sx: { mt: 2, bgcolor: labTheme.background.paper, border: `1px solid ${alpha(labTheme.primary.main, 0.1)}`,
-          borderRadius: 2, minWidth: 320, maxHeight: 400 } }}>
+        PaperProps={{
+          sx: {
+            mt: 2, bgcolor: labTheme.background.paper, border: `1px solid ${alpha(labTheme.primary.main, 0.1)}`,
+            borderRadius: 2, minWidth: 320, maxHeight: 400
+          }
+        }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(labTheme.primary.main, 0.1)}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Notifications</Typography>
         </Box>
@@ -1143,8 +1185,12 @@ export const LabDashboard = () => {
       </Menu>
 
       <Menu anchorEl={messageAnchor} open={Boolean(messageAnchor)} onClose={handleClose} TransitionComponent={Zoom}
-        PaperProps={{ sx: { mt: 2, bgcolor: labTheme.background.paper, border: `1px solid ${alpha(labTheme.primary.main, 0.1)}`,
-          borderRadius: 2, minWidth: 320 } }}>
+        PaperProps={{
+          sx: {
+            mt: 2, bgcolor: labTheme.background.paper, border: `1px solid ${alpha(labTheme.primary.main, 0.1)}`,
+            borderRadius: 2, minWidth: 320
+          }
+        }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(labTheme.primary.main, 0.1)}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Messages</Typography>
         </Box>

@@ -32,6 +32,7 @@ import { DoctorProfile } from './pages/assets/Doctors/DoctorProfile';
 import { PatientDetails } from './pages/assets/Doctors/PatientDetails';
 import { PatientMedicalRecords } from './pages/assets/Doctors/PatientMedicalRecords';
 import { WritePrescription } from './pages/assets/Doctors/WritePrescription';
+import DoctorSearch from './pages/assets/Doctors/Search';
 
 import LabDashboard from './pages/dashboards/LabTech';
 import { DetailedRequest } from './pages/assets/LabTech/DetailedRequest';
@@ -220,8 +221,9 @@ function App() {
                   <Route path="/doctor/patients-details" element={<PatientDetails />} />
                   <Route path="/doctor/patients/:id/Medical-records" element={<PatientMedicalRecords />} />
                   <Route path="/doctor/prescriptions" element={<WritePrescription />} />
-                  <Route path="/doctor/lab-requests" element={<CreateLabRequest />} />
+                  <Route path="/doctor/lab/new" element={<CreateLabRequest />} />
                   <Route path="/doctor/profile" element={<DoctorProfile />} />
+                  <Route path="/doctor/search" element={<DoctorSearch />} />
                 </Route>
               </Route>
 
@@ -256,7 +258,7 @@ function App() {
                 <Route element={<AppLayout />}>
                   <Route path="/operator/dashboard" element={<OperatorDashboard />} />
                   <Route path="/operator/history/billing" element={<BillingHistory />} />
-                  <Route path="/operator/detail-view" element={<PatientBillDetails />} />
+                  <Route path="/operator/detail-view/:id" element={<PatientBillDetails />} />
                   <Route path="/operator/bills" element={<BillList />} />
                   <Route path="/operator/create" element={<CreateBill />} />
                   <Route path="/operator/transactions" element={<TransactionList />} />

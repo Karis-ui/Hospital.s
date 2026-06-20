@@ -67,7 +67,7 @@ import {
   CalendarToday as CalendarIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
-import {useAuth} from '../../../context/authContext';
+import { useAuth } from '../../../context/authContext';
 import PatientService from '../../../services/users/patient';
 import { formatDate, getInitials } from '../../../formatters';
 import RecordCard from '../../../components/medical/RecordCard';
@@ -134,163 +134,162 @@ const SearchBar = styled(Paper)(({ theme }) => ({
   border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
 }));
 
-export const MedicalRecords = () =>{
-    const navigate = useNavigate();  
-    const user = useAuth();
-    const theme = useTheme(); 
-    const [loading,setLoading] = useState(true);
-    const [records,setRecords] = useState(null);
-    const [vitals,setVitals] = useState([]);
-    const [filteredRecords,setFilteredRecords] = useState([]);
-    const [tabValue,setTabValue] = useState(0);
-    const [searchTerm,setSearchTerm] = useState('');
-    const [error,setError] = useState('');
-    const [addDialog,setAddDialog] = useState(false);
-    const [recordType,setRecordType] = useState('diagnosis');
-    const [formData,setFormData] = useState({});
-    const [submitting,setSubmitting] = useState(false);
-    const [speedDialOpen,setSpeedDialOpen] = useState(false);
-    const [actions,setActions] = useState([]);
- 
-    useEffect(() =>{
-        fetchMedicalRecords();
-    },[]);
+export const MedicalRecords = () => {
+  const navigate = useNavigate();
+  const user = useAuth();
+  const theme = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [records, setRecords] = useState(null);
+  const [vitals, setVitals] = useState([]);
+  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [tabValue, setTabValue] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
+  const [addDialog, setAddDialog] = useState(false);
+  const [recordType, setRecordType] = useState('diagnosis');
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [actions, setActions] = useState([]);
 
-    useEffect(() =>{
-        filterRecords();
-    },[records,searchTerm,tabValue]);
+  useEffect(() => {
+    fetchMedicalRecords();
+  }, []);
 
-    const fetchMedicalRecords = async()=>{
-        try{
-            setLoading(true);
-            const response = await PatientService.getMedicalRecords();
-            setRecords(response.data.records);
-            setVitals(response.data.vitals || []);
-            setError('');
-        }catch(err){
-            setError('Failed to load medical records');
-            console.error(err);
-        }finally{
-            setLoading(false);
-        }
-    };
+  useEffect(() => {
+    filterRecords();
+  }, [records, searchTerm, tabValue]);
 
-    const filterRecords = () =>{
-        if(!records) return;
-        let filtered = [];
-        const typeMap = ['diagnoses', 'medications', 'allergies', 'lab_results', 'procedures', 'immunizations', 'notes'];
-        const currentType = typeMap[tabValue];
+  const fetchMedicalRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await PatientService.getMedicalRecords();
+      setRecords(response.data.records);
+      setVitals(response.data.vitals || []);
+      setError('');
+    } catch (err) {
+      setError('Failed to load medical records');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (currentType && records[currentType]){
-            filtered = [...records[currentType]];
-        }else if(tabValue === 0){
-            filtered = [
-                ...(records.diagnoses || []),
-                ...(records.medications || []),
-                ...(records.alergies || []),
-                ...(records.lab_results || []),
-                ...(records.precedures || []),
-                ...(records.immunizations || []),
-                ...(records.notes || []),
-            ];
-        }
+  const filterRecords = () => {
+    if (!records) return;
+    let filtered = [];
+    const typeMap = ['diagnoses', 'medications', 'allergies', 'lab_results', 'procedures', 'immunizations', 'notes'];
+    const currentType = typeMap[tabValue];
 
-        if(searchTerm){
-            filtered = filtered.filter(r=>
-                r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                r.description?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        setFilteredRecords(filtered);
-    };
+    if (currentType && records[currentType]) {
+      filtered = [...records[currentType]];
+    } else if (tabValue === 0) {
+      filtered = [
+        ...(records.diagnoses || []),
+        ...(records.medications || []),
+        ...(records.alergies || []),
+        ...(records.lab_results || []),
+        ...(records.precedures || []),
+        ...(records.immunizations || []),
+        ...(records.notes || []),
+      ];
+    }
 
-    const handleAddRecord = async()=>{
-        setSubmitting(true)
-        try
-        {
-            const payload = {
-                recordType: recordType,title: formData.title,description: formData.description,severity: formData.severity,status: 'active',data: {},
-            };
-            if(recordType === 'medication'){
-                payload.data = {
-                    dosage: formData.dosage,instructions: formData.instructions,
-                };
-            }else if(recordType === 'allergy'){
-                payload.data = {reaction: formData.reaction};
-            }else if(recordType === 'lab'){
-                payload.data = {
-                    result: formData.result, refrence_range: formData.refrence_range,
-                };
-            }
+    if (searchTerm) {
+      filtered = filtered.filter(r =>
+        r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    setFilteredRecords(filtered);
+  };
 
-            await PatientService.addMedicalrecords(payload);
-            setAddDialog(false);
-            fetchMedicalRecords();
-            setFormData({});
-        }catch(err){
-            setSubmitting(false);
-        }
-    };
-
-    const handleExportAll = ()=>{
-      if(filteredRecords.length === 0){
-        alert('No records present.');
-        return;
+  const handleAddRecord = async () => {
+    setSubmitting(true)
+    try {
+      const payload = {
+        recordType: recordType, title: formData.title, description: formData.description, severity: formData.severity, status: 'active', data: {},
+      };
+      if (recordType === 'medication') {
+        payload.data = {
+          dosage: formData.dosage, instructions: formData.instructions,
+        };
+      } else if (recordType === 'allergy') {
+        payload.data = { reaction: formData.reaction };
+      } else if (recordType === 'lab') {
+        payload.data = {
+          result: formData.result, refrence_range: formData.refrence_range,
+        };
       }
-      const dataStr = JSON.stringify(filteredRecords,null,2);
-      const blob = new Blob([dataStr],{type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `records-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    };
 
-    const handleViewRecord = async()=>{
-      navigate(`/patient/medical-records/`);
-    };
-
-    const handleDownload = (record)=>{
-      if(!record) return;
-      const dataStr = JSON.stringify(record,null,2);
-      const blob = new Blob([dataStr],{type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${record.name || record.id}-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      await PatientService.addMedicalrecords(payload);
+      setAddDialog(false);
+      fetchMedicalRecords();
+      setFormData({});
+    } catch (err) {
+      setSubmitting(false);
     }
+  };
 
-    const action = [
-        {icon: <DiagnosisIcon/>,name:'Add Diagnosis',action: ()=>{setRecordType('diagnosis');setAddDialog(true);}},
-        {icon: <MedicalIcon/>,name:'Add Medication',action: ()=>{setRecordType('medication');setAddDialog(true);}},
-        {icon: <AllergyIcon/>,name:'Add Allergy',action: ()=>{setRecordType('allergy');setAddDialog(true);}},
-        {icon: <LabIcon/>,name:'Add Lab Result',action: ()=>{setRecordType('lab');setAddDialog(true);}},
-        {icon: <NoteIcon/>,name:'Add Note',action: ()=>{setRecordType('notes');setAddDialog(true);}},
-    ];
-
-    const tabs = [
-        {label: 'All',icon: <DashboardIcon/>,count: filterRecords.length},
-        {label: 'Diagnoses',icon: <DiagnosisIcon/>,count: records?.diagnoses?.length || 0},
-        {label: 'Medications',icon: <MedicalIcon/>,count: records?.medications?.length || 0},
-        {label: 'Allergy',icon: <AllergyIcon/>,count: records?.allrgies?.length || 0},
-        {label: 'Lab Results',icon: <LabIcon/>,count: records?.lab_results?.length || 0},
-        {label: 'Notes',icon: <NoteIcon/>,count: records?.notes?.length || 0},
-    ];
-
-    if(loading){
-        return(
-            <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}><CircularProgress/></Box>
-        );
+  const handleExportAll = () => {
+    if (filteredRecords.length === 0) {
+      alert('No records present.');
+      return;
     }
+    const dataStr = JSON.stringify(filteredRecords, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `records-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
+  const handleViewRecord = async () => {
+    navigate(`/patient/records`);
+  };
+
+  const handleDownload = (record) => {
+    if (!record) return;
+    const dataStr = JSON.stringify(record, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${record.name || record.id}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const action = [
+    { icon: <DiagnosisIcon />, name: 'Add Diagnosis', action: () => { setRecordType('diagnosis'); setAddDialog(true); } },
+    { icon: <MedicalIcon />, name: 'Add Medication', action: () => { setRecordType('medication'); setAddDialog(true); } },
+    { icon: <AllergyIcon />, name: 'Add Allergy', action: () => { setRecordType('allergy'); setAddDialog(true); } },
+    { icon: <LabIcon />, name: 'Add Lab Result', action: () => { setRecordType('lab'); setAddDialog(true); } },
+    { icon: <NoteIcon />, name: 'Add Note', action: () => { setRecordType('notes'); setAddDialog(true); } },
+  ];
+
+  const tabs = [
+    { label: 'All', icon: <DashboardIcon />, count: filterRecords.length },
+    { label: 'Diagnoses', icon: <DiagnosisIcon />, count: records?.diagnoses?.length || 0 },
+    { label: 'Medications', icon: <MedicalIcon />, count: records?.medications?.length || 0 },
+    { label: 'Allergy', icon: <AllergyIcon />, count: records?.allrgies?.length || 0 },
+    { label: 'Lab Results', icon: <LabIcon />, count: records?.lab_results?.length || 0 },
+    { label: 'Notes', icon: <NoteIcon />, count: records?.notes?.length || 0 },
+  ];
+
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress /></Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
       <Slide direction="down" in={true} timeout={500}>
         <HeroSection>
@@ -506,10 +505,10 @@ export const MedicalRecords = () =>{
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Add {recordType === 'diagnosis' ? 'Diagnosis' : 
-                     recordType === 'medication' ? 'Medication' : 
-                     recordType === 'allergy' ? 'Allergy' : 
-                     recordType === 'lab' ? 'Lab Result' : 'Note'}
+              Add {recordType === 'diagnosis' ? 'Diagnosis' :
+                recordType === 'medication' ? 'Medication' :
+                  recordType === 'allergy' ? 'Allergy' :
+                    recordType === 'lab' ? 'Lab Result' : 'Note'}
             </Typography>
             <IconButton onClick={() => setAddDialog(false)}>
               <CloseIcon />

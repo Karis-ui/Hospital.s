@@ -63,7 +63,7 @@ import {
 } from '@mui/icons-material';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
-import {labServices} from '../../../services/users/labtech';
+import { labServices } from '../../../services/users/labtech';
 
 const PageHeader = styled(Paper)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.info.main} 100%)`,
@@ -164,129 +164,143 @@ const ActionButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-export const DetailedRequest = ()=>{
-    const {id} = useParams();
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const [request,setRequest] = useState(null);
-    const [loading,setLoading] = useState(true);
-    const [error,setError] = useState('');
-    const [openStatusDialog,setOpenStatusDialog] = useState(false);
-    const [newStatus,setNewStatus] = useState('requested','sample_taken','ready','cancelled');
-    const [snackbar,setSnackbar] = useState({open: false,message: '',severity: 'success'});
+export const DetailedRequest = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [request, setRequest] = useState(null);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [newStatus, setNewStatus] = useState('requested', 'sample_taken', 'ready', 'cancelled');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    useEffect(()=>{
-        fetchDetailRequest();
-    },[id]);
+  useEffect(() => {
+    fetchDetailRequest();
+  }, [id]);
 
-    const fetchDetailRequest = async()=>{
-        try{
-            setLoading(true);
-            const response = await labServices.getDetailRequestView(id);
+  const fetchDetailRequest = async () => {
+    try {
+      setLoading(true);
+      const response = await labServices.getDetailRequestView(id);
 
-            if(response.data.status === 'success'){
-              setRequest(response.data);
-            }else{
-              throw new Error('Failed to load request details.');
-            }
-        }catch(err){
-            toast.error('Failed to fetch lab requesy! Try again please.');
-            setError(err?.response?.data?.message || 'Failed to load request data');
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    const handleProcessTest = ()=>{
-      navigate(`lab/process/${id}`);
-    };
-
-    const handleUploadResults = ()=>{
-      navigate(`/labTechnician/report/${id}/upload`);
-    };
-
-    const getTimelineSteps = ()=>{
-      const steps = [
-        {
-          label: 'Request created',
-          status: request?.requested_date? 'completed' : 'pending',
-          date: request?.requested_date,
-          icon: <AssignmentIcon sx={{fontSize:16}}/>
-        },
-        {
-          label: 'Sample Collection',
-          status: request?.status === 'sample_taken' || request?.status === 'ready' || request?.status === 'cancelled' ? 'completed' : 'pending',
-          date: request?.started_at,
-          icon: <LabIcon sx={{fontSize:16}}/>
-        },
-        {
-          label: 'Results ready',
-          status: request?.status === 'ready'? 'completed' : 'pending',
-          date: request?.results_ready_at,
-          icon: <DescriptionIcon sx={{fontSize:16}}/>
-        },
-        {
-          label: 'Request cancelled',
-          status: request?.status === 'cancelled'? 'completed' : 'pending',
-          date: request?.cancelled_at,
-          icon: <CancelIcon sx={{fontSize:16}}/>
-        },
-        {
-          label: 'Approved',
-          status: request?.status === 'approved'? 'completed' : 'pending',
-          date: request?.approved_at,
-          icon: <CheckIcon sx={{fontSize:16}}/>
-        },
-      ];
-      return steps;
-    };
-
-    const getStatusLabel = (status)=>{
-      const labels = {
-        requested: 'Requested',
-        sample_taken: 'Sample Taken',
-        ready: 'Ready',
-        approved: 'Approved',
-        cancelled: 'Cancelled',
-      };
-      return labels[status] || status;
-    };
-
-    const getStatusIcon = (status)=>{
-      switch(status){
-        case 'requested': return <PendingIcon/>;
-        case 'sample_taken': return <TimeIcon/>;
-        case 'ready': return <CheckIcon/>;
-        case 'approved': return <CheckIcon/>;
-        case 'cancelled': return <CancelIcon/>;
-        default: return <PendingIcon/>
+      if (response.data.status === 'success') {
+        setRequest(response.data);
+      } else {
+        throw new Error('Failed to load request details.');
       }
+    } catch (err) {
+      toast.error('Failed to fetch lab requesy! Try again please.');
+      setError(err?.response?.data?.message || 'Failed to load request data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProcessTest = () => {
+    navigate(`/lab/process/${id}`);
+  };
+
+  const handleUploadResults = (resultId) => {
+    navigate(`/lab/upload-result/${resultId}`);
+  };
+
+  const getTimelineSteps = () => {
+    const steps = [
+      {
+        label: 'Request created',
+        status: request?.requested_date ? 'completed' : 'pending',
+        date: request?.requested_date,
+        icon: <AssignmentIcon sx={{ fontSize: 16 }} />
+      },
+      {
+        label: 'Sample Collection',
+        status: request?.status === 'sample_taken' || request?.status === 'ready' || request?.status === 'cancelled' ? 'completed' : 'pending',
+        date: request?.started_at,
+        icon: <LabIcon sx={{ fontSize: 16 }} />
+      },
+      {
+        label: 'Results ready',
+        status: request?.status === 'ready' ? 'completed' : 'pending',
+        date: request?.results_ready_at,
+        icon: <DescriptionIcon sx={{ fontSize: 16 }} />
+      },
+      {
+        label: 'Request cancelled',
+        status: request?.status === 'cancelled' ? 'completed' : 'pending',
+        date: request?.cancelled_at,
+        icon: <CancelIcon sx={{ fontSize: 16 }} />
+      },
+      {
+        label: 'Approved',
+        status: request?.status === 'approved' ? 'completed' : 'pending',
+        date: request?.approved_at,
+        icon: <CheckIcon sx={{ fontSize: 16 }} />
+      },
+    ];
+    return steps;
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      requested: 'Requested',
+      sample_taken: 'Sample Taken',
+      ready: 'Ready',
+      approved: 'Approved',
+      cancelled: 'Cancelled',
     };
+    return labels[status] || status;
+  };
 
-    if(loading){
-      return(
-        <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:400}}><CircularProgress/></Box>
-      );
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'requested': return <PendingIcon />;
+      case 'sample_taken': return <TimeIcon />;
+      case 'ready': return <CheckIcon />;
+      case 'approved': return <CheckIcon />;
+      case 'cancelled': return <CancelIcon />;
+      default: return <PendingIcon />
     }
+  };
 
-    if(!request){
-      return(
-        <Box sx={{p:3}}>
-          <Alert severity='error' sx={{borderRadius:2}}>
-            Request not found.
-          </Alert>
-          <Button sx={{mt:2}} onClick={()=> navigate(`/lab/request-list`)}>
-            Back to requests.
-          </Button>
-        </Box>
-      );
+  const handleResults = async () => {
+    try {
+      setLoading(true);
+      const res = await labServices.getLabReportList();
+      setResults = res.data();
+      toast.success('Results fetched successfully.');
     }
+    catch (err) {
+      toast.error('An error occurred', err);
+    }
+    finally { setLoading(false); }
+  }
 
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}><CircularProgress /></Box>
+    );
+  }
+
+  if (!request) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity='error' sx={{ borderRadius: 2 }}>
+          Request not found.
+        </Alert>
+        <Button sx={{ mt: 2 }} onClick={() => navigate(`/lab/requests`)}>
+          Back to requests.
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: 3 }}>
       <Button
         startIcon={<BackIcon />}
-        onClick={() => navigate('/lab/request-list')}
+        onClick={() => navigate('/lab/requests')}
         sx={{ mb: 2, borderRadius: 2 }}
       >
         Back to Requests
@@ -324,7 +338,7 @@ export const DetailedRequest = ()=>{
               <SectionTitle variant="h6">
                 <AssignmentIcon /> Request Information
               </SectionTitle>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">
@@ -333,7 +347,7 @@ export const DetailedRequest = ()=>{
                   <Typography variant="body1" sx={{ fontWeight: 500, mb: 2 }}>
                     {request.test_name}
                   </Typography>
-                  
+
                   <Typography variant="caption" color="textSecondary">
                     Test Type
                   </Typography>
@@ -341,7 +355,7 @@ export const DetailedRequest = ()=>{
                     {request.test_type || 'Laboratory Test'}
                   </Typography>
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">
                     Requested Date
@@ -352,7 +366,7 @@ export const DetailedRequest = ()=>{
                       ({formatDistanceToNow(new Date(request.requested_date), { addSuffix: true })})
                     </Typography>
                   </Typography>
-                  
+
                   <Typography variant="caption" color="textSecondary">
                     Priority
                   </Typography>
@@ -367,7 +381,7 @@ export const DetailedRequest = ()=>{
                   />
                 </Grid>
               </Grid>
-              
+
               {request.notes && (
                 <>
                   <Divider sx={{ my: 2 }} />
@@ -387,7 +401,7 @@ export const DetailedRequest = ()=>{
               <SectionTitle variant="h6">
                 <PersonIcon /> Patient Information
               </SectionTitle>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -404,35 +418,35 @@ export const DetailedRequest = ()=>{
                     </Box>
                   </Box>
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <PhoneIcon fontSize="small" color="action" />
                     <Typography variant="body2">{request.patient?.phone || 'N/A'}</Typography>
                   </Stack>
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <EmailIcon fontSize="small" color="action" />
                     <Typography variant="body2">{request.patient?.email || 'N/A'}</Typography>
                   </Stack>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <LocationIcon fontSize="small" color="action" />
                     <Typography variant="body2">{request.patient?.address || 'N/A'}</Typography>
                   </Stack>
                 </Grid>
-                
+
                 <Grid item xs={6}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <CalendarIcon fontSize="small" color="action" />
                     <Typography variant="body2">Age: {request.patient?.age || 'N/A'} yrs</Typography>
                   </Stack>
                 </Grid>
-                
+
                 <Grid item xs={6}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <PersonIcon fontSize="small" color="action" />
@@ -448,7 +462,7 @@ export const DetailedRequest = ()=>{
               <SectionTitle variant="h6">
                 <DoctorIcon /> Referring Doctor
               </SectionTitle>
-              
+
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
                   <DoctorIcon />
@@ -462,7 +476,7 @@ export const DetailedRequest = ()=>{
                   </Typography>
                 </Box>
               </Box>
-              
+
               <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <PhoneIcon fontSize="small" color="action" />
@@ -483,7 +497,7 @@ export const DetailedRequest = ()=>{
               <SectionTitle variant="h6">
                 <HistoryIcon /> Status Timeline
               </SectionTitle>
-              
+
               <Timeline position="right">
                 {getTimelineSteps().map((step, index) => (
                   <TimelineItem key={index}>
@@ -517,7 +531,7 @@ export const DetailedRequest = ()=>{
               <SectionTitle variant="h6">
                 <ScheduleIcon /> Actions
               </SectionTitle>
-              
+
               <Stack spacing={2}>
                 {request.status === 'requested' && (
                   <ActionButton
@@ -529,7 +543,7 @@ export const DetailedRequest = ()=>{
                     Process Test
                   </ActionButton>
                 )}
-                
+
                 {(request.status === 'sample_taken' || request.status === 'processing') && (
                   <ActionButton
                     variant="contained"
@@ -541,18 +555,18 @@ export const DetailedRequest = ()=>{
                     Upload Results
                   </ActionButton>
                 )}
-                
+
                 {request.status === 'ready' && (
                   <ActionButton
                     variant="outlined"
                     fullWidth
                     startIcon={<DescriptionIcon />}
-                    onClick={() => navigate(`/labTechnician/detail_view/${id}/report`)}
+                    onClick={() => navigate(`/detail_view/${id}/report`)}
                   >
                     View Results
                   </ActionButton>
                 )}
-                
+
                 <ActionButton
                   variant="outlined"
                   fullWidth
@@ -571,7 +585,7 @@ export const DetailedRequest = ()=>{
                 <SectionTitle variant="h6">
                   <LabIcon /> Test Specifications
                 </SectionTitle>
-                
+
                 <Stack spacing={2}>
                   {request.sample_type && (
                     <DetailRow>
@@ -621,8 +635,8 @@ export const DetailedRequest = ()=>{
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenStatusDialog(false)}>Close</Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={() => {
               setOpenStatusDialog(false);
               toast.info('Status update feature coming soon');
@@ -645,3 +659,4 @@ export const DetailedRequest = ()=>{
     </Box>
   );
 };
+export default DetailedRequest;

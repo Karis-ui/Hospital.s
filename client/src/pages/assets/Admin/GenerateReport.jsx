@@ -4,7 +4,7 @@ import {
   Box, Grid, Card, CardContent, Typography, Button, TextField,
   MenuItem, FormControl, InputLabel, Select, Alert, CircularProgress,
   Stack, Chip, Avatar, Paper, RadioGroup, Radio, FormControlLabel,
-  alpha, Snackbar,Divider,Dialog,DialogTitle,DialogContent,DialogActions
+  alpha, Snackbar, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -14,7 +14,7 @@ import {
   People as UsersIcon, MedicalServices as DoctorIcon, Science as LabIcon,
   Assignment as AppointmentIcon, AttachMoney as BillingIcon,
   History as AuditIcon, CheckCircle as CheckIcon,
-  Description,Delete as DeleteIcon
+  Description, Delete as DeleteIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -26,89 +26,89 @@ import {
 import { tr } from 'date-fns/locale';
 
 const reportTypes = [
-    {value: 'users',label:'User Report',icon:<UsersIcon/>,description:'Complete list of all system users with roles'},
-    {value: 'doctors',label:'Doctor Report',icon:<DoctorIcon/>,description:'All doctors with specialities and contact details'},
-    {value: 'patients',label:'Patient Report',icon:<UsersIcon/>,description:'Patient demographic summary'},
-    {value: 'staff',label:'Staff Report',icon:<UsersIcon/>,description:'All staff members with contact details'},
-    {value: 'audits',label:'UseAuditr Report',icon:<AuditIcon/>,description:'System activity and User action logs.'},
+  { value: 'users', label: 'User Report', icon: <UsersIcon />, description: 'Complete list of all system users with roles' },
+  { value: 'doctors', label: 'Doctor Report', icon: <DoctorIcon />, description: 'All doctors with specialities and contact details' },
+  { value: 'patients', label: 'Patient Report', icon: <UsersIcon />, description: 'Patient demographic summary' },
+  { value: 'staff', label: 'Staff Report', icon: <UsersIcon />, description: 'All staff members with contact details' },
+  { value: 'audits', label: 'UseAuditr Report', icon: <AuditIcon />, description: 'System activity and User action logs.' },
 ];
 const format = [
-    {value: 'pdf',label:'PDF Document',icon:'📄',description:'Agile for printing and sharing.'},
-    {value: 'csv',label:'CSV File',icon:'📋',description:'Best for database import.'},   
+  { value: 'pdf', label: 'PDF Document', icon: '📄', description: 'Agile for printing and sharing.' },
+  { value: 'csv', label: 'CSV File', icon: '📋', description: 'Best for database import.' },
 ];
 
-export const GenerateReport = ()=>{
-    const navigate = useNavigate();
-    const [loading,setLoading] = useState(false);
-    const [download,setDownload] = useState(false);
-    const [reportType,setReportType] = useState('users');
-    const [format,setFormat] = useState('pdf');
-    const [dateRange,setDateRange] = useState({start:null,end:null});
-    const [deleteDialogOpen,setDeleteDialogOpen] = useState(false);
-    const [generatedFile,setGenerateFile]= useState(null);
-    const [snackbar,setSnackbar] = useState({open:false,message:'',severity:'success'});
+export const GenerateReport = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [download, setDownload] = useState(false);
+  const [reportType, setReportType] = useState('users');
+  const [format, setFormat] = useState('pdf');
+  const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [generatedFile, setGenerateFile] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    const handleGenerate = async()=>{
-        setLoading(true);
-        try{
-            const data = {
-                report_type:reportType,
-                format:format,
-                date_range_start: dateRange.start?.toISOString(),
-                date_range_end: dateRange.end?.toISOString(),
-            };
-            const response = await adminService.generateReport(data);
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const data = {
+        report_type: reportType,
+        format: format,
+        date_range_start: dateRange.start?.toISOString(),
+        date_range_end: dateRange.end?.toISOString(),
+      };
+      const response = await adminService.generateReport(data);
 
-            if(response.data.status === 'success'){
-                setGenerateFile({
-                    name: response.data.data.name,
-                    url: response.data.data.file_url,
-                    id: response.data.data.id,
-                });
-                toast.success('report generated successfully.');
-                setSnackbar({open:true,message:'Report generated successfully',severity:'success'});
-            }
-        }catch(err){
-            toast.error('Failed to generate report');
-            setSnackbar({open:true,message:'Report generation failed',severity:'error'});
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    
-    const selectedReport = reportTypes.find(r => r.value === reportType);
-
-    const handleDownload = async()=>{
-      setDownload(true);
-      try{
-        const res = await adminService.downloadReport(selectedReport);
-        if (res.data.status === 'success'){
-          setSnackbar({open:true,message:'Report Download Started',severity:'success'});
-          toast.success("Report Downloaded successfully.");
-        }
-      }catch(err){
-        toast.error('Failed to download report');
-        setSnackbar({open:true,message:'Report download failed',severity:'error'});
-      }finally{
-        setDownload(false);
+      if (response.data.status === 'success') {
+        setGenerateFile({
+          name: response.data.data.name,
+          url: response.data.data.file_url,
+          id: response.data.data.id,
+        });
+        toast.success('report generated successfully.');
+        setSnackbar({ open: true, message: 'Report generated successfully', severity: 'success' });
       }
-    };
-    const handleDelete = async () => {
-      if (!selectedReport) return;
-      try {
-        await adminService.deleteReport(selectedReport.id);
-        toast.success('Report deleted successfully');
-        setDeleteDialogOpen(false);
-        if (generatedFile?.id === selectedReport.id) {
-          setGenerateFile(null);
-        }
-      } catch (error) {
-        toast.error('Failed to delete report');
+    } catch (err) {
+      toast.error('Failed to generate report');
+      setSnackbar({ open: true, message: 'Report generation failed', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const selectedReport = reportTypes.find(r => r.value === reportType);
+
+  const handleDownload = async () => {
+    setDownload(true);
+    try {
+      const res = await adminService.downloadReport(selectedReport);
+      if (res.data.status === 'success') {
+        setSnackbar({ open: true, message: 'Report Download Started', severity: 'success' });
+        toast.success("Report Downloaded successfully.");
       }
-    };
-    
-    return (
+    } catch (err) {
+      toast.error('Failed to download report');
+      setSnackbar({ open: true, message: 'Report download failed', severity: 'error' });
+    } finally {
+      setDownload(false);
+    }
+  };
+  const handleDelete = async () => {
+    if (!selectedReport) return;
+    try {
+      await adminService.deleteReport(selectedReport.id);
+      toast.success('Report deleted successfully');
+      setDeleteDialogOpen(false);
+      if (generatedFile?.id === selectedReport.id) {
+        setGenerateFile(null);
+      }
+    } catch (error) {
+      toast.error('Failed to delete report');
+    }
+  };
+
+  return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ p: 3, bgcolor: platinumTheme.background.default, minHeight: '100vh' }}>
         <Button startIcon={<BackIcon />} onClick={() => navigate(-1)} sx={{ mb: 3 }}>
@@ -127,7 +127,7 @@ export const GenerateReport = ()=>{
             <PremiumCard>
               <CardContent sx={{ p: 3 }}>
                 <SectionTitle variant="h6">Report Configuration</SectionTitle>
-                
+
                 <Stack spacing={3}>
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Select Report Type</Typography>
@@ -222,7 +222,7 @@ export const GenerateReport = ()=>{
             <GlassCard>
               <CardContent sx={{ p: 3 }}>
                 <SectionTitle variant="h6">Report Preview</SectionTitle>
-                
+
                 <Box sx={{ textAlign: 'center', mb: 3 }}>
                   <Avatar sx={{ width: 80, height: 80, mx: 'auto', mb: 2, bgcolor: alpha(platinumTheme.secondary.main, 0.1), color: platinumTheme.secondary.main }}>
                     {selectedReport?.icon}
@@ -248,8 +248,8 @@ export const GenerateReport = ()=>{
 
                 {generatedFile && (
                   <Box sx={{ mt: 3 }}>
-                    <Alert 
-                      severity="success" 
+                    <Alert
+                      severity="success"
                       sx={{ mb: 2, borderRadius: 2 }}
                       action={
                         <Button color="inherit" size="small" onClick={handleDownload} startIcon={<DownloadIcon />}>

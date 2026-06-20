@@ -45,78 +45,74 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate, getInitials } from '../../../formatters';
-import {toast as useToast} from 'react-toastify';
+import { toast as useToast } from 'react-toastify';
 
-const StafffSearch = ()=>{
-    const [bill,setBill] = useState("");
-    const location = useLocation();
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const {showToast} = useToast();
-    const [loading,setLoading] = useState(true);
-    const query = new URLSearchParams(location.search).get('q') || '';
-    const [tabValue,setTabValue] = useState(0);
-    const [results,setResults] = useState({patients: [],bills: []});
-    const [searchTerm,setSearchTerm] = useState(query);
-    const [error,setError] = useState('');
-    const [page,setPage] = useState(1);
-    const rowsPerPage = 5;
+const StafffSearch = () => {
+  const [bill, setBill] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const query = new URLSearchParams(location.search).get('q') || '';
+  const [tabValue, setTabValue] = useState(0);
+  const [results, setResults] = useState({ patients: [], bills: [] });
+  const [searchTerm, setSearchTerm] = useState(query);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 5;
 
-    useEffect(()=>{
-        if(searchTerm){
-            performSearch();
-        }
-    },[searchTerm]);
-
-    const performSearch = async()=>{
-        setLoading(true);
-        try{
-            const response = await OperatorService.searchStaff(searchTerm);
-            setResults({
-                patients: response.data.results?.patients || [],
-                bills: response.data.results?.bills || [],
-            });
-            setError('');
-        }catch(err){
-            console.error('Search failed:',err);
-            setError('Search failed.Try again.');
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    const handleSearch = (patientId)=>{
-        navigate(`/operator/${patientId}/bills`);
-    };
-
-    const handleviewBill = (billId)=>{
-        navigate(`/bill/detailView/${billId}`);
-    };
-
-    const handleProcessPayment = (billId)=>{
-        navigate(`/process/payment/${billId}`);
-    };
-
-    const handleCreateBill = (patientId)=>{
-        navigate(`/create/bills/create?patient=${patientId}`);
-    };
-
-    const paginatedPatients = results.patients.slice((page-1) * rowsPerPage,page*rowsPerPage);
-    const paginatedBills = results.bills.slice((page-1) * rowsPerPage,page * rowsPerPage);
-    const totalPatients = results.patients.length;
-    const totalBills = results.bills.length;
-    const totalResults = totalPatients + totalBills;
-
-    if(loading){
-        return(
-            <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}><CircularProgress size={60} thickness={4}/></Box>
-        );
+  useEffect(() => {
+    if (searchTerm) {
+      performSearch();
     }
+  }, [searchTerm]);
 
+  const performSearch = async () => {
+    setLoading(true);
+    try {
+      const response = await OperatorService.searchStaff(searchTerm);
+      setResults({
+        patients: response.data.results?.patients || [],
+        bills: response.data.results?.bills || [],
+      });
+      setError('');
+    } catch (err) {
+      console.error('Search failed:', err);
+      setError('Search failed.Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleviewBill = (billId) => {
+    navigate(`/operator/detail-view/${billId}`);
+  };
+
+  const handleProcessPayment = () => {
+    navigate(`/operator/process-payment`);
+  };
+
+  const handleCreateBill = () => {
+    navigate('/operator/create');
+  };
+
+  const paginatedPatients = results.patients.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const paginatedBills = results.bills.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const totalPatients = results.patients.length;
+  const totalBills = results.bills.length;
+  const totalResults = totalPatients + totalBills;
+
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} thickness={4} /></Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
-        <form onSubmit={handleSearch}>
+        <form onSubmit={performSearch}>
           <TextField
             fullWidth
             placeholder="Search by patient name, ID, phone, bill number..."
@@ -140,9 +136,9 @@ const StafffSearch = ()=>{
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
           Search Results for "{searchTerm}"
         </Typography>
-        <Chip 
-          label={`${totalResults} result${totalResults !== 1 ? 's' : ''}`} 
-          color="primary" 
+        <Chip
+          label={`${totalResults} result${totalResults !== 1 ? 's' : ''}`}
+          color="primary"
           variant="outlined"
         />
       </Box>
@@ -293,7 +289,7 @@ const StafffSearch = ()=>{
                               size="small"
                               color={
                                 bill.payment_status === 'Cleared' ? 'success' :
-                                bill.payment_status === 'Pending' ? 'warning' : 'error'
+                                  bill.payment_status === 'Pending' ? 'warning' : 'error'
                               }
                             />
                           </Stack>

@@ -239,8 +239,8 @@ export const DoctorDashboard = () => {
     if (e.key === 'Enter' && searchTerm.trim()) {
       try {
         setSearchLoading(true);
-        const results = await doctorService.searchPatients(searchTerm);
-        navigate('/doctor/search/results', {
+        const results = await doctorService.searchItems(searchTerm);
+        navigate('/doctor/search', {
           state: { query: searchTerm, results: results.data }
         });
         setSearchTerm('');
@@ -256,7 +256,7 @@ export const DoctorDashboard = () => {
   const handleAppointments = async (appointmentId) => {
     try {
       setProcessingId(appointmentId);
-      await doctorService.appointmentView(appointmentId);
+      await doctorService.updateAppointment(appointmentId);
       toast.success('Appointment completed');
       fetchDashboardData();
     } catch (err) {
@@ -266,23 +266,36 @@ export const DoctorDashboard = () => {
     }
   };
 
-  const handleViewPatient = (patientId) => {
-    navigate(`/patient/detail/${patientId}`);
+  const handleViewAppointment = async (appointmentId) => {
+    try {
+      setProcessingId(appointmentId);
+      await doctorService.appointmentView(appointmentId);
+      toast.success('Appointment fetched successfully');
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to fetch appointment');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleViewPatient = async (patientId) => {
+    await doctorService.patientDetail(patientId);
   };
 
   const handleQuickAction = (action) => {
     switch (action) {
-      case 'prescription':
-        navigate('/doctor/prescriptions/new');
+      case 'prescriptions':
+        navigate('/doctor/prescriptions');
         break;
       case 'record':
-        navigate('/doctor/records/new');
+        navigate(`/doctor/patients/${id}/Medical-records`);
         break;
       case 'lab':
         navigate('/doctor/lab/new');
         break;
-      case 'followup':
-        navigate('/doctor/followup/new');
+      case 'profile':
+        navigate('/doctor/profile');
         break;
       default:
         toast.info(`Opening ${action} module`);
@@ -513,7 +526,7 @@ export const DoctorDashboard = () => {
                           transition: 'all 0.3s ease',
                           '&:hover': { transform: 'translateX(5px)', boxShadow: `0 5px 15px ${alpha(apt.color || goldTheme.primary.main, 0.3)}` },
                         }}
-                        onClick={() => navigate(`/doctor/appointments/${apt.id}`)}
+                        onClick={handleViewAppointment}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Box sx={{ width: 4, height: 40, bgcolor: apt.color || goldTheme.primary.main, borderRadius: 2 }} />
@@ -697,7 +710,7 @@ export const DoctorDashboard = () => {
                   <Button
                     fullWidth
                     endIcon={<ArrowForwardIcon />}
-                    onClick={() => navigate('/doctor/appointments')}
+                    onClick={(navigate('/doctor/appointments'))}
                     sx={{ mt: 2, color: goldTheme.primary.main, '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.1) } }}
                   >
                     View All Appointments

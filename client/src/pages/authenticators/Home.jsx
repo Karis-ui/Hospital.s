@@ -303,7 +303,7 @@ const Home = () => {
             </Box>
 
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-              {['home', 'services', 'about', 'contact'].map((item) => (
+              {['home', 'services', 'about', 'location', 'contact'].map((item) => (
                 <NavLink
                   key={item}
                   active={activeNav === item}
@@ -349,7 +349,7 @@ const Home = () => {
               style={{ overflow: 'hidden' }}
             >
               <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, bgcolor: 'background.paper' }}>
-                {['home', 'services', 'about', 'contact'].map((item) => (
+                {['home', 'services', 'about', 'location', 'contact'].map((item) => (
                   <Button
                     key={item}
                     fullWidth
@@ -844,9 +844,9 @@ const Home = () => {
                 </Button>
                 <Button
                   sx={{ color: alpha('#fff', 0.7), justifyContent: 'flex-start', p: 0, '&:hover': { color: 'white' } }}
-                  onClick={() => navigate('/doctors')}
+                  onClick={() => scrollToSection('location')}
                 >
-                  Our Doctors
+                  Our Precise location
                 </Button>
                 <Button
                   sx={{ color: alpha('#fff', 0.7), justifyContent: 'flex-start', p: 0, '&:hover': { color: 'white' } }}

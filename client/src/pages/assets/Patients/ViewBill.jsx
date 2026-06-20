@@ -69,41 +69,40 @@ import {
   AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
-import {useAuth} from '../../../context/authContext';
+import { useAuth } from '../../../context/authContext';
 import PatientService from '../../../services/users/patient';
 import { formatDate, formatCurrency } from '../../../formatters';
 import { tr } from 'date-fns/locale';
 import OperatorService from '../../../services/users/operator';
 import { alpha } from 'framer-motion';
 
-export const PatientBillDetails = () =>{
-    const navigate = useNavigate();
-    const {id} = useParams();
-    const {user} = useAuth();
-    const [bill,setBill] = useState(null);
-    const [billingData, setBillingData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [generatingPDF, setGeneratingPDF] = useState(true);
-    const [error, setError] = useState('');
-    const [paymentDialog, setPaymentDialog] = useState(false);
-    const [paymentMethod,setPaymentMethod] = useState('card')
-    const [processingPayment, setProcessingPayment] = useState(false);
-    const [paymentStep, setPaymentStep] = useState(0);
+export const PatientBillDetails = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [bill, setBill] = useState(null);
+  const [billingData, setBillingData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generatingPDF, setGeneratingPDF] = useState(true);
+  const [error, setError] = useState('');
+  const [paymentDialog, setPaymentDialog] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card')
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(0);
 
-    useEffect(() =>{
-        fetchBillingData();
-    },[]);
+  useEffect(() => {
+    fetchBillingData();
+  }, []);
 
-    const fetchBillingData = async () =>{
-        try{
-            setLoading(true);
-            const response = await PatientService.getBill();
-            setBillingData(response.data);
-            setError('');
-        }catch(err){
-            toast.error('Failed to fetch billing data. Try again!: ',err);
-            setError(err.response?.data?.message || 'Failed to fetch billing info...');
-             setBillingData({
+  const fetchBillingData = async () => {
+    try {
+      setLoading(true);
+      const response = await PatientService.getBill();
+      setBillingData(response.data);
+      setError('');
+    } catch (err) {
+      toast.error('Failed to fetch billing data. Try again!: ', err);
+      setError(err.response?.data?.message || 'Failed to fetch billing info...');
+      setBillingData({
         summary: {
           total_outstanding: 3750,
           overdue_amount: 1250,
@@ -166,80 +165,80 @@ export const PatientBillDetails = () =>{
             description: 'Lab Tests',
           },
         ],
-        });
-        }finally{
-            setLoading(false);
-        }
-    };
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleProcessPayment = async() =>{
-      setProcessingPayment(true);
-      try{
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        toast.success('Payment completed successfully');
-        setPaymentDialog(false);
-        fetchBillingData();
-      }catch(err){
-        toast.error('Payment failed. Try again please!');
-      }finally{
-        setProcessingPayment(false);
-      }
-    };
+  const handleProcessPayment = async () => {
+    setProcessingPayment(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      toast.success('Payment completed successfully');
+      setPaymentDialog(false);
+      fetchBillingData();
+    } catch (err) {
+      toast.error('Payment failed. Try again please!');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
 
-    const handleDownloadInvoice = async () =>{
-      try{
-        const response = await PatientService.downloadInvoice();
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download',`bill_${id}.pdf`);
-        document.baseURI.appendChild(link);
-        toast.success('Bill downloaded successfully');
-      }catch(err){
-        toast.error('Failed to downlaod invoice.Try again!');
-      }
-    };
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await PatientService.downloadInvoice();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bill_${id}.pdf`);
+      document.baseURI.appendChild(link);
+      toast.success('Bill downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to downlaod invoice.Try again!');
+    }
+  };
 
-    const handlePrint =()=>{
-      window.print();
-    }; 
-    const handleShare = () =>{
-      if(navigator.share){
-        navigator.share({
+  const handlePrint = () => {
+    window.print();
+  };
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
         title: `Bill ${bill?.billNumber}`,
         text: `Amount ${formatCurrency(bill?.amount)}`,
         url: window.location.href,
-        });
-      }
-      else{
-        navigator.clipboard.writeText(window.location.href);
-        toast.success("Link copied to clipboard");
-      }
-    };
-
-    if(loading){
-      return(
-        <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}><CircularProgress/></Box>
-      );
+      });
     }
-    if(error || !bill){
-      return(
-        <Box sx={{p:3}}>
-          <Alert severity='error'>{error || 'Bill not found'}</Alert>
-          <Button
-              startIcon={<ArrowBackIcon/>}
-              onClick={() => navigate('/view/bill/${id}')}   
-              sx={{mt:2}} 
-          >Back to bills.</Button>
-        </Box>
-      );
+    else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard");
     }
+  };
 
-    const daysUntilDue = Math.ceil((new Date(bill.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress /></Box>
+    );
+  }
+  if (error || !bill) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity='error'>{error || 'Bill not found'}</Alert>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/operator/bills')}
+          sx={{ mt: 2 }}
+        >Back to bills.</Button>
+      </Box>
+    );
+  }
+
+  const daysUntilDue = Math.ceil((new Date(bill.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigate('/patient/bills')} sx={{ mr: 2 }}>
+        <IconButton onClick={() => navigate(`/operator/detail-view/${id}`)} sx={{ mr: 2 }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -265,39 +264,39 @@ export const PatientBillDetails = () =>{
         </Box>
       </Box>
 
-      <Paper 
-        sx={{ 
-          p: 3, 
-          mb: 3, 
-          bgcolor: 
+      <Paper
+        sx={{
+          p: 3,
+          mb: 3,
+          bgcolor:
             bill.status === 'paid' ? alpha('#4caf50', 0.1) :
-            bill.status === 'pending' ? alpha('#ff9800', 0.1) :
-            alpha('#f44336', 0.1),
+              bill.status === 'pending' ? alpha('#ff9800', 0.1) :
+                alpha('#f44336', 0.1),
           borderLeft: 6,
-          borderColor: 
+          borderColor:
             bill.status === 'paid' ? 'success.main' :
-            bill.status === 'pending' ? 'warning.main' :
-            'error.main',
+              bill.status === 'pending' ? 'warning.main' :
+                'error.main',
         }}
       >
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={6}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {bill.status === 'paid' ? <CheckIcon color="success" sx={{ fontSize: 40 }} /> :
-               bill.status === 'pending' ? <ScheduleIcon color="warning" sx={{ fontSize: 40 }} /> :
-               <WarningIcon color="error" sx={{ fontSize: 40 }} />}
+                bill.status === 'pending' ? <ScheduleIcon color="warning" sx={{ fontSize: 40 }} /> :
+                  <WarningIcon color="error" sx={{ fontSize: 40 }} />}
               <Box>
                 <Typography variant="h5" gutterBottom>
                   {bill.status === 'paid' ? 'Payment Completed' :
-                   bill.status === 'pending' ? 'Payment Pending' :
-                   'Payment Overdue'}
+                    bill.status === 'pending' ? 'Payment Pending' :
+                      'Payment Overdue'}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  {bill.status === 'paid' 
+                  {bill.status === 'paid'
                     ? `Paid on ${formatDate(bill.payments[bill.payments.length - 1]?.date)}`
                     : bill.status === 'pending'
-                    ? `Due in ${daysUntilDue} days (${formatDate(bill.dueDate)})`
-                    : `Overdue by ${Math.abs(daysUntilDue)} days`}
+                      ? `Due in ${daysUntilDue} days (${formatDate(bill.dueDate)})`
+                      : `Overdue by ${Math.abs(daysUntilDue)} days`}
                 </Typography>
               </Box>
             </Box>
@@ -320,7 +319,7 @@ export const PatientBillDetails = () =>{
               <Typography variant="h6" gutterBottom>
                 Bill Items
               </Typography>
-              
+
               <TableContainer>
                 <Table>
                   <TableHead>
@@ -378,20 +377,20 @@ export const PatientBillDetails = () =>{
                 <Typography variant="h6" gutterBottom>
                   Insurance Information
                 </Typography>
-                
+
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <List dense>
                       <ListItem>
                         <ListItemIcon><InsuranceIcon color="primary" /></ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Provider"
                           secondary={bill.insurance.provider}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><Verified color="primary" /></ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Policy Number"
                           secondary={bill.insurance.policyNumber}
                         />
@@ -402,14 +401,14 @@ export const PatientBillDetails = () =>{
                     <List dense>
                       <ListItem>
                         <ListItemIcon><MoneyOffRounded color="primary" /></ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Coverage"
                           secondary={bill.insurance.coverage}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><CheckIcon color="success" /></ListItemIcon>
-                        <ListItemText 
+                        <ListItemText
                           primary="Covered Amount"
                           secondary={formatCurrency(bill.insurance.coveredAmount)}
                         />
@@ -418,8 +417,8 @@ export const PatientBillDetails = () =>{
                   </Grid>
                 </Grid>
 
-                <LinearProgress 
-                  variant="determinate" 
+                <LinearProgress
+                  variant="determinate"
                   value={(bill.insurance.coveredAmount / bill.amount) * 100}
                   sx={{ mt: 2, height: 8, borderRadius: 4 }}
                 />
@@ -441,7 +440,7 @@ export const PatientBillDetails = () =>{
                 <Typography variant="h6" gutterBottom>
                   Payment History
                 </Typography>
-                
+
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
@@ -483,7 +482,7 @@ export const PatientBillDetails = () =>{
                 <Typography variant="h6" gutterBottom>
                   Timeline
                 </Typography>
-                
+
                 <List>
                   {bill.timeline.map((item, index) => (
                     <ListItem key={index} divider={index < bill.timeline.length - 1}>
@@ -514,27 +513,27 @@ export const PatientBillDetails = () =>{
               <Typography variant="h6" gutterBottom>
                 Bill Summary
               </Typography>
-              
+
               <List dense>
                 <ListItem>
                   <ListItemIcon><ReceiptIcon /></ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary="Bill Number"
                     secondary={bill.billNumber}
                   />
                 </ListItem>
-                
+
                 <ListItem>
                   <ListItemIcon><CalendarViewDay /></ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary="Bill Date"
                     secondary={formatDate(bill.date)}
                   />
                 </ListItem>
-                
+
                 <ListItem>
                   <ListItemIcon><AccessTimeIcon /></ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary="Due Date"
                     secondary={
                       <Box>
@@ -544,7 +543,7 @@ export const PatientBillDetails = () =>{
                         <Typography variant="caption" color={
                           daysUntilDue < 0 ? 'error' : daysUntilDue < 7 ? 'warning' : 'success'
                         }>
-                          {daysUntilDue < 0 
+                          {daysUntilDue < 0
                             ? `${Math.abs(daysUntilDue)} days overdue`
                             : `${daysUntilDue} days remaining`}
                         </Typography>
@@ -559,23 +558,23 @@ export const PatientBillDetails = () =>{
               <List dense>
                 <ListItem>
                   <ListItemIcon><PersonIcon /></ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary="Patient"
                     secondary={bill.patient.name}
                   />
                 </ListItem>
-                
+
                 <ListItem>
                   <ListItemIcon><LocalHospital /></ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary="Department"
                     secondary={bill.department}
                   />
                 </ListItem>
-                
+
                 <ListItem>
                   <ListItemIcon><LocalHospital /></ListItemIcon>
-                  <ListItemText 
+                  <ListItemText
                     primary="Doctor"
                     secondary={bill.doctor?.name}
                   />
@@ -660,8 +659,8 @@ export const PatientBillDetails = () =>{
         </Grid>
       </Grid>
 
-      <Dialog 
-        open={paymentDialog} 
+      <Dialog
+        open={paymentDialog}
         onClose={() => setPaymentDialog(false)}
         maxWidth="sm"
         fullWidth
@@ -672,7 +671,7 @@ export const PatientBillDetails = () =>{
             <Typography variant="h6">Pay Bill</Typography>
           </Box>
         </DialogTitle>
-        
+
         <DialogContent sx={{ mt: 2 }}>
           <Stepper activeStep={paymentStep} sx={{ mb: 3 }}>
             <Step><StepLabel>Select Method</StepLabel></Step>
@@ -691,9 +690,9 @@ export const PatientBillDetails = () =>{
               <FormControl component="fieldset">
                 <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                   <Paper sx={{ p: 2, mb: 1, border: 1, borderColor: 'grey.200' }}>
-                    <FormControlLabel 
-                      value="card" 
-                      control={<Radio />} 
+                    <FormControlLabel
+                      value="card"
+                      control={<Radio />}
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <CreditCardIcon color="primary" />
@@ -704,14 +703,14 @@ export const PatientBillDetails = () =>{
                             </Typography>
                           </Box>
                         </Box>
-                      } 
+                      }
                     />
                   </Paper>
-                  
+
                   <Paper sx={{ p: 2, mb: 1, border: 1, borderColor: 'grey.200' }}>
-                    <FormControlLabel 
-                      value="bank" 
-                      control={<Radio />} 
+                    <FormControlLabel
+                      value="bank"
+                      control={<Radio />}
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Balance color="primary" />
@@ -722,7 +721,7 @@ export const PatientBillDetails = () =>{
                             </Typography>
                           </Box>
                         </Box>
-                      } 
+                      }
                     />
                   </Paper>
                 </RadioGroup>
@@ -765,7 +764,7 @@ export const PatientBillDetails = () =>{
             </Box>
           )}
         </DialogContent>
-        
+
         <DialogActions>
           {paymentStep < 2 && (
             <>

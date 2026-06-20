@@ -42,7 +42,7 @@ import {
   Grow,
   Slide,
   Zoom as ZoomTransition,
-  Dialog,DialogActions,DialogContent,DialogTitle
+  Dialog, DialogActions, DialogContent, DialogTitle
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import {
@@ -172,10 +172,10 @@ const StepIcon = styled(Box)(({ theme, active, completed }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: completed 
-    ? theme.palette.success.main 
-    : active 
-      ? theme.palette.primary.main 
+  backgroundColor: completed
+    ? theme.palette.success.main
+    : active
+      ? theme.palette.primary.main
       : alpha(theme.palette.grey[500], 0.1),
   color: completed || active ? 'white' : theme.palette.text.secondary,
   transition: 'all 0.3s ease',
@@ -187,15 +187,17 @@ const StepIcon = styled(Box)(({ theme, active, completed }) => ({
   },
 }));
 
-const COMMON_MEDICATIONS = [ 'Amoxicillin', 'Amoxicillin/Clavulanate', 'Azithromycin', 'Ciprofloxacin',
+const COMMON_MEDICATIONS = ['Amoxicillin', 'Amoxicillin/Clavulanate', 'Azithromycin', 'Ciprofloxacin',
   'Doxycycline', 'Insulin', 'Nitrofurantoin', 'Cephalexin',
   'Lisinopril', 'Calcium Carbonate', 'Metoprolol', 'Losartan', 'Vitamin D',];
 
-const DOSAGE_SUGGESTIONS = {'Amoxicillin': ['250mg', '500mg', '875mg'],
+const DOSAGE_SUGGESTIONS = {
+  'Amoxicillin': ['250mg', '500mg', '875mg'],
   'Lisinopril': ['2.5mg', '5mg', '10mg', '20mg', '40mg'],
   'Metformin': ['500mg', '850mg', '1000mg'],
   'Atorvastatin': ['10mg', '20mg', '40mg', '80mg'],
-  'Omeprazole': ['10mg', '20mg', '40mg'],};
+  'Omeprazole': ['10mg', '20mg', '40mg'],
+};
 
 const FREQUENCY_OPTIONS = ['Twice daily',
   'Three times daily',
@@ -210,113 +212,114 @@ const FREQUENCY_OPTIONS = ['Twice daily',
   'After meals',
 ];
 
-export const WritePrescription = () =>{
+export const WritePrescription = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const {user} = useAuth();
-  const [sending,setSending] = useState(false);
-  const [patients,setPatients] = useState([]);
-  const [selectedPatient,setSlectedPatient] = useState(null);
-  const [searchLoading,setSearchLoading] = useState(false);
-  const [prescriptionItems,setPrecriptionItems] = useState([]);
-  const [currentMed,setCurrentMed] = useState({
-    medication: '',dosage: '',frequency: '',duration: '',quantity: '',instructions: '',dispense_as_written: ''
+  const { user } = useAuth();
+  const [sending, setSending] = useState(false);
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSlectedPatient] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [prescriptionItems, setPrecriptionItems] = useState([]);
+  const [currentMed, setCurrentMed] = useState({
+    medication: '', dosage: '', frequency: '', duration: '', quantity: '', instructions: '', dispense_as_written: ''
   });
-  const [prescriptionData,setPrescriptionData] = useState({
-    diagnosis: '',clinicalNotes: '',startDate: new Date(),endDate: addDays(new Date,30),refills: 0,is_controlled: false,
+  const [prescriptionData, setPrescriptionData] = useState({
+    diagnosis: '', clinicalNotes: '', startDate: new Date(), endDate: addDays(new Date, 30), refills: 0, is_controlled: false,
   });
   const getDosageOptions = useState(DOSAGE_SUGGESTIONS);
-  const [activeStep,setActiveStep] = useState(0);
-  const [pageLoaded,setPageLoaded] = useState(false);
-  const steps = ['Select Patient',['Add Medications','Review & Send']];
-  const [previewDialog,setPreviewDialog] = useState(false);
-  const [previewHtml,setPreviewHtml] = useState('');
+  const [activeStep, setActiveStep] = useState(0);
+  const [pageLoaded, setPageLoaded] = useState(false);
+  const steps = ['Select Patient', ['Add Medications', 'Review & Send']];
+  const [previewDialog, setPreviewDialog] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
   const [sendMethod, setSendMethod] = useState('email');
   const [contactInfo, setContactInfo] = useState({
     email: '',
     phone: '',
   });
 
-  useEffect(() =>{
+  useEffect(() => {
     setPageLoaded(true);
-    if(location.state?.patientId){
+    if (location.state?.patientId) {
       loadPatient(location.state.patientId);
-    }else{
+    } else {
       loadPatients();
     }
-  },[location.state]);
+  }, [location.state]);
 
-  const loadPatients = async()=>{
+  const loadPatients = async () => {
     setSearchLoading(true);
-    try{
+    try {
       const response = await doctorSevice.myPatients();
       setPatients(response.data || []);
-    }catch(err){
+    } catch (err) {
       console.error('Failed to load patients.');
       toast.error('Failed to load patients');
-    }finally{
+    } finally {
       setSearchLoading(false);
     }
   };
 
-  const loadPatient =async(patientId) =>{
+  const loadPatient = async (patientId) => {
     setSearchLoading(true);
-    try{
+    try {
       const response = await doctorSevice.patientDetail(patientId);
       setSlectedPatient(response.data);
-      setContactInfo({email: response.data.email || '',
-                      phone: response.data.phone || '',
+      setContactInfo({
+        email: response.data.email || '',
+        phone: response.data.phone || '',
       });
       toast.success('Patient loaded');
-    }catch(err){
+    } catch (err) {
       toast.error('Failed to load patient.');
-    }finally{
+    } finally {
       setSearchLoading(false);
     }
   };
 
-  const handleAddMedication = () =>{
-    if(!currentMed.medication){
+  const handleAddMedication = () => {
+    if (!currentMed.medication) {
       toast.error('Please enter medication name');
       return;
     }
-    if(!currentMed.dosage){
+    if (!currentMed.dosage) {
       toast.error('Please specify dosage');
       return;
     }
-    if(!currentMed.frequency){
+    if (!currentMed.frequency) {
       toast.error('Please specify frequency');
       return;
     }
-    setPrecriptionItems([...prescriptionItems,{...currentMed,id:Date.now()}]);
+    setPrecriptionItems([...prescriptionItems, { ...currentMed, id: Date.now() }]);
     setCurrentMed({
-      medication: '',dosage: '',frequency: '',duration: '',quantity: '',instructions: '',dispense_as_written: true,
+      medication: '', dosage: '', frequency: '', duration: '', quantity: '', instructions: '', dispense_as_written: true,
     });
     toast.success('Medication added');
   };
 
-  const handleRemoveMedication = (id) =>{
+  const handleRemoveMedication = (id) => {
     setPrecriptionItems(prescriptionItems.filter(item => item.id !== id));
     toast.info('Medication removed');
   };
 
-  const handleNext = () =>{
-    if(activeStep === 0 && !selectedPatient){
+  const handleNext = () => {
+    if (activeStep === 0 && !selectedPatient) {
       toast.error('Please select a patient');
       return;
     }
-    if(activeStep === 1 && prescriptionItems.length === 0){
+    if (activeStep === 1 && prescriptionItems.length === 0) {
       toast.error('Please add at least one prescription');
       return;
     }
-    setActiveStep(prev => prev+1);
+    setActiveStep(prev => prev + 1);
   };
-  
-  const handleBack = () =>{
+
+  const handleBack = () => {
     setActiveStep(prev => prev - 1);
   };
 
-  const generatePrescriptionHTML = () =>{
+  const generatePrescriptionHTML = () => {
     const doctorName = `Dr. ${user?.full_name}`;
     const doctorLicense = user?.license_number || '';
 
@@ -514,24 +517,24 @@ export const WritePrescription = () =>{
     `;
   };
 
-  const handlePreview = () =>{
+  const handlePreview = () => {
     setPrecriptionItems(generatePrescriptionHTML());
     setPreviewDialog(true);
   };
 
-  const handleSendPrescription = async()=>{
-    if(!selectedPatient){
+  const handleSendPrescription = async () => {
+    if (!selectedPatient) {
       toast.error('Select a patient please.');
       return;
     }
-    if(prescriptionItems.length === 0){
+    if (prescriptionItems.length === 0) {
       toast.error('Add at least one medication.');
       return;
     }
     setSending(true);
-    try{
+    try {
       const prescription = {
-         doctor_id: user?.id,
+        doctor_id: user?.id,
         doctor_name: `Dr. ${user?.first_name} ${user?.last_name}`,
         doctor_license: user?.license_number,
         patient_id: selectedPatient.id,
@@ -554,27 +557,27 @@ export const WritePrescription = () =>{
         })),
       };
 
-      if (sendMethod === 'email'){
-        await doctorSevice.sendToPatient(selectedPatient.id,{
-          prescription,email: contactInfo.email
+      if (sendMethod === 'email') {
+        await doctorSevice.sendToPatient(selectedPatient.id, {
+          prescription, email: contactInfo.email
         });
         toast.success(`Prescription sent to ${contactInfo.email}`);
-      }else if(sendMethod === 'sms'){
-        await doctorSevice.sendToPatient(selectedPatient.id,{
-          prescription_summary: `${prescriptionItems.length} medication(s) prescripted.`,phone: contactInfo.phone,
+      } else if (sendMethod === 'sms') {
+        await doctorSevice.sendToPatient(selectedPatient.id, {
+          prescription_summary: `${prescriptionItems.length} medication(s) prescripted.`, phone: contactInfo.phone,
         });
         toast.success(`Prescription sent to ${contactInfo.phone}`);
       }
-      setTimeout(()=>{navigate('/prescriptions');},2000);
-    }catch(err){
+      setTimeout(() => { navigate('/doctor/prescriptions'); }, 2000);
+    } catch (err) {
       toast.error('Failed to send prescription.');
-    }finally{
+    } finally {
       setSending(false);
     }
   };
 
-  const getStepIcon = (step)=>{
-    const icons = [<PersonIcon/>,<MedicationIcon/>,<SendIcon/>];
+  const getStepIcon = (step) => {
+    const icons = [<PersonIcon />, <MedicationIcon />, <SendIcon />];
     return icons[step];
   };
 
@@ -588,7 +591,7 @@ export const WritePrescription = () =>{
                 <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Select Patient
               </Typography>
-              
+
               {!selectedPatient ? (
                 <Grow in timeout={600}>
                   <Box>
@@ -701,9 +704,9 @@ export const WritePrescription = () =>{
                           </Box>
                         </Box>
                         <Tooltip title="Change Patient" TransitionComponent={ZoomTransition}>
-                          <IconButton 
+                          <IconButton
                             onClick={() => setSlectedPatient(null)}
-                            sx={{ 
+                            sx={{
                               bgcolor: alpha('#f44336', 0.1),
                               '&:hover': { bgcolor: alpha('#f44336', 0.2) },
                             }}
@@ -874,7 +877,7 @@ export const WritePrescription = () =>{
                           <MedicationIcon color="action" />
                         </Badge>
                       </Box>
-                      
+
                       {prescriptionItems.length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: 4 }}>
                           <MedicationIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
@@ -953,7 +956,7 @@ export const WritePrescription = () =>{
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
                       Clinical Information
                     </Typography>
-                    
+
                     <Grid container spacing={2}>
                       <Grid item xs={12}>
                         <TextField
@@ -967,7 +970,7 @@ export const WritePrescription = () =>{
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       </Grid>
-                      
+
                       <Grid item xs={12} md={6}>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                           <DatePicker
@@ -978,7 +981,7 @@ export const WritePrescription = () =>{
                           />
                         </LocalizationProvider>
                       </Grid>
-                      
+
                       <Grid item xs={12} md={6}>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                           <DatePicker
@@ -990,7 +993,7 @@ export const WritePrescription = () =>{
                           />
                         </LocalizationProvider>
                       </Grid>
-                      
+
                       <Grid item xs={12} md={6}>
                         <TextField
                           fullWidth
@@ -1002,7 +1005,7 @@ export const WritePrescription = () =>{
                           InputProps={{ inputProps: { min: 0, max: 12 } }}
                         />
                       </Grid>
-                      
+
                       <Grid item xs={12} md={6}>
                         <FormControlLabel
                           control={
@@ -1014,7 +1017,7 @@ export const WritePrescription = () =>{
                           label="Controlled Substance"
                         />
                       </Grid>
-                      
+
                       <Grid item xs={12}>
                         <TextField
                           fullWidth
@@ -1076,7 +1079,7 @@ export const WritePrescription = () =>{
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
                         Prescribed Medications ({prescriptionItems.length})
                       </Typography>
-                      
+
                       {prescriptionItems.map((item, i) => (
                         <Box
                           key={i}
@@ -1152,35 +1155,35 @@ export const WritePrescription = () =>{
                         onChange={(e) => setSendMethod(e.target.value)}
                         sx={{ mb: 2 }}
                       >
-                        <FormControlLabel 
-                          value="email" 
-                          control={<Radio />} 
+                        <FormControlLabel
+                          value="email"
+                          control={<Radio />}
                           label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <EmailIcon fontSize="small" />
                               <span>Email to Patient</span>
                             </Box>
-                          } 
+                          }
                         />
-                        <FormControlLabel 
-                          value="sms" 
-                          control={<Radio />} 
+                        <FormControlLabel
+                          value="sms"
+                          control={<Radio />}
                           label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <PhoneIcon fontSize="small" />
                               <span>SMS Notification</span>
                             </Box>
-                          } 
+                          }
                         />
-                        <FormControlLabel 
-                          value="print" 
-                          control={<Radio />} 
+                        <FormControlLabel
+                          value="print"
+                          control={<Radio />}
                           label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <PrintIcon fontSize="small" />
                               <span>Print / Download PDF</span>
                             </Box>
-                          } 
+                          }
                         />
                       </RadioGroup>
 
@@ -1230,9 +1233,9 @@ export const WritePrescription = () =>{
                         Preview Prescription
                       </Button>
 
-                      <Alert 
-                        severity="info" 
-                        sx={{ 
+                      <Alert
+                        severity="info"
+                        sx={{
                           mt: 1,
                           borderRadius: 2,
                           bgcolor: alpha(theme.primary.main, 0.1),
@@ -1291,9 +1294,9 @@ export const WritePrescription = () =>{
         <Slide direction="down" in={pageLoaded} timeout={500}>
           <GradientHeader sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-              <IconButton 
-                onClick={() => navigate(-1)} 
-                sx={{ 
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
                   color: 'white',
                   mr: 2,
                   bgcolor: alpha('#fff', 0.1),
@@ -1316,8 +1319,8 @@ export const WritePrescription = () =>{
 
         <GlassCard>
           <CardContent sx={{ p: 4 }}>
-            <Stepper 
-              activeStep={activeStep} 
+            <Stepper
+              activeStep={activeStep}
               sx={{ mb: 4 }}
               alternativeLabel
             >
@@ -1350,7 +1353,7 @@ export const WritePrescription = () =>{
               >
                 Back
               </Button>
-              
+
               {activeStep === steps.length - 1 ? (
                 <Button
                   variant="contained"

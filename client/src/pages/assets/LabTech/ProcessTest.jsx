@@ -153,7 +153,7 @@ export const ProcessTest = () => {
       reportData.append('report_file', reportBlob, `lab_report_${id}.json`);
       await labServices.uploadLabReport(id, reportData);
       setSnackbar({ open: true, message: 'Lab report finalized and uploaded successfully!', severity: 'success' });
-      setTimeout(() => { navigate(`/labTechnician/detail_view/${id}/request/`) }, 2000);
+      setTimeout(() => { navigate(`/lab/requests/${id}`) }, 2000);
     } catch (err) {
       console.error('Error finalizing report:', err);
       setSnackbar({ open: true, message: 'Failed to finalize report. Please try again.', severity: 'error' });

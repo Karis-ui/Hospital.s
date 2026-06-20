@@ -45,7 +45,7 @@ import {
   Stack,
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
-import {DataGrid} from '@mui/x-data-grid';
+import { DataGrid } from '@mui/x-data-grid';
 import {
   Dashboard as DashboardIcon,
   Receipt as ReceiptIcon,
@@ -88,9 +88,9 @@ import {
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/authContext';
 import { OperatorService } from '../../services/users/operator';
-import {coreService} from '../../services/users/core';
+import { coreService } from '../../services/users/core';
 import { formatDate, formatCurrency } from '../../formatters';
-import {useConfirm} from '../../theme/useConfirm';
+import { useConfirm } from '../../theme/useConfirm';
 
 const emeraldTheme = {
   primary: { main: '#27ae60', light: '#6fcf97', dark: '#219653', contrast: '#ffffff' },
@@ -137,13 +137,12 @@ const StatCard = styled(Card)(({ theme, status }) => ({
   background: emeraldTheme.background.paper,
   borderRadius: 16,
   border: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}`,
-  borderLeft: `5px solid ${
-    status === 'primary' ? emeraldTheme.primary.main :
+  borderLeft: `5px solid ${status === 'primary' ? emeraldTheme.primary.main :
     status === 'success' ? emeraldTheme.status.paid.color :
-    status === 'warning' ? emeraldTheme.status.pending.color :
-    status === 'danger' ? emeraldTheme.status.overdue.color :
-    emeraldTheme.primary.main
-  }`,
+      status === 'warning' ? emeraldTheme.status.pending.color :
+        status === 'danger' ? emeraldTheme.status.overdue.color :
+          emeraldTheme.primary.main
+    }`,
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': { transform: 'translateY(-5px)', boxShadow: `0 20px 40px ${alpha(emeraldTheme.primary.main, 0.15)}` },
 }));
@@ -198,7 +197,7 @@ const TransactionItem = styled(Box)(({ theme }) => ({
 export const OperatorDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const {confirm,ConfirmDialogComponent} = useConfirm();
+  const { confirm, ConfirmDialogComponent } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
@@ -206,12 +205,12 @@ export const OperatorDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [billFilter, setBillFilter] = useState('all');
-  
+
   const [newBillModal, setNewBillModal] = useState(false);
   const [billItems, setBillItems] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -224,7 +223,7 @@ export const OperatorDashboard = () => {
     paymentStatus: '',
   });
   const [selectedRows, setSelectedRows] = useState([]);
-  
+
   const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
@@ -307,13 +306,13 @@ export const OperatorDashboard = () => {
       try {
         setSearchLoading(true);
         const response = await OperatorService.searchStaff();
-        const filtered = response.data.filter(item => 
+        const filtered = response.data.filter(item =>
           item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.id?.toString().includes(searchTerm) ||
           item.billNo?.includes(searchTerm)
         );
         setSearchResults(filtered);
-        
+
         if (filtered.length > 0) {
           toast.success(`Found ${filtered.length} results`);
         } else {
@@ -353,30 +352,30 @@ export const OperatorDashboard = () => {
 
   const handleAddBillItem = (e) => {
     e.preventDefault();
-    
-    const { amount, notes,description } = quickBillData;
-    
+
+    const { amount, notes, description } = quickBillData;
+
     if (!amount || !description) {
       toast.error('Please fill all item fields');
       return;
     }
-    
+
     const newItem = {
       id: Date.now(),
       notes,
       amount: parseFloat(amount),
       quantity: 1,
     };
-    
+
     setBillItems([...billItems, newItem]);
-    
+
     setQuickBillData({
       ...quickBillData,
       serviceType: '',
       amount: '',
       description: '',
     });
-    
+
     toast.success('Item added to bill');
   };
 
@@ -389,15 +388,15 @@ export const OperatorDashboard = () => {
       toast.error('Please add items to the bill first');
       return;
     }
-    
+
     if (!quickBillData.patientId || !quickBillData.patientName) {
       toast.error('Please enter Patient ID and Name');
       return;
     }
-    
+
     try {
       setProcessingId('generate');
-      
+
       const billData = {
         patient_id: quickBillData.patientId,
         patient_name: quickBillData.patientName,
@@ -406,13 +405,13 @@ export const OperatorDashboard = () => {
         payment_method: quickBillData.paymentMethod,
         status: 'pending',
       };
-      
+
       const response = await OperatorService.createBill(billData);
-      
+
       toast.success(`Bill generated successfully`);
       handleCloseModal();
-      fetchBills(); 
-      fetchAnalytics(); 
+      fetchBills();
+      fetchAnalytics();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to generate bill');
     } finally {
@@ -422,10 +421,10 @@ export const OperatorDashboard = () => {
 
   const handleMarkAsPaid = async (billId) => {
     const confirmed = await confirm({
-      title:'Mark Bill as Paid',
-      message:'Are you sure you want to mark the same.',
-      type:'success',
-      confirmText:'Approve',
+      title: 'Mark Bill as Paid',
+      message: 'Are you sure you want to mark the same.',
+      type: 'success',
+      confirmText: 'Approve',
     });
     if (confirmed) {
       try {
@@ -456,10 +455,10 @@ export const OperatorDashboard = () => {
 
   const handleSendReminder = async (billId) => {
     const confirmed = await confirm({
-      title:'Send Reminder',
-      message:'Are you sure you want to send the same.',
-      type:'success',
-      confirmText:'Send',
+      title: 'Send Reminder',
+      message: 'Are you sure you want to send the same.',
+      type: 'success',
+      confirmText: 'Send',
     });
     if (confirmed) {
       try {
@@ -475,7 +474,7 @@ export const OperatorDashboard = () => {
   };
 
   const handleViewBill = (billId) => {
-    navigate(`/operator/bills/${billId}`);
+    navigate(`/operator/detail-view`);
   };
 
   const handlePrintBill = async (billId) => {
@@ -488,7 +487,7 @@ export const OperatorDashboard = () => {
   };
 
   const handleViewReceipt = (billId) => {
-    navigate(`/view/receipt/${billId}/`);
+    navigate(`/operator/receipt`);
   };
 
   const handleGenerateInvoice = async (billId) => {
@@ -521,8 +520,8 @@ export const OperatorDashboard = () => {
 
   const getFilteredBills = () => {
     if (!bills || bills.length === 0) return [];
-    
-    switch(billFilter) {
+
+    switch (billFilter) {
       case 'pending':
         return bills.filter(b => b.status === 'pending' || b.status === 'Pending');
       case 'paid':
@@ -536,7 +535,7 @@ export const OperatorDashboard = () => {
 
   const getStatusIcon = (status) => {
     const statusLower = String(status).toLowerCase();
-    switch(statusLower) {
+    switch (statusLower) {
       case 'paid':
       case 'cleared':
         return <PaidIcon fontSize="small" />;
@@ -567,10 +566,12 @@ export const OperatorDashboard = () => {
   };
 
   const columns = [
-    { field: 'id', headerName: 'Bill No', width: 100,
+    {
+      field: 'id', headerName: 'Bill No', width: 100,
       renderCell: (params) => <strong>#{params.value}</strong>
     },
-    { field: 'patientName', headerName: 'Patient', width: 180,
+    {
+      field: 'patientName', headerName: 'Patient', width: 180,
       renderCell: (params) => (
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>{params.value || params.row.patient}</Typography>
@@ -578,14 +579,17 @@ export const OperatorDashboard = () => {
         </Box>
       )
     },
-    { field: 'date', headerName: 'Date', width: 100,
+    {
+      field: 'date', headerName: 'Date', width: 100,
       valueFormatter: (params) => params.value ? formatDate(params.value, 'short') : '-'
     },
-    { field: 'amount', headerName: 'Amount', width: 100,
+    {
+      field: 'amount', headerName: 'Amount', width: 100,
       valueFormatter: (params) => formatCurrency(params.value || 0),
       renderCell: (params) => <Typography sx={{ fontWeight: 600 }}>{formatCurrency(params.value || 0)}</Typography>
     },
-    { field: 'status', headerName: 'Status', width: 100,
+    {
+      field: 'status', headerName: 'Status', width: 100,
       renderCell: (params) => {
         const status = getStatusFromAPI(params.value);
         return (
@@ -598,10 +602,12 @@ export const OperatorDashboard = () => {
         );
       }
     },
-    { field: 'dueDate', headerName: 'Due Date', width: 100,
+    {
+      field: 'dueDate', headerName: 'Due Date', width: 100,
       valueFormatter: (params) => params.value ? formatDate(params.value, 'short') : '-'
     },
-    { field: 'actions', headerName: 'Actions', width: 280,
+    {
+      field: 'actions', headerName: 'Actions', width: 280,
       renderCell: (params) => {
         const status = getStatusFromAPI(params.row.status);
         return (
@@ -658,8 +664,10 @@ export const OperatorDashboard = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh',
-        background: `linear-gradient(135deg, ${emeraldTheme.primary.dark}, ${emeraldTheme.primary.main})` }}>
+      <Box sx={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh',
+        background: `linear-gradient(135deg, ${emeraldTheme.primary.dark}, ${emeraldTheme.primary.main})`
+      }}>
         <CircularProgress sx={{ color: emeraldTheme.text.light }} size={60} thickness={4} />
         <Typography sx={{ mt: 2, color: emeraldTheme.text.light }}>Loading Billing Dashboard...</Typography>
       </Box>
@@ -678,14 +686,14 @@ export const OperatorDashboard = () => {
 
   const operator = dashboardData?.operator || user || { first_name: '', last_name: '', full_name: '' };
   operator.full_name = operator.full_name || `${operator.first_name || ''} ${operator.last_name || ''}`.trim() || 'Operator';
-  
+
   const stats = dashboardData?.statistics || analytics?.statistics || {
     todayCollection: 0,
     billsPaidToday: 0,
     pendingBills: bills?.filter(b => getStatusFromAPI(b.status) === 'pending').length || 0,
     overdueBills: bills?.filter(b => getStatusFromAPI(b.status) === 'overdue').length || 0,
   };
-  
+
   const recentTransactions = dashboardData?.recent_transactions || analytics?.recent_transactions || [];
   const summary = dashboardData?.summary || analytics?.summary || {
     totalBills: bills?.length || 0,
@@ -705,16 +713,18 @@ export const OperatorDashboard = () => {
           <OperatorAvatar>
             {operator.full_name.split(' ').map(n => n[0]).join('').toUpperCase() || 'OP'}
           </OperatorAvatar>
-          
+
           <Typography variant="h5" sx={{ fontWeight: 700, color: emeraldTheme.text.light, mb: 0.5 }}>
             {operator.full_name}
           </Typography>
-          
+
           <Chip icon={<MoneyIcon />} label="Billing Department"
-            sx={{ background: alpha(emeraldTheme.primary.main, 0.2), color: emeraldTheme.primary.light,
-              border: `1px solid ${emeraldTheme.primary.light}`, fontWeight: 600, mb: 2 }}
+            sx={{
+              background: alpha(emeraldTheme.primary.main, 0.2), color: emeraldTheme.primary.light,
+              border: `1px solid ${emeraldTheme.primary.light}`, fontWeight: 600, mb: 2
+            }}
           />
-          
+
           <Typography variant="caption" sx={{ color: alpha(emeraldTheme.text.light, 0.7), display: 'block' }}>
             ID: OP-{operator.id?.toString().padStart(5, '0') || '00001'}
           </Typography>
@@ -724,8 +734,10 @@ export const OperatorDashboard = () => {
 
         <List sx={{ px: 2, py: 2 }}>
           <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemButton selected sx={{ borderRadius: 2, color: emeraldTheme.text.light,
-              bgcolor: alpha(emeraldTheme.primary.main, 0.2), '&:hover': { bgcolor: alpha(emeraldTheme.primary.main, 0.3) } }}>
+            <ListItemButton selected sx={{
+              borderRadius: 2, color: emeraldTheme.text.light,
+              bgcolor: alpha(emeraldTheme.primary.main, 0.2), '&:hover': { bgcolor: alpha(emeraldTheme.primary.main, 0.3) }
+            }}>
               <ListItemIcon sx={{ color: emeraldTheme.primary.light, minWidth: 40 }}><DashboardIcon /></ListItemIcon>
               <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 600 }} />
             </ListItemButton>
@@ -741,13 +753,17 @@ export const OperatorDashboard = () => {
             { icon: <SettingsIcon />, text: 'Settings', path: '/operator/settings' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton onClick={() => navigate(item.path)} sx={{ borderRadius: 2, color: alpha(emeraldTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(emeraldTheme.text.light, 0.1), color: emeraldTheme.text.light } }}>
+              <ListItemButton onClick={() => navigate(item.path)} sx={{
+                borderRadius: 2, color: alpha(emeraldTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(emeraldTheme.text.light, 0.1), color: emeraldTheme.text.light }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
                 {item.badge ? (
-                  <Chip label={item.badge} size="small" sx={{ bgcolor: emeraldTheme.accent.red, color: emeraldTheme.text.light,
-                    fontWeight: 600, fontSize: '0.7rem', height: 20 }} />
+                  <Chip label={item.badge} size="small" sx={{
+                    bgcolor: emeraldTheme.accent.red, color: emeraldTheme.text.light,
+                    fontWeight: 600, fontSize: '0.7rem', height: 20
+                  }} />
                 ) : null}
               </ListItemButton>
             </ListItem>
@@ -756,8 +772,10 @@ export const OperatorDashboard = () => {
 
         <Box sx={{ position: 'absolute', bottom: 20, left: 0, right: 0, px: 3 }}>
           <Button fullWidth variant="contained" startIcon={<LogoutIcon />} onClick={handleLogout}
-            sx={{ bgcolor: alpha(emeraldTheme.text.light, 0.1), color: emeraldTheme.text.light,
-              '&:hover': { bgcolor: emeraldTheme.accent.red } }}>
+            sx={{
+              bgcolor: alpha(emeraldTheme.text.light, 0.1), color: emeraldTheme.text.light,
+              '&:hover': { bgcolor: emeraldTheme.accent.red }
+            }}>
             Logout
           </Button>
         </Box>
@@ -765,8 +783,10 @@ export const OperatorDashboard = () => {
 
       <Box sx={{ flexGrow: 1, ml: '280px', p: 4 }}>
         <Fade in timeout={1000}>
-          <Paper elevation={0} sx={{ p: 3, mb: 4, display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', borderRadius: 3, border: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}` }}>
+          <Paper elevation={0} sx={{
+            p: 3, mb: 4, display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', borderRadius: 3, border: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}`
+          }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: emeraldTheme.primary.dark }}>
                 Billing Dashboard
@@ -788,8 +808,10 @@ export const OperatorDashboard = () => {
               />
 
               <Tooltip title="Notifications" TransitionComponent={Zoom}>
-                <IconButton onClick={handleNotificationClick} sx={{ bgcolor: alpha(emeraldTheme.accent.blue, 0.1),
-                  '&:hover': { bgcolor: alpha(emeraldTheme.accent.blue, 0.2) } }}>
+                <IconButton onClick={handleNotificationClick} sx={{
+                  bgcolor: alpha(emeraldTheme.accent.blue, 0.1),
+                  '&:hover': { bgcolor: alpha(emeraldTheme.accent.blue, 0.2) }
+                }}>
                   <Badge badgeContent={unreadCount} color="error">
                     <NotificationsIcon sx={{ color: emeraldTheme.accent.blue }} />
                   </Badge>
@@ -816,11 +838,13 @@ export const OperatorDashboard = () => {
                   <StatCard status={stat.status}>
                     <CardContent>
                       <Typography variant="body2" color="textSecondary" gutterBottom>{stat.label}</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: 
-                        stat.status === 'primary' ? emeraldTheme.primary.main :
-                        stat.status === 'success' ? emeraldTheme.status.paid.color :
-                        stat.status === 'warning' ? emeraldTheme.status.pending.color :
-                        emeraldTheme.status.overdue.color, mb: 1 }}>
+                      <Typography variant="h4" sx={{
+                        fontWeight: 700, color:
+                          stat.status === 'primary' ? emeraldTheme.primary.main :
+                            stat.status === 'success' ? emeraldTheme.status.paid.color :
+                              stat.status === 'warning' ? emeraldTheme.status.pending.color :
+                                emeraldTheme.status.overdue.color, mb: 1
+                      }}>
                         {stat.status === 'primary' ? formatCurrency(stat.value) : stat.value}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -871,10 +895,14 @@ export const OperatorDashboard = () => {
                       {['all', 'pending', 'paid'].map((filter) => (
                         <Button key={filter} size="small" variant={billFilter === filter ? 'contained' : 'outlined'}
                           onClick={() => handleFilterChange(filter)}
-                          sx={{ borderRadius: 50, textTransform: 'capitalize',
-                            ...(billFilter === filter && { bgcolor: filter === 'paid' ? emeraldTheme.status.paid.color :
-                              filter === 'pending' ? emeraldTheme.status.pending.color : emeraldTheme.primary.main,
-                              color: 'white' }) }}>
+                          sx={{
+                            borderRadius: 50, textTransform: 'capitalize',
+                            ...(billFilter === filter && {
+                              bgcolor: filter === 'paid' ? emeraldTheme.status.paid.color :
+                                filter === 'pending' ? emeraldTheme.status.pending.color : emeraldTheme.primary.main,
+                              color: 'white'
+                            })
+                          }}>
                           {filter}
                         </Button>
                       ))}
@@ -895,8 +923,10 @@ export const OperatorDashboard = () => {
                       sx={{
                         border: 'none',
                         '& .MuiDataGrid-cell': { borderBottom: `1px solid ${alpha(emeraldTheme.text.secondary, 0.1)}` },
-                        '& .MuiDataGrid-columnHeaders': { backgroundColor: alpha(emeraldTheme.primary.main, 0.05),
-                          color: emeraldTheme.primary.dark, fontWeight: 600 }
+                        '& .MuiDataGrid-columnHeaders': {
+                          backgroundColor: alpha(emeraldTheme.primary.main, 0.05),
+                          color: emeraldTheme.primary.dark, fontWeight: 600
+                        }
                       }}
                     />
                   </Box>
@@ -974,7 +1004,7 @@ export const OperatorDashboard = () => {
                     <Typography variant="h6" sx={{ fontWeight: 600, color: emeraldTheme.primary.dark, mb: 2 }}>
                       Bill Items Preview
                     </Typography>
-                    
+
                     <TableContainer component={Paper} sx={{ maxHeight: 200 }}>
                       <Table size="small" stickyHeader>
                         <TableHead>
@@ -1124,15 +1154,19 @@ export const OperatorDashboard = () => {
                   <Stack spacing={2}>
                     <Button fullWidth variant="outlined" startIcon={<SearchIcon />}
                       onClick={() => navigate('/operator/search')}
-                      sx={{ justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.primary.main, 0.3),
-                        color: emeraldTheme.primary.dark, '&:hover': { borderColor: emeraldTheme.primary.main } }}>
+                      sx={{
+                        justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.primary.main, 0.3),
+                        color: emeraldTheme.primary.dark, '&:hover': { borderColor: emeraldTheme.primary.main }
+                      }}>
                       Search Patient Bill
                     </Button>
 
                     <Button fullWidth variant="outlined" startIcon={<DownloadIcon />}
                       onClick={handleExportBills}
-                      sx={{ justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.green, 0.3),
-                        color: emeraldTheme.accent.green, '&:hover': { borderColor: emeraldTheme.accent.green } }}>
+                      sx={{
+                        justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.green, 0.3),
+                        color: emeraldTheme.accent.green, '&:hover': { borderColor: emeraldTheme.accent.green }
+                      }}>
                       Export Bills Report
                     </Button>
 
@@ -1141,22 +1175,28 @@ export const OperatorDashboard = () => {
                         const overdueBills = bills.filter(b => getStatusFromAPI(b.status) === 'overdue');
                         overdueBills.forEach(bill => handleSendReminder(bill.id));
                       }}
-                      sx={{ justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.orange, 0.3),
-                        color: emeraldTheme.accent.orange, '&:hover': { borderColor: emeraldTheme.accent.orange } }}>
+                      sx={{
+                        justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.orange, 0.3),
+                        color: emeraldTheme.accent.orange, '&:hover': { borderColor: emeraldTheme.accent.orange }
+                      }}>
                       Send Payment Reminders
                     </Button>
 
                     <Button fullWidth variant="outlined" startIcon={<AnalyticsIcon />}
-                      onClick={() => navigate('/operator/analytics')}
-                      sx={{ justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.blue, 0.3),
-                        color: emeraldTheme.accent.blue, '&:hover': { borderColor: emeraldTheme.accent.blue } }}>
+                      onClick={fetchAnalytics}
+                      sx={{
+                        justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.blue, 0.3),
+                        color: emeraldTheme.accent.blue, '&:hover': { borderColor: emeraldTheme.accent.blue }
+                      }}>
                       View Analytics
                     </Button>
 
                     <Button fullWidth variant="outlined" startIcon={<PrintIcon />}
                       onClick={() => window.print()}
-                      sx={{ justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.purple, 0.3),
-                        color: emeraldTheme.accent.purple, '&:hover': { borderColor: emeraldTheme.accent.purple } }}>
+                      sx={{
+                        justifyContent: 'flex-start', borderColor: alpha(emeraldTheme.accent.purple, 0.3),
+                        color: emeraldTheme.accent.purple, '&:hover': { borderColor: emeraldTheme.accent.purple }
+                      }}>
                       Print Receipts
                     </Button>
                   </Stack>
@@ -1182,8 +1222,12 @@ export const OperatorDashboard = () => {
       </Dialog>
 
       <Menu anchorEl={notificationAnchor} open={Boolean(notificationAnchor)} onClose={handleClose} TransitionComponent={Zoom}
-        PaperProps={{ sx: { mt: 2, bgcolor: emeraldTheme.background.paper, border: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}`,
-          borderRadius: 2, minWidth: 320 } }}>
+        PaperProps={{
+          sx: {
+            mt: 2, bgcolor: emeraldTheme.background.paper, border: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}`,
+            borderRadius: 2, minWidth: 320
+          }
+        }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Notifications</Typography>
         </Box>

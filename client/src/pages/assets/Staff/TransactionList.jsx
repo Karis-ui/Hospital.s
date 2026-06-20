@@ -168,8 +168,8 @@ const StatusChip = styled(Chip)(({ theme, status }) => ({
       status === 'Pending' ? theme.palette.warning.main :
         theme.palette.error.main,
   border: `1px solid ${status === 'Cleared' ? alpha(theme.palette.success.main, 0.3) :
-      status === 'Pending' ? alpha(theme.palette.warning.main, 0.3) :
-        alpha(theme.palette.error.main, 0.3)
+    status === 'Pending' ? alpha(theme.palette.warning.main, 0.3) :
+      alpha(theme.palette.error.main, 0.3)
     }`,
 }));
 
@@ -268,7 +268,7 @@ export const TransactionList = () => {
   };
 
   const handleViewBill = (billId) => {
-    navigate(`/bill/detailView/${billId}`);
+    navigate(`/operator/detail-view/${billId}`);
   };
 
   const getPaymentIcon = (method) => {

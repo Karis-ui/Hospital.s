@@ -23,56 +23,56 @@ const validateTransaction = (t) => {
 };
 
 export const OperatorService = {
-    getDashboard: () => api.get(`/dashboard/`),
+    getDashboard: () => api.get(`/operator/dashboard/`),
 
     processPayment: (id) =>
-        api.post(`/process/payment/${id}/`),
+        api.post(`/operator/process/payment/${id}/`),
 
     printReceipt: (id) =>
-        api.get(`/receipt/print/${id}/`),
+        api.get(`/operator/receipt/print/${id}/`),
 
     viewReceipt: (id) =>
-        api.get(`/view/receipt/${id}/`),
+        api.get(`/operator/view/receipt/${id}/`),
 
     getBills: () =>
-        api.get(`/bills/`),
+        api.get(`/operator/bills/`),
 
     createBill: (data) =>
-        api.post(`/create/bill/`, data),
+        api.post('/operator/create/bill/', data),
 
     recordPayment: (id, data) =>
-        api.post(`/bill/record-payment/${id}/`, data),
+        api.post(`/operator/bill/record-payment/${id}/`, data),
 
     generateInvoice: (id) =>
-        api.get(`/bill/invoice/${id}/`),
+        api.get(`/operator/bill/invoice/${id}/`),
 
     reportBill: () =>
-        api.get(`/bill/export/`),
+        api.get(`/operator/bill/export/`),
 
     billAnalysis: () =>
-        api.get(`/bill/analytics/`),
+        api.get(`/operator/bill/analytics/`),
 
     getBillDetail: (id) =>
-        api.get(`/bill/detailView/${id}/`),
+        api.get(`/operator/bill/detailView/${id}/`),
 
     updateBill: (id, data) =>
-        api.patch(`/bill/detailView/${id}/`, data),
+        api.patch(`/operator/bill/detailView/${id}/`, data),
 
     deleteBill: (id) =>
-        api.delete(`/bill/detailView/${id}/`),
+        api.delete(`/operator/bill/detailView/${id}/`),
 
     searchStaff: (query) =>
-        api.get(`/search/`, { params: { q: query } }),
+        api.get(`/operator/search/`, { params: { q: query } }),
 
     sendReminder: (id) =>
-        api.post(`/send/${id}/reminder/`),
+        api.post(`/operator/send/${id}/reminder/`),
 
     /**
      * @param {Object} filters
      * @returns {Promise<{data: {transactions: Transaction[]}}>}
      */
     getTransactions: async (filters) => {
-        const response = await api.get(`/transaction-list/`, {
+        const response = await api.get(`/operator/transaction-list/`, {
             params: filters,
         });
 
@@ -82,17 +82,17 @@ export const OperatorService = {
         return response;
     },
     downloadInvoicePdf: (id) =>
-        api.get(`/invoice-bill/${id}/download-pdf/`),
+        api.get(`/operator/invoice-bill/${id}/download-pdf/`),
 
     exportTransactions: (params) =>
-        api.get(`/transaction-list/export/`, {
+        api.get(`/operator/transaction-list/export/`, {
             params,
             responseType: 'blob',
         }),
     getStaffProfile: () =>
-        api.get(`/get/profile`),
+        api.get(`/operator/get/profile`),
 
     updateStaffProfile: (data) =>
-        api.put(`/update/profile`, data),
+        api.put(`/operator/update/profile`, data),
 };
 export default OperatorService;

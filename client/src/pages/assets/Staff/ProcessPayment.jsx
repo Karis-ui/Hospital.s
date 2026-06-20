@@ -54,7 +54,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OperatorService } from '../../../services/users/operator';
-import { formatCurrency, formatDate } from '../../../formatters'; 
+import { formatCurrency, formatDate } from '../../../formatters';
 import { billingTheme } from '../../../theme/billingTheme';
 
 const PaymentCard = styled(Card)(({ theme, selected }) => ({
@@ -75,127 +75,127 @@ const SuccessAnimation = styled(motion.div)({
   flexDirection: 'column',
 });
 
-export const ProcessPayment = ()=>{
-  const {billId} = useParams();
+export const ProcessPayment = () => {
+  const { billId } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const [processing,setProcessing] = useState(true);
-  const [loading,setLoading] = useState(true);
-  const [bill,setBill] = useState(null);
-  const [paymentMethod,setPaymentMethod] = useState('card');
-  const [amountReceived,setAmountReceived] = useState('');
-  const [change,setChange] = useState(0);
-  const [activeStep,setActiveStep] = useState(0);
-  const [error,setError] = useState('');
-  const [success,setSuccess] = useState(false);
-  const [receiptData,setReceiptData] = useState('');
-  const [cardDetails,setCardDetails] = useState({number: '',expiry: '',cvv: ''});
-  const [bankDetails,setBankDetails] = useState({account: '',bank: '',reference: ''});
+  const [processing, setProcessing] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [bill, setBill] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [amountReceived, setAmountReceived] = useState('');
+  const [change, setChange] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [receiptData, setReceiptData] = useState('');
+  const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '' });
+  const [bankDetails, setBankDetails] = useState({ account: '', bank: '', reference: '' });
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchBillDetails();
-  },[billId]);
+  }, [billId]);
 
-  useEffect(()=>{
-    if(amountReceived && bill){
+  useEffect(() => {
+    if (amountReceived && bill) {
       const received = parseFloat(amountReceived);
       const due = bill.balance || bill.amount;
       setChange(received > due ? received - due : 0);
     }
-  },[amountReceived,bill]);
+  }, [amountReceived, bill]);
 
-  const fetchBillDetails = async()=>{
+  const fetchBillDetails = async () => {
     setLoading(true);
-    try{
+    try {
       const response = await OperatorService.getbillDetail(billId);
       setBill(response.data);
       setAmountReceived(response.data.balance?.toString() || response.data.amount.toString());
-    }catch(err){
-      console.error('Failed to fetch bill:',err);
+    } catch (err) {
+      console.error('Failed to fetch bill:', err);
       setError(err.response?.data?.message || 'Failed to load bill details');
-    }finally{
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleProcessPayment = async()=>{
+  const handleProcessPayment = async () => {
     const due = bill?.balance || bill?.amount;
     const received = parseFloat(amountReceived);
-    if(received < due){
+    if (received < due) {
       setError(`Amount received (${formatCurrency(received)}) is less than amount due (${formatCurrency(due)})`);
-      console.error('Error','Insufficient amount received');
+      console.error('Error', 'Insufficient amount received');
       return;
     }
     setProcessing(true);
     setError('');
-    try{
+    try {
       const paymentData = {
-        amount_received: received,payment_method: paymentMethod,change: change,notes: `Payment processed via ${paymentMethod.toUpperCase()}`,
+        amount_received: received, payment_method: paymentMethod, change: change, notes: `Payment processed via ${paymentMethod.toUpperCase()}`,
       };
 
-      if (paymentMethod === 'card'){
+      if (paymentMethod === 'card') {
         paymentData.card_details = {
-          last_four: cardDetails.number.slice(-4),expiry: cardDetails.expiry
+          last_four: cardDetails.number.slice(-4), expiry: cardDetails.expiry
         };
-      }else if(paymentMethod === 'bank'){
+      } else if (paymentMethod === 'bank') {
         paymentData.bank_details = {
           acccoun_last_four: bankDetails.account.slice(-4),
           bank_name: bankDetails.bank,
           reference: bankDetails.reference,
         };
       }
-      const response = await OperatorService.processpayment(billId,paymentData);
+      const response = await OperatorService.processpayment(billId, paymentData);
       setReceiptData(response.data.receipt);
       setActiveStep(2);
       setSuccess(true);
-      console.log('Success','Payment processed successfully');
+      console.log('Success', 'Payment processed successfully');
     }
-    catch(err){
-      console.error('Payment processing failed:',err);
+    catch (err) {
+      console.error('Payment processing failed:', err);
       setError(err.response?.data?.message || 'Payment processing failed.');
     }
-    finally{
+    finally {
       setProcessing(false);
     }
   };
 
-  const handlePrintReceipt = async()=>{
-    try{
-       const response = await OperatorService.printReceipt(billId);
-       const url = window.URL.createObjectURL(new Blob([response.data]));
-       const link = document.createElement('a');
-       link.href = url;
-       link.setAttribute('download',`receipt_${billId}.pdf`);
-       document.body.appendChild(link);
-       link.click();
-       window.URL.revokeObjectURL(url);
-       console.log('Receipt ready for printing');
-    }catch(err){
+  const handlePrintReceipt = async () => {
+    try {
+      const response = await OperatorService.printReceipt(billId);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `receipt_${billId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      console.log('Receipt ready for printing');
+    } catch (err) {
       console.error('Failed to print receipt');
     }
   };
 
-  const handleGenerateInvoice = async()=>{
-    try{
-       const response = await OperatorService.generateInvoice(billId);
-       const url = window.URL.createObjectURL(new Blob([response.data]));
-       const link = document.createElement('a');
-       link.href = url;
-       link.setAttribute('download',`Invoice_${billId}.pdf`);
-       document.body.appendChild(link);
-       link.click();
-       window.URL.revokeObjectURL(url);
-       console.log('Invoice ready');
-    }catch(err){
+  const handleGenerateInvoice = async () => {
+    try {
+      const response = await OperatorService.generateInvoice(billId);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Invoice_${billId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      console.log('Invoice ready');
+    } catch (err) {
       console.error('Failed to generate invoice');
     }
   };
 
-  const steps = ['Review bill','Process Payment','Complete'];
-  if(loading){
-    return(
-      <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}>
-        <CircularProgress size={60} thickness={4}/>
+  const steps = ['Review bill', 'Process Payment', 'Complete'];
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress size={60} thickness={4} />
       </Box>
     );
   }
@@ -203,8 +203,8 @@ export const ProcessPayment = ()=>{
   if (error && !bill) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           action={
             <Button color="inherit" size="small" onClick={fetchBillDetails}>
               Retry
@@ -274,7 +274,7 @@ export const ProcessPayment = ()=>{
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <IconButton onClick={() => navigate(`/operator/bills/${billId}`)} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+        <IconButton onClick={() => navigate(`/operator/process-payment`)} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>

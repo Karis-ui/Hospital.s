@@ -53,95 +53,95 @@ import {
 import { motion } from 'framer-motion';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate } from '../../../formatters';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 import { tr } from 'date-fns/locale';
 
-export const BillingHistory = ()=>{
-    const {patientId} = useParams();
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const {showToast} = toast();
-    const [patient,setPatient] = useState(null);
-    const [loading,setLoading] = useState(true);
-    const [tabValue,setTabValue] = useState(0);
-    const [bills,setBills] = useState([]);
-    const [summary,setSummary] = useState({total: 0,paid: 0,pending: 0,overdue: 0});
+export const BillingHistory = () => {
+  const { patientId } = useParams();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const { showToast } = toast();
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+  const [bills, setBills] = useState([]);
+  const [summary, setSummary] = useState({ total: 0, paid: 0, pending: 0, overdue: 0 });
 
-    useEffect(()=>{
-        fetchData();
-    },[patientId]);
+  useEffect(() => {
+    fetchData();
+  }, [patientId]);
 
-    const fetchData = async()=>{
-        setLoading(true);
-        try{
-            const patientRes = await OperatorService.searchStaff(patientId);
-            const patientData = patientRes.data.results?.patients?.find(p => p.id == patientId);
-            setPatient(patientData);
-            const billRes = await OperatorService.getbillDetail(patientId);
-            setBills(billRes.data || []);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const patientRes = await OperatorService.searchStaff(patientId);
+      const patientData = patientRes.data.results?.patients?.find(p => p.id == patientId);
+      setPatient(patientData);
+      const billRes = await OperatorService.getbillDetail(patientId);
+      setBills(billRes.data || []);
 
-            const total = billRes.data.reduce((s,b) =>s + b.amount,0);
-            const paid = billRes.data.filter(b => b.payment_status === 'Cleared').reduce((s,b)=> s+b.amount,0);
-            const pending = billRes.data.filter(b => b.payment_status === 'Pending').reduce((s,b)=> s+b.amount,0);
-            const overdue = billRes.data.filter(b => b.payment_status === 'Overdue').reduce((s,b)=> s+b.amount,0);
-            setSummary({total,paid,pending,overdue});
-        }catch(err){
-            console.error('Failed to fetch data:',err);
-            toast.error('Failed to load patient data.');
-            setPatient(mockPatient);
-            setBills(mockBills);
-            setSummary({total: 3750,paid: 1250,pending: 1500,overdue: 1000});
-        }finally{
-            setLoading(true);
-        }
-    };
-    
-    const handleViewBill = (billId) =>{
-        navigate(`/bill/detailView/${billId}`);
-    };
-
-    const handleProcessPayment = (billId)=>{
-        navigate(`/process/payment/${billId}`);
-    };
-
-    const handleCreateBill = ()=>{
-        navigate(`/create/bill/patient=${patientId}`);
-    };
-
-    const filteredBills = tabValue === 0 ? bills : bills.filter(b => {
-        if(tabValue === 1) return b.payment_status === 'Pending';
-        if(tabValue === 2) return b.payment_status === 'Cleared';
-        if(tabValue === 3) return b.payment_status === 'Pending';
-        return true;
-    });
-
-    const mockPatient = {
-      id: 1377,
-      first_name: 'John',
-      last_name: 'Doe',
-      phone: '+254-704261390',
-      email: 'john.doe@email.com',
-      address: '123 Main St, Nyayo State',
-      memberSince: new Date(2023, 0, 15),
-    };
-
-    const mockBills = [
-      { id: 1, billNumber: 'INV-2024-00124', date: new Date(), amount: 1250, payment_status: 'Pending', dueDate: new Date(Date.now() + 7 * 86400000) },
-      { id: 2, billNumber: 'INV-2024-00123', date: new Date(Date.now() - 30 * 86400000), amount: 350, payment_status: 'Cleared', dueDate: new Date(Date.now() - 30 * 86400000) },
-      { id: 3, billNumber: 'INV-2024-00122', date: new Date(Date.now() - 15 * 86400000), amount: 2150, payment_status: 'Overdue', dueDate: new Date(Date.now() - 15 * 86400000) },
-      { id: 4, billNumber: 'INV-2024-00121', date: new Date(), amount: 3750, payment_status: 'Pending', dueDate: new Date(Date.now() + 14 * 86400000) },
-    ];
-
-    if(loading){
-        return(
-            <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}><CircularProgress size={60} thickness={4}/></Box>
-        );
+      const total = billRes.data.reduce((s, b) => s + b.amount, 0);
+      const paid = billRes.data.filter(b => b.payment_status === 'Cleared').reduce((s, b) => s + b.amount, 0);
+      const pending = billRes.data.filter(b => b.payment_status === 'Pending').reduce((s, b) => s + b.amount, 0);
+      const overdue = billRes.data.filter(b => b.payment_status === 'Overdue').reduce((s, b) => s + b.amount, 0);
+      setSummary({ total, paid, pending, overdue });
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+      toast.error('Failed to load patient data.');
+      setPatient(mockPatient);
+      setBills(mockBills);
+      setSummary({ total: 3750, paid: 1250, pending: 1500, overdue: 1000 });
+    } finally {
+      setLoading(true);
     }
-    
+  };
+
+  const handleViewBill = (billId) => {
+    navigate(`/operator/detail-view/${billId}`);
+  };
+
+  const handleProcessPayment = () => {
+    navigate(`/operator/process-payment`);
+  };
+
+  const handleCreateBill = () => {
+    navigate(`/operator/create`);
+  };
+
+  const filteredBills = tabValue === 0 ? bills : bills.filter(b => {
+    if (tabValue === 1) return b.payment_status === 'Pending';
+    if (tabValue === 2) return b.payment_status === 'Cleared';
+    if (tabValue === 3) return b.payment_status === 'Pending';
+    return true;
+  });
+
+  const mockPatient = {
+    id: 1377,
+    first_name: 'John',
+    last_name: 'Doe',
+    phone: '+254-704261390',
+    email: 'john.doe@email.com',
+    address: '123 Main St, Nyayo State',
+    memberSince: new Date(2023, 0, 15),
+  };
+
+  const mockBills = [
+    { id: 1, billNumber: 'INV-2024-00124', date: new Date(), amount: 1250, payment_status: 'Pending', dueDate: new Date(Date.now() + 7 * 86400000) },
+    { id: 2, billNumber: 'INV-2024-00123', date: new Date(Date.now() - 30 * 86400000), amount: 350, payment_status: 'Cleared', dueDate: new Date(Date.now() - 30 * 86400000) },
+    { id: 3, billNumber: 'INV-2024-00122', date: new Date(Date.now() - 15 * 86400000), amount: 2150, payment_status: 'Overdue', dueDate: new Date(Date.now() - 15 * 86400000) },
+    { id: 4, billNumber: 'INV-2024-00121', date: new Date(), amount: 3750, payment_status: 'Pending', dueDate: new Date(Date.now() + 14 * 86400000) },
+  ];
+
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} thickness={4} /></Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <IconButton onClick={() => navigate('/operator/patients')} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+        <IconButton onClick={() => navigate('/operator/history/billing')} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
@@ -280,7 +280,7 @@ export const BillingHistory = ()=>{
                       size="small"
                       color={
                         bill.payment_status === 'Cleared' ? 'success' :
-                        bill.payment_status === 'Pending' ? 'warning' : 'error'
+                          bill.payment_status === 'Pending' ? 'warning' : 'error'
                       }
                     />
                   </TableCell>

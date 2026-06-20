@@ -29,54 +29,54 @@ import {
 } from '../../../theme/adminComponents';
 
 
-const ResultItem = ({result,type,onNaviage})=>{
-    const getIcon = ()=>{
-        switch(type){
-            case 'users':return <PersonIcon color='primary'/>;
-            case 'doctors':return <DoctorIcon color='primary'/>;
-            case 'labs':return <LabIcon color='primary'/>;
-            case 'patients':return <PersonIcon color='primary'/>;
-            case 'operators':return <UsersIcon color='primary'/>;
-            default: return <ReportIcon color='primary'/>;
-        }
-    };
+const ResultItem = ({ result, type, onNaviage }) => {
+  const getIcon = () => {
+    switch (type) {
+      case 'users': return <PersonIcon color='primary' />;
+      case 'doctors': return <DoctorIcon color='primary' />;
+      case 'labs': return <LabIcon color='primary' />;
+      case 'patients': return <PersonIcon color='primary' />;
+      case 'operators': return <UsersIcon color='primary' />;
+      default: return <ReportIcon color='primary' />;
+    }
+  };
 
-    const getTypeLabel = ({})=>{
-        const getIcon = ()=>{
-            switch(type){
-            case 'users':return 'User';
-            case 'doctors':return 'Doctor';
-            case 'labs':return 'Lab';
-            case 'patients':return 'Patient';
-            case 'operators':return 'Operator';
-            default: return 'Report';
-            }
-        };
+  const getTypeLabel = ({ }) => {
+    const getIcon = () => {
+      switch (type) {
+        case 'users': return 'User';
+        case 'doctors': return 'Doctor';
+        case 'labs': return 'Lab';
+        case 'patients': return 'Patient';
+        case 'operators': return 'Operator';
+        default: return 'Report';
+      }
     };
+  };
 
-    const getSubtitle = ()=>{
-    if(type  === 'users') return result.email || result.username;
-    if(type  === 'doctors') return result.speciality || result.email;
-    if(type  === 'patients') return `${result.age} yrs ${result.gender || 'N/A'}`;
-    if(type  === 'staff') return result.department;
-    if(type  === 'appointments') return result.purpose;
+  const getSubtitle = () => {
+    if (type === 'users') return result.email || result.username;
+    if (type === 'doctors') return result.speciality || result.email;
+    if (type === 'patients') return `${result.age} yrs ${result.gender || 'N/A'}`;
+    if (type === 'staff') return result.department;
+    if (type === 'appointments') return result.purpose;
     return '';
-    };
+  };
 
-    const getBadge = ()=>{
-        if(type === 'users' && result.role){
-        return <Chip label={result.role} size='small' sx={{height:20,fontSize:'0.7rem'}}/>;
-        }
-        if(type === 'doctprs' && result.is_available !== undefined){
-        return <Chip label={result.is_available ? 'Available':'Unavailable'} size='small' sx={{height:20,fontSize:'0.7rem'}}/>;
-        }
-        if(type === 'staff' && result.department){
-        return <Chip label={result.department} size='small' sx={{height:20,fontSize:'0.7rem'}}/>;
-        }
-        return null;
-    };
+  const getBadge = () => {
+    if (type === 'users' && result.role) {
+      return <Chip label={result.role} size='small' sx={{ height: 20, fontSize: '0.7rem' }} />;
+    }
+    if (type === 'doctprs' && result.is_available !== undefined) {
+      return <Chip label={result.is_available ? 'Available' : 'Unavailable'} size='small' sx={{ height: 20, fontSize: '0.7rem' }} />;
+    }
+    if (type === 'staff' && result.department) {
+      return <Chip label={result.department} size='small' sx={{ height: 20, fontSize: '0.7rem' }} />;
+    }
+    return null;
+  };
 
-    return (
+  return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -138,102 +138,102 @@ const ResultItem = ({result,type,onNaviage})=>{
   );
 };
 
-const ResultSkeleton = ()=>{
-  <Card sx={{mb:1.5,borderRadius:2}}>
-    <CardContent sx={{p:2}}>
+const ResultSkeleton = () => {
+  <Card sx={{ mb: 1.5, borderRadius: 2 }}>
+    <CardContent sx={{ p: 2 }}>
       <Stack direction='row' spacing={2} alignItems='center'>
-        <Skeleton variant='circular' width={40} height={40}/>
+        <Skeleton variant='circular' width={40} height={40} />
         <Box flex={1}>
-          <Skeleton variant='text' width='60%' height={24}/>
-          <Skeleton variant='text' width='40%' height={16} sx={{mt:0.5}}/>
+          <Skeleton variant='text' width='60%' height={24} />
+          <Skeleton variant='text' width='40%' height={16} sx={{ mt: 0.5 }} />
         </Box>
       </Stack>
     </CardContent>
   </Card>
 };
 
-const TabPanel = ({children,value,index})=>{
-  <div hidden={value !== index} style={{width:'100%'}}>
-    {value === index && <Box sx={{pt:2}}>{children}</Box>}
+const TabPanel = ({ children, value, index }) => {
+  <div hidden={value !== index} style={{ width: '100%' }}>
+    {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
   </div>
 };
 
-export const AdminSearchResults = ()=>{
+export const AdminSearchResults = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchQuery,setSearchQuery] = useState('');
-  const [loading,setLoading] = useState(false);
-  const [results,setResults] = useState({
-    users:[],doctors:[],patients:[],staff:[],appointments:[]
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState({
+    users: [], doctors: [], patients: [], staff: [], appointments: []
   });
-  const [tabValue,setTabValue] = useState(0);
-  const [hasSearched,setHasSearched] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(()=>{
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get('q');
-    if(query){
+    if (query) {
       setSearchQuery(query);
       performSearch(query);
-    }else{
+    } else {
       setHasSearched(false);
     }
-  },[location.search]);
+  }, [location.search]);
 
-  const performSearch = async(query)=>{
+  const performSearch = async (query) => {
     if (!query.trim()) return;
     setLoading(true);
     setHasSearched(true);
-    try{
-      const response= await adminService.searchItems(query);
-      if(response.data.status === 'success'){
+    try {
+      const response = await adminService.searchItems(query);
+      if (response.data.status === 'success') {
         setResults(response.data.data);
-        const categories = ['users','doctors','patients','staff','appointments'];
-        const firstNonEmptyIndex = categories.findIndex(cat => response.data.data[cat]?.length >0);
+        const categories = ['users', 'doctors', 'patients', 'staff', 'appointments'];
+        const firstNonEmptyIndex = categories.findIndex(cat => response.data.data[cat]?.length > 0);
 
-        if(firstNonEmptyIndex !== -1){
-          setTabValue(firstNonEmptyIndex +1)
+        if (firstNonEmptyIndex !== -1) {
+          setTabValue(firstNonEmptyIndex + 1)
         }
       }
-    }catch(err){
+    } catch (err) {
       toast.error('Search failed.Try again.');
-      setResults({users:[],doctors:[],patients:[],staff:[],appointments:[]});
-    }finally{
+      setResults({ users: [], doctors: [], patients: [], staff: [], appointments: [] });
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = ()=>{
-    if(searchQuery.trim()){
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
       navigate(`/admin/search?q=${encodeURIComponent(searchQuery)}`);
       performSearch(searchQuery);
     }
   };
 
-  const handleKeyPress = (e)=>{
-    if(e.key === 'Enter') handleSearch();
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') handleSearch();
   };
 
-  const handleClearSearch = ()=>{
+  const handleClearSearch = () => {
     setSearchQuery('');
-    setResults({users:[],doctors:[],patients:[],staff:[],appointments:[]});
+    setResults({ users: [], doctors: [], patients: [], staff: [], appointments: [] });
     setHasSearched(false);
     navigate('/admin/search');
   };
 
-  const handleNavigate = (result,type)=>{
-    switch(type){
-      case 'users':
-        navigate(`/admin/users/${result.id}`);
+  const handleNavigate = (result, type) => {
+    switch (type) {
+      case 'All users':
+        navigate('/admin/users');
         break;
-      case 'doctors':
-        navigate(`/admin/doctors/${result.id}`);
+      case 'Audit logs':
+        navigate('/admin/audit-logs');
         break;
-      case 'patients':
-        navigate(`/admin/patients/${result.id}`);
+      case 'Generate report':
+        navigate('/admin/reports/generate');
         break;
-      case 'appointments':
-        navigate(`/admin/appointments/${result.id}`);
+      case 'settings':
+        navigate('/settings');
         break;
       default:
         break;
@@ -242,11 +242,11 @@ export const AdminSearchResults = ()=>{
 
   const totalResults = Object.values(results).flat().length;
   const categories = [
-    {key:'users',label:'Users',icon:<UsersIcon/>,count:results.users?.length || 0},
-    {key:'doctors',label:'Doctors',icon:<DoctorIcon/>,count:results.doctors?.length || 0},
-    {key:'patients',label:'Patients',icon:<PersonIcon/>,count:results.users?.length || 0},
-    {key:'staff',label:'Staff',icon:<UsersIcon/>,count:results.staff?.length || 0},
-    {key:'appointments',label:'Appointments',icon:<AppointmentIcon/>,count:results.appointments?.length || 0},
+    { key: 'users', label: 'Users', icon: <UsersIcon />, count: results.users?.length || 0 },
+    { key: 'doctors', label: 'Doctors', icon: <DoctorIcon />, count: results.doctors?.length || 0 },
+    { key: 'patients', label: 'Patients', icon: <PersonIcon />, count: results.users?.length || 0 },
+    { key: 'staff', label: 'Staff', icon: <UsersIcon />, count: results.staff?.length || 0 },
+    { key: 'appointments', label: 'Appointments', icon: <AppointmentIcon />, count: results.appointments?.length || 0 },
   ];
 
   const activeCategories = categories.filter(c => c.count > 0);

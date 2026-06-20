@@ -20,7 +20,7 @@ import {
   CircularProgress,
   Container,
   TextField,
-  InputAdornment,styled,Select,MenuItem,
+  InputAdornment, styled, Select, MenuItem,
   FormControl,
   InputLabel,
   Grid,
@@ -48,13 +48,13 @@ import {
   Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
-import {useAuth} from '../../../context/authContext';
+import { useAuth } from '../../../context/authContext';
 import PatientService from '../../../services/users/patient';
 import { formatDate, formatCurrency } from '../../../formatters';
-import {DatePicker} from '@mui/x-date-pickers/DatePicker';
-import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
-import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFns';
-import {format, subMonths} from 'date-fns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { format, subMonths } from 'date-fns';
 
 const StatCard = styled(Card)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -65,153 +65,153 @@ const StatCard = styled(Card)(({ theme }) => ({
   borderRadius: theme.spacing(2),
 }));
 
-export const PaymentHistory = () =>{
+export const PaymentHistory = () => {
   const id = useParams();
-    const navigate = useNavigate();
-    const [loading,setLoading] = useState(true);
-    const [payments,setPayments] = useState([]);
-    const [filteredPayments, setFilteredPayments] = useState([]);
-    const [error,setError] = useState('');
-    const [stats, setStats] = useState({
-      totalPayments: 0,
-      totalAmount: 0,
-      averagePayment: 0,
-      mostUsedMethod: '',
-      paymentByMethod: {},
-      monthlyTotal: 0,
-    });
-    const [searchTerm,setSearchTrem] = useState('');
-    const [methodFilter,setMethodFilter] = useState('all');
-    const [dateRange,setDateRange] = useState({
-        start: subMonths(new Date(),6),
-        end: new Date(),
-    });
-    const [statusFilter,setStatusFilter] = useState('all');
-    const [sortBy,setSortBy] = useState('date_desc');
-    const [page,setPage] = useState(1);
-    const [totalPages,setTotalPages] = useState(1);
-    const itemsPerPage = useState(10);
-    const [viewMode,setViewMode] = useState('table');
-    const [paginatedPayments,setPaginatedPayments] = useState([]);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]);
+  const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    totalPayments: 0,
+    totalAmount: 0,
+    averagePayment: 0,
+    mostUsedMethod: '',
+    paymentByMethod: {},
+    monthlyTotal: 0,
+  });
+  const [searchTerm, setSearchTrem] = useState('');
+  const [methodFilter, setMethodFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({
+    start: subMonths(new Date(), 6),
+    end: new Date(),
+  });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = useState(10);
+  const [viewMode, setViewMode] = useState('table');
+  const [paginatedPayments, setPaginatedPayments] = useState([]);
 
-    useEffect(() =>{
-        fetchPayments();
-    },[]);
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
-    useEffect(() =>{
-        applyFilters();
-        calculateStats();
-    },[payments,searchTerm,methodFilter,dateRange,statusFilter,sortBy]);
+  useEffect(() => {
+    applyFilters();
+    calculateStats();
+  }, [payments, searchTerm, methodFilter, dateRange, statusFilter, sortBy]);
 
-    const fetchPayments = async ()=>{
-        try{
-            setLoading(true);
-            const response = await PatientService.paymentHistory();
-            setPayments(response.data);
-            setError('');
-        }catch(err){
-            console.error('Failed to fetch payments: ',err);
-            setError('Failed to fetch payment history.');
-        }finally{
-            setLoading(false);
-        }
-    };
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const response = await PatientService.paymentHistory();
+      setPayments(response.data);
+      setError('');
+    } catch (err) {
+      console.error('Failed to fetch payments: ', err);
+      setError('Failed to fetch payment history.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const applyFilters = () =>{
-        let filtered = [...payments];
-        if(searchTerm){
-            filtered = filtered.filter(p =>
-                p.amount?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        if(statusFilter !== 'all'){
-            filtered = filtered.filter(p => p.status === statusFilter);
-        }
-
-        filtered.sort((a, b) =>{
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-
-            switch(sortBy){
-                case 'date_desc':
-                    return dateB - dateA;
-                case 'date_asc':
-                    return dateA - dateB;
-                case 'amount_desc':
-                    return b.amount - a.amount;
-                case 'amount_asc':
-                    return a.amount - b.amount;
-                default:
-                    return dateB - dateB;
-            }
-        });
-
-        setFilteredPayments(filtered);
-        setTotalPages(Math.ceil(filtered.length / itemsPerPage));
-        setPage(1);
-    };
-
-    const calculateStats = () =>{
-        const total = filteredPayments.length;
-        const amount = filteredPayments.reduce((sum, p)=> sum + p.amount,0);
-        const byMethod = {};
-        filteredPayments.forEach(p =>{
-            byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
-        });
-
-        let mostUsed = '';
-        let maxCount = 0;
-        const methodCount = {};
-        filteredPayments.forEach(p =>{
-            methodCount[p.method] = (methodCount[p.method] || 0) + 1;
-            if(methodCount[p.method] > maxCount){
-                maxCount = methodCount[p.method];
-                mostUsed = p.method;
-            }
-        });
-
-        const monthly = filteredPayments.filter(p =>{
-            const paymentDate = new Date(p.date);
-            const now = new Date();
-            return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
-        }).reduce((sum,p) => sum + p.amount,0);
-
-        setStats({
-            totalPayments: total,
-            totalAmount: amount,
-            averagePayment: total > 0? amount / total: 0,
-            mostUsedMethod: mostUsed,
-            paymentByMethod: byMethod,
-            monthlyTotal: monthly,
-        });
-    };
-
-    const handleViewBil = (billId) =>{
-        navigate(`/view/bill/${billId}/`);
-    };
-    const handleDownloadInvoice = async () =>{
-        try{
-           const response = await PatientService.downloadInvoice();
-           const url = window.URL.createObjectURL(new Blob([response.data]));
-           const link = document.createElement('a');
-           link.href = url;
-           link.setAttribute('download',`bill_${id}.pdf`);
-           document.baseURI.appendChild(link);
-           toast.success('Bill downloaded successfully');
-        }catch(err){
-           toast.error('Failed to downlaod invoice.Try again!');
-        }
-    };
-
-    const PaginatedPayments = filteredPayments.slice((page - 1)* itemsPerPage, page * itemsPerPage);
-    if(loading){
-        return(<Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}><CircularProgress/></Box>)
+  const applyFilters = () => {
+    let filtered = [...payments];
+    if (searchTerm) {
+      filtered = filtered.filter(p =>
+        p.amount?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
-     return (
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(p => p.status === statusFilter);
+    }
+
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+
+      switch (sortBy) {
+        case 'date_desc':
+          return dateB - dateA;
+        case 'date_asc':
+          return dateA - dateB;
+        case 'amount_desc':
+          return b.amount - a.amount;
+        case 'amount_asc':
+          return a.amount - b.amount;
+        default:
+          return dateB - dateB;
+      }
+    });
+
+    setFilteredPayments(filtered);
+    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+    setPage(1);
+  };
+
+  const calculateStats = () => {
+    const total = filteredPayments.length;
+    const amount = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
+    const byMethod = {};
+    filteredPayments.forEach(p => {
+      byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
+    });
+
+    let mostUsed = '';
+    let maxCount = 0;
+    const methodCount = {};
+    filteredPayments.forEach(p => {
+      methodCount[p.method] = (methodCount[p.method] || 0) + 1;
+      if (methodCount[p.method] > maxCount) {
+        maxCount = methodCount[p.method];
+        mostUsed = p.method;
+      }
+    });
+
+    const monthly = filteredPayments.filter(p => {
+      const paymentDate = new Date(p.date);
+      const now = new Date();
+      return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
+    }).reduce((sum, p) => sum + p.amount, 0);
+
+    setStats({
+      totalPayments: total,
+      totalAmount: amount,
+      averagePayment: total > 0 ? amount / total : 0,
+      mostUsedMethod: mostUsed,
+      paymentByMethod: byMethod,
+      monthlyTotal: monthly,
+    });
+  };
+
+  const handleViewBil = () => {
+    navigate('/patient/bills');
+  };
+  const handleDownloadInvoice = async () => {
+    try {
+      const response = await PatientService.downloadInvoice();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bill_${id}.pdf`);
+      document.baseURI.appendChild(link);
+      toast.success('Bill downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to downlaod invoice.Try again!');
+    }
+  };
+
+  const PaginatedPayments = filteredPayments.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  if (loading) {
+    return (<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress /></Box>)
+  }
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
@@ -247,7 +247,7 @@ export const PaymentHistory = () =>{
             </CardContent>
           </StatCard>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <StatCard>
             <CardContent>
@@ -263,7 +263,7 @@ export const PaymentHistory = () =>{
             </CardContent>
           </StatCard>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <StatCard>
             <CardContent>
@@ -279,7 +279,7 @@ export const PaymentHistory = () =>{
             </CardContent>
           </StatCard>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <StatCard>
             <CardContent>
@@ -315,7 +315,7 @@ export const PaymentHistory = () =>{
               size="small"
             />
           </Grid>
-          
+
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Method</InputLabel>
@@ -333,7 +333,7 @@ export const PaymentHistory = () =>{
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} md={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Status</InputLabel>
@@ -349,7 +349,7 @@ export const PaymentHistory = () =>{
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} md={2}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
@@ -360,7 +360,7 @@ export const PaymentHistory = () =>{
               />
             </LocalizationProvider>
           </Grid>
-          
+
           <Grid item xs={12} md={2}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
@@ -452,16 +452,16 @@ export const PaymentHistory = () =>{
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
                           <Tooltip title="View Bill">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               onClick={() => handleViewBil(payment.billId)}
                             >
                               <ReceiptIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Download Invoice">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               onClick={() => handleDownloadInvoice(payment.id)}
                             >
                               <DownloadIcon fontSize="small" />
@@ -490,24 +490,24 @@ export const PaymentHistory = () =>{
                           color={payment.status === 'completed' ? 'success' : 'warning'}
                         />
                       </Box>
-                      
+
                       <Typography variant="h6" gutterBottom>
                         {formatCurrency(payment.amount)}
                       </Typography>
-                      
+
                       <Typography variant="body2" gutterBottom>
                         {payment.description}
                       </Typography>
-                      
+
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                         {payment.method === 'Credit Card' && <CreditCardIcon fontSize="small" color="primary" />}
                         <Typography variant="caption" color="textSecondary">
                           {payment.method} • {payment.billNumber}
                         </Typography>
                       </Box>
-                      
+
                       <Divider sx={{ my: 2 }} />
-                      
+
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Button
                           size="small"

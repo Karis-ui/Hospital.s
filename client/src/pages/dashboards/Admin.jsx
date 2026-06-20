@@ -102,8 +102,8 @@ import { Line, Doughnut } from 'react-chartjs-2';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/authContext';
 import { adminService } from '../../services/users/admin';
-import {useConfirm} from '../../theme/useConfirm';
-import {coreService} from '../../services/users/core';
+import { useConfirm } from '../../theme/useConfirm';
+import { coreService } from '../../services/users/core';
 import { formatDate, formatCurrency, formatNumber } from '../../formatters';
 
 ChartJS.register(
@@ -229,7 +229,7 @@ const ActivityIcon = styled(Box)(({ theme, type }) => {
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const {confirm} = useConfirm();
+  const { confirm } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
@@ -243,7 +243,7 @@ export const AdminDashboard = () => {
   const [heatmapData, setHeatmapData] = useState(null);
   const [schedules, setSchedules] = useState(null);
   const [systemStatus, setSystemStatus] = useState([]);
-  
+
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [messageAnchor, setMessageAnchor] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -253,11 +253,11 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     fetchAllData();
-    
+
     const timer = setInterval(() => {
       setServerTime(new Date());
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, []);
 
@@ -265,7 +265,7 @@ export const AdminDashboard = () => {
     const liveInterval = setInterval(() => {
       fetchLiveData();
     }, 30000);
-    
+
     return () => clearInterval(liveInterval);
   }, []);
 
@@ -329,7 +329,7 @@ export const AdminDashboard = () => {
         time: `Applied ${new Date(d.created_at).toLocaleDateString()}`,
         type: 'doctor'
       }));
-      setPendingApprovals(pending.slice(0, 4)); 
+      setPendingApprovals(pending.slice(0, 4));
     } catch (err) {
       setPendingApprovals([
         { id: 1, initials: 'DR', name: 'Dr. Robert Chen', role: 'Cardiology Specialist', time: 'Applied 2 days ago', type: 'doctor' },
@@ -405,17 +405,17 @@ export const AdminDashboard = () => {
 
   const handleApprove = async (userId, userName) => {
     const confirmed = await confirm({
-      title:`Approve user ${userName} of user ID ${userId}`,
-      message:'Are you sure you want to approve the user.',
-      type:'success',
-      confirmText:'Approve',
+      title: `Approve user ${userName} of user ID ${userId}`,
+      message: 'Are you sure you want to approve the user.',
+      type: 'success',
+      confirmText: 'Approve',
     });
     if (confirmed) {
       try {
         setProcessingId(userId);
         await adminService.approveuser(userId);
         toast.success(`${userName} has been approved.`);
-        fetchPendingApprovals(); 
+        fetchPendingApprovals();
         fetchDoctors();
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to approve user');
@@ -427,17 +427,17 @@ export const AdminDashboard = () => {
 
   const handleReject = async (userId, userName) => {
     const confirmed = await confirm({
-      title:`Reject user ${userName} of user ID ${userId}`,
-      message:'Are you sure you want to reject the user.',
-      type:'reject',
-      confirmText:'Reject',
+      title: `Reject user ${userName} of user ID ${userId}`,
+      message: 'Are you sure you want to reject the user.',
+      type: 'reject',
+      confirmText: 'Reject',
     });
     if (confirmed) {
       try {
         setProcessingId(userId);
         await adminService.rejectUser(userId);
         toast.success(`${userName} has been rejected.`);
-        fetchPendingApprovals(); 
+        fetchPendingApprovals();
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to reject user');
       } finally {
@@ -448,17 +448,17 @@ export const AdminDashboard = () => {
 
   const handleDeactivate = async (userId, userName) => {
     const confirmed = await confirm({
-      title:`Deactivate user ${userName} of user ID ${userId}`,
-      message:'Are you sure you want to deactivate the user.',
-      type:'deactivate',
-      confirmText:'Deactivate',
+      title: `Deactivate user ${userName} of user ID ${userId}`,
+      message: 'Are you sure you want to deactivate the user.',
+      type: 'deactivate',
+      confirmText: 'Deactivate',
     });
     if (confirmed) {
       try {
         setProcessingId(userId);
         await adminService.deactivateUser(userId);
         toast.success(`${userName} has been deactivated.`);
-        fetchDoctors(); 
+        fetchDoctors();
         fetchPatients();
         fetchStaff();
       } catch (err) {
@@ -471,10 +471,10 @@ export const AdminDashboard = () => {
 
   const handleDelete = async (userId, userName) => {
     const confirmed = await confirm({
-      title:`Delete user ${userName} of user ID ${userId}`,
-      message:'Are you sure you want to delete the user.This action cannot be undone!!',
-      type:'delete',
-      confirmText:'Delete',
+      title: `Delete user ${userName} of user ID ${userId}`,
+      message: 'Are you sure you want to delete the user.This action cannot be undone!!',
+      type: 'delete',
+      confirmText: 'Delete',
     });
     if (confirmed) {
       try {
@@ -488,10 +488,6 @@ export const AdminDashboard = () => {
         setProcessingId(null);
       }
     }
-  };
-
-  const handleEditPatient = (patientId) => {
-    navigate(`/admin/patients/edit/${patientId}`);
   };
 
   const handleLogout = () => {
@@ -515,35 +511,35 @@ export const AdminDashboard = () => {
   const handleSearch = async (e) => {
     if (e.key === 'Enter' && searchTerm.trim()) {
       try {
-        const patientResults = patients.filter(p => 
+        const patientResults = patients.filter(p =>
           p.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.id?.toString().includes(searchTerm)
         );
-        
-        const doctorResults = doctors.filter(d => 
+
+        const doctorResults = doctors.filter(d =>
           d.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           d.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           d.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        
-        const staffResults = staff.filter(s => 
+
+        const staffResults = staff.filter(s =>
           s.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.department?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        
+
         const results = {
           patients: patientResults,
           doctors: doctorResults,
           staff: staffResults,
           total: patientResults.length + doctorResults.length + staffResults.length
         };
-        
+
         if (results.total > 0) {
           toast.success(`Found ${results.total} results`);
-          navigate('/admin/search/results', { state: { query: searchTerm, results } });
+          navigate('/admin/search', { state: { query: searchTerm, results } });
         } else {
           toast.info('No results found');
         }
@@ -556,18 +552,16 @@ export const AdminDashboard = () => {
   };
 
   const handleQuickAction = (action) => {
-    switch(action) {
-      case 'patient':
-        navigate('/admin/patients/add');
+    switch (action) {
+      case 'users':
+        navigate('/admin/users');
         break;
-      case 'doctor':
-        navigate('/admin/doctors/add');
+      case 'approvals':
+        navigate('/admin/approvals');
         break;
-      case 'staff':
-        navigate('/admin/staff/add');
         break;
-      case 'appointment':
-        navigate('/admin/appointments/schedule');
+      case 'search':
+        navigate('/admin/search');
         break;
       case 'report':
         navigate('/admin/reports/generate');
@@ -583,7 +577,7 @@ export const AdminDashboard = () => {
   };
 
   const getStatusIcon = (icon) => {
-    switch(icon) {
+    switch (icon) {
       case 'server': return <StorageIcon />;
       case 'network': return <NetworkIcon />;
       case 'storage': return <StorageIcon />;
@@ -595,7 +589,7 @@ export const AdminDashboard = () => {
   };
 
   const getActivityIcon = (type) => {
-    switch(type) {
+    switch (type) {
       case 'patient': return <PeopleIcon />;
       case 'doctor': return <DoctorIcon />;
       case 'appointment': return <CalendarIcon />;
@@ -605,7 +599,7 @@ export const AdminDashboard = () => {
   };
 
   const getNotificationIcon = (type) => {
-    switch(type) {
+    switch (type) {
       case 'success': return <CheckCircleIcon sx={{ color: platinumTheme.status.success }} />;
       case 'warning': return <WarningIcon sx={{ color: platinumTheme.status.warning }} />;
       case 'error': return <ErrorIcon sx={{ color: platinumTheme.status.error }} />;
@@ -717,8 +711,10 @@ export const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh',
-        background: `linear-gradient(135deg, ${platinumTheme.primary.main}, ${platinumTheme.primary.dark})` }}>
+      <Box sx={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh',
+        background: `linear-gradient(135deg, ${platinumTheme.primary.main}, ${platinumTheme.primary.dark})`
+      }}>
         <CircularProgress sx={{ color: platinumTheme.secondary.main }} size={60} thickness={4} />
         <Typography sx={{ mt: 2, color: platinumTheme.text.light }}>Loading Admin Dashboard...</Typography>
       </Box>
@@ -736,7 +732,7 @@ export const AdminDashboard = () => {
   }
 
   const unreadCount = announcements?.filter(a => !a.read)?.length || 0;
-  const messageCount = 3; 
+  const messageCount = 3;
 
   return (
     <Box sx={{ display: 'flex', bgcolor: platinumTheme.background.default, minHeight: '100vh' }}>
@@ -745,20 +741,24 @@ export const AdminDashboard = () => {
           <AdminAvatar>
             {user?.first_name?.[0]}{user?.last_name?.[0] || 'A'}
           </AdminAvatar>
-          
+
           <Typography variant="h5" sx={{ fontWeight: 700, color: platinumTheme.text.light, mb: 0.5 }}>
             {user?.first_name} {user?.last_name || 'Administrator'}
           </Typography>
-          
+
           <Chip icon={<TrophyIcon />} label="Hospital Administrator"
-            sx={{ background: alpha(platinumTheme.secondary.main, 0.2), color: platinumTheme.secondary.main,
-              border: `1px solid ${platinumTheme.secondary.main}`, fontWeight: 600, mb: 2 }}
+            sx={{
+              background: alpha(platinumTheme.secondary.main, 0.2), color: platinumTheme.secondary.main,
+              border: `1px solid ${platinumTheme.secondary.main}`, fontWeight: 600, mb: 2
+            }}
           />
-          
+
           {user?.is_super && (
             <Chip icon={<SecurityIcon />} label="Super Admin" size="small"
-              sx={{ background: alpha(platinumTheme.accent.blue, 0.2), color: platinumTheme.accent.blue,
-                border: `1px solid ${platinumTheme.accent.blue}` }}
+              sx={{
+                background: alpha(platinumTheme.accent.blue, 0.2), color: platinumTheme.accent.blue,
+                border: `1px solid ${platinumTheme.accent.blue}`
+              }}
             />
           )}
         </Box>
@@ -769,10 +769,12 @@ export const AdminDashboard = () => {
           <Typography variant="caption" sx={{ px: 2, color: alpha(platinumTheme.text.light, 0.5), fontWeight: 600 }}>
             DASHBOARD
           </Typography>
-          
+
           <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemButton selected sx={{ borderRadius: 2, color: platinumTheme.text.light,
-              bgcolor: alpha(platinumTheme.secondary.main, 0.15), '&:hover': { bgcolor: alpha(platinumTheme.secondary.main, 0.25) } }}>
+            <ListItemButton selected sx={{
+              borderRadius: 2, color: platinumTheme.text.light,
+              bgcolor: alpha(platinumTheme.secondary.main, 0.15), '&:hover': { bgcolor: alpha(platinumTheme.secondary.main, 0.25) }
+            }}>
               <ListItemIcon sx={{ color: platinumTheme.secondary.main, minWidth: 40 }}><DashboardIcon /></ListItemIcon>
               <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 600 }} />
             </ListItemButton>
@@ -789,12 +791,16 @@ export const AdminDashboard = () => {
             { icon: <CalendarIcon />, text: 'Appointments', badge: liveData?.totalAppointments || '45', path: '/admin/appointments' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton onClick={() => navigate(item.path)} sx={{ borderRadius: 2, color: alpha(platinumTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light } }}>
+              <ListItemButton onClick={() => navigate(item.path)} sx={{
+                borderRadius: 2, color: alpha(platinumTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
-                <Chip label={item.badge} size="small" sx={{ bgcolor: platinumTheme.accent.red, color: platinumTheme.text.light,
-                  fontWeight: 600, fontSize: '0.7rem', height: 20 }} />
+                <Chip label={item.badge} size="small" sx={{
+                  bgcolor: platinumTheme.accent.red, color: platinumTheme.text.light,
+                  fontWeight: 600, fontSize: '0.7rem', height: 20
+                }} />
               </ListItemButton>
             </ListItem>
           ))}
@@ -811,8 +817,10 @@ export const AdminDashboard = () => {
             { icon: <BillingIcon />, text: 'Billing' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{ borderRadius: 2, color: alpha(platinumTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light } }}>
+              <ListItemButton sx={{
+                borderRadius: 2, color: alpha(platinumTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
               </ListItemButton>
@@ -830,13 +838,17 @@ export const AdminDashboard = () => {
             { icon: <BackupIcon />, text: 'Backup & Restore' },
           ].map((item) => (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{ borderRadius: 2, color: alpha(platinumTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light } }}>
+              <ListItemButton sx={{
+                borderRadius: 2, color: alpha(platinumTheme.text.light, 0.85),
+                '&:hover': { bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light }
+              }}>
                 <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />
                 {item.badge && (
-                  <Chip label={item.badge} size="small" sx={{ bgcolor: platinumTheme.accent.red, color: platinumTheme.text.light,
-                    fontWeight: 600, fontSize: '0.7rem', height: 20 }} />
+                  <Chip label={item.badge} size="small" sx={{
+                    bgcolor: platinumTheme.accent.red, color: platinumTheme.text.light,
+                    fontWeight: 600, fontSize: '0.7rem', height: 20
+                  }} />
                 )}
               </ListItemButton>
             </ListItem>
@@ -845,8 +857,10 @@ export const AdminDashboard = () => {
 
         <Box sx={{ position: 'absolute', bottom: 20, left: 0, right: 0, px: 3 }}>
           <Button fullWidth variant="contained" startIcon={<LogoutIcon />} onClick={handleLogout}
-            sx={{ bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light,
-              '&:hover': { bgcolor: platinumTheme.accent.red } }}>
+            sx={{
+              bgcolor: alpha(platinumTheme.text.light, 0.1), color: platinumTheme.text.light,
+              '&:hover': { bgcolor: platinumTheme.accent.red }
+            }}>
             Logout
           </Button>
         </Box>
@@ -854,8 +868,10 @@ export const AdminDashboard = () => {
 
       <Box sx={{ flexGrow: 1, ml: '280px', p: 4 }}>
         <Fade in timeout={1000}>
-          <Paper elevation={0} sx={{ p: 3, mb: 4, display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', borderRadius: 3, border: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}` }}>
+          <Paper elevation={0} sx={{
+            p: 3, mb: 4, display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', borderRadius: 3, border: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}`
+          }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: platinumTheme.primary.main }}>
                 Hospital Admin Dashboard
@@ -873,8 +889,10 @@ export const AdminDashboard = () => {
               />
 
               <Tooltip title="Notifications" TransitionComponent={Zoom}>
-                <IconButton onClick={handleNotificationClick} sx={{ bgcolor: alpha(platinumTheme.accent.blue, 0.1),
-                  '&:hover': { bgcolor: alpha(platinumTheme.accent.blue, 0.2) } }}>
+                <IconButton onClick={handleNotificationClick} sx={{
+                  bgcolor: alpha(platinumTheme.accent.blue, 0.1),
+                  '&:hover': { bgcolor: alpha(platinumTheme.accent.blue, 0.2) }
+                }}>
                   <Badge badgeContent={unreadCount} color="error">
                     <NotificationsIcon sx={{ color: platinumTheme.accent.blue }} />
                   </Badge>
@@ -882,8 +900,10 @@ export const AdminDashboard = () => {
               </Tooltip>
 
               <Tooltip title="Messages" TransitionComponent={Zoom}>
-                <IconButton onClick={handleMessageClick} sx={{ bgcolor: alpha(platinumTheme.accent.green, 0.1),
-                  '&:hover': { bgcolor: alpha(platinumTheme.accent.green, 0.2) } }}>
+                <IconButton onClick={handleMessageClick} sx={{
+                  bgcolor: alpha(platinumTheme.accent.green, 0.1),
+                  '&:hover': { bgcolor: alpha(platinumTheme.accent.green, 0.2) }
+                }}>
                   <Badge badgeContent={messageCount} color="warning">
                     <EmailIcon sx={{ color: platinumTheme.accent.green }} />
                   </Badge>
@@ -1015,9 +1035,13 @@ export const AdminDashboard = () => {
                       {['weekly', 'monthly', 'yearly'].map((period) => (
                         <Button key={period} size="small" variant={chartPeriod === period ? 'contained' : 'outlined'}
                           onClick={() => handleChartPeriodChange(period)}
-                          sx={{ borderRadius: 50, textTransform: 'capitalize',
-                            ...(chartPeriod === period && { bgcolor: platinumTheme.secondary.main, color: platinumTheme.primary.main,
-                              '&:hover': { bgcolor: platinumTheme.secondary.dark } }) }}>
+                          sx={{
+                            borderRadius: 50, textTransform: 'capitalize',
+                            ...(chartPeriod === period && {
+                              bgcolor: platinumTheme.secondary.main, color: platinumTheme.primary.main,
+                              '&:hover': { bgcolor: platinumTheme.secondary.dark }
+                            })
+                          }}>
                           {period}
                         </Button>
                       ))}
@@ -1063,9 +1087,11 @@ export const AdminDashboard = () => {
 
                   <Box sx={{ maxHeight: 350, overflowY: 'auto' }}>
                     {recentActivity.map((activity, index) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
+                      <Box key={index} sx={{
+                        display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
                         bgcolor: alpha(platinumTheme.background.elevated, 0.5), transition: 'all 0.3s ease',
-                        '&:hover': { bgcolor: alpha(platinumTheme.accent.blue, 0.05), transform: 'translateX(5px)' } }}>
+                        '&:hover': { bgcolor: alpha(platinumTheme.accent.blue, 0.05), transform: 'translateX(5px)' }
+                      }}>
                         <ActivityIcon type={activity.type}>{getActivityIcon(activity.type)}</ActivityIcon>
                         <Box sx={{ ml: 2, flex: 1 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{activity.title}</Typography>
@@ -1100,12 +1126,16 @@ export const AdminDashboard = () => {
 
                   <Box sx={{ maxHeight: 350, overflowY: 'auto' }}>
                     {pendingApprovals.map((approval) => (
-                      <Box key={approval.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      <Box key={approval.id} sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         p: 2, mb: 1, borderRadius: 2, bgcolor: alpha(platinumTheme.background.elevated, 0.5),
-                        transition: 'all 0.3s ease', '&:hover': { bgcolor: alpha(platinumTheme.accent.blue, 0.05) } }}>
+                        transition: 'all 0.3s ease', '&:hover': { bgcolor: alpha(platinumTheme.accent.blue, 0.05) }
+                      }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Avatar sx={{ width: 45, height: 45, bgcolor: alpha(platinumTheme.accent.blue, 0.2),
-                            color: platinumTheme.accent.blue, fontWeight: 600, mr: 2 }}>
+                          <Avatar sx={{
+                            width: 45, height: 45, bgcolor: alpha(platinumTheme.accent.blue, 0.2),
+                            color: platinumTheme.accent.blue, fontWeight: 600, mr: 2
+                          }}>
                             {approval.initials}
                           </Avatar>
                           <Box>
@@ -1122,16 +1152,20 @@ export const AdminDashboard = () => {
                           <Tooltip title="Approve" TransitionComponent={Zoom}>
                             <IconButton size="small" onClick={() => handleApprove(approval.id, approval.name)}
                               disabled={processingId === approval.id}
-                              sx={{ bgcolor: alpha(platinumTheme.accent.green, 0.1), color: platinumTheme.accent.green,
-                                '&:hover': { bgcolor: alpha(platinumTheme.accent.green, 0.2) } }}>
+                              sx={{
+                                bgcolor: alpha(platinumTheme.accent.green, 0.1), color: platinumTheme.accent.green,
+                                '&:hover': { bgcolor: alpha(platinumTheme.accent.green, 0.2) }
+                              }}>
                               {processingId === approval.id ? <CircularProgress size={20} /> : <CheckCircleIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Reject" TransitionComponent={Zoom}>
                             <IconButton size="small" onClick={() => handleReject(approval.id, approval.name)}
                               disabled={processingId === approval.id}
-                              sx={{ bgcolor: alpha(platinumTheme.accent.red, 0.1), color: platinumTheme.accent.red,
-                                '&:hover': { bgcolor: alpha(platinumTheme.accent.red, 0.2) } }}>
+                              sx={{
+                                bgcolor: alpha(platinumTheme.accent.red, 0.1), color: platinumTheme.accent.red,
+                                '&:hover': { bgcolor: alpha(platinumTheme.accent.red, 0.2) }
+                              }}>
                               {processingId === approval.id ? <CircularProgress size={20} /> : <ErrorIcon fontSize="small" />}
                             </IconButton>
                           </Tooltip>
@@ -1160,23 +1194,26 @@ export const AdminDashboard = () => {
               <Grid container spacing={2}>
                 {systemStatusData.map((item, index) => (
                   <Grid item xs={12} sm={6} md={4} key={index}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', p: 2, borderRadius: 2,
+                    <Box sx={{
+                      display: 'flex', alignItems: 'center', p: 2, borderRadius: 2,
                       bgcolor: alpha(platinumTheme.background.elevated, 0.5),
-                      borderLeft: `4px solid ${
-                        item.status === 'online' ? platinumTheme.status.online :
+                      borderLeft: `4px solid ${item.status === 'online' ? platinumTheme.status.online :
                         item.status === 'warning' ? platinumTheme.status.warning :
-                        item.status === 'critical' ? platinumTheme.status.critical :
-                        platinumTheme.status.info
-                      }` }}>
+                          item.status === 'critical' ? platinumTheme.status.critical :
+                            platinumTheme.status.info
+                        }`
+                    }}>
                       <Box sx={{ color: platinumTheme.text.secondary, mr: 2 }}>{getStatusIcon(item.icon)}</Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{item.name}</Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 10, height: 10, borderRadius: '50%',
+                          <Box sx={{
+                            width: 10, height: 10, borderRadius: '50%',
                             bgcolor: item.status === 'online' ? platinumTheme.status.online :
                               item.status === 'warning' ? platinumTheme.status.warning :
-                              item.status === 'critical' ? platinumTheme.status.critical :
-                              platinumTheme.status.info }} />
+                                item.status === 'critical' ? platinumTheme.status.critical :
+                                  platinumTheme.status.info
+                          }} />
                           <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>{item.details}</Typography>
                         </Box>
                       </Box>
@@ -1189,8 +1226,10 @@ export const AdminDashboard = () => {
         </Slide>
 
         <Fade in timeout={2000}>
-          <Box component="footer" sx={{ textAlign: 'center', py: 3, color: platinumTheme.text.secondary,
-            borderTop: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}` }}>
+          <Box component="footer" sx={{
+            textAlign: 'center', py: 3, color: platinumTheme.text.secondary,
+            borderTop: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}`
+          }}>
             <Typography variant="body2">
               © {new Date().getFullYear()} SmartCare Hospital Management System. All rights reserved. | Admin Portal v3.2
             </Typography>
@@ -1204,8 +1243,12 @@ export const AdminDashboard = () => {
       </Box>
 
       <Menu anchorEl={notificationAnchor} open={Boolean(notificationAnchor)} onClose={handleClose} TransitionComponent={Zoom}
-        PaperProps={{ sx: { mt: 2, bgcolor: platinumTheme.background.paper, border: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}`,
-          borderRadius: 2, minWidth: 320, maxHeight: 400 } }}>
+        PaperProps={{
+          sx: {
+            mt: 2, bgcolor: platinumTheme.background.paper, border: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}`,
+            borderRadius: 2, minWidth: 320, maxHeight: 400
+          }
+        }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Notifications</Typography>
         </Box>
@@ -1223,8 +1266,12 @@ export const AdminDashboard = () => {
       </Menu>
 
       <Menu anchorEl={messageAnchor} open={Boolean(messageAnchor)} onClose={handleClose} TransitionComponent={Zoom}
-        PaperProps={{ sx: { mt: 2, bgcolor: platinumTheme.background.paper, border: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}`,
-          borderRadius: 2, minWidth: 320 } }}>
+        PaperProps={{
+          sx: {
+            mt: 2, bgcolor: platinumTheme.background.paper, border: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}`,
+            borderRadius: 2, minWidth: 320
+          }
+        }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(platinumTheme.primary.main, 0.1)}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Messages</Typography>
         </Box>

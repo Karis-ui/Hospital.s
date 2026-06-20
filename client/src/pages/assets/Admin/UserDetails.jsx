@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Box, Grid, Card, CardContent, Typography, Button, TextField,
   Divider, Stack, Alert, CircularProgress, Dialog, DialogTitle,
-  DialogContent, DialogActions, Chip, Avatar, IconButton, Tooltip,MenuItem,alpha
+  DialogContent, DialogActions, Chip, Avatar, IconButton, Tooltip, MenuItem, alpha
 } from '@mui/material';
 import {
   ArrowBack as BackIcon, Edit as EditIcon, Save as SaveIcon,
@@ -14,10 +14,10 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from "react-toastify";
-import {authService} from'../../../services/authService';
+import { authService } from '../../../services/authService';
 import { adminService } from "../../../services/users/admin";
 import {
-  platinumTheme, PremiumHeader, Statcard, PremiumCard, PremiumTableContainer,GlassCard,
+  platinumTheme, PremiumHeader, Statcard, PremiumCard, PremiumTableContainer, GlassCard,
   StatusChip, RoleBadge, GlassSearchBar, SectionTitle, PageTitle, ActionIconButton, PlatinumButton
 } from '../../../theme/adminComponents';
 
@@ -49,7 +49,7 @@ export const UserDetails = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleUpdateUser = async () => {
     setSaving(true);
     try {
       await adminService.updateUser(id);
@@ -63,9 +63,23 @@ export const UserDetails = () => {
     }
   };
 
-  const handleResetPassword = async()=>{
+  const handleEditPatient = async()=>{
+    setSaving(true);
+    try {
+      await adminService.editPatient(id);
+      toast.success('Patient editted successfully.');
+      setEditing(false);
+      fetchUserDetails();
+    } catch (err) {
+      toast.error('Failed to edit patient');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
     setLoading(true);
-    try{
+    try {
       const res = await authService.resetPassword(id);
       toast.success('Reset password link sent.');
     } catch (err) {
@@ -168,7 +182,9 @@ export const UserDetails = () => {
               {editing && (
                 <Stack direction="row" spacing={2} sx={{ mt: 3, justifyContent: 'flex-end' }}>
                   <Button variant="outlined" startIcon={<CancelIcon />} onClick={() => { setEditing(false); setEditForm(user); }}>Cancel</Button>
-                  <PlatinumButton startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</PlatinumButton>
+                  <PlatinumButton startIcon={<SaveIcon />} onClick={handleUpdateUser} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</PlatinumButton>
+                  <Button variant="outlined" startIcon={<CancelIcon />} onClick={() => { setEditing(false); setEditForm(user); }}>Cancel</Button>
+                  <PlatinumButton startIcon={<SaveIcon />} onClick={handleEditPatient} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</PlatinumButton>
                 </Stack>
               )}
             </CardContent>

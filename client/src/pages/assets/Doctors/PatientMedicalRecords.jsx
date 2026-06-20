@@ -204,173 +204,172 @@ const QuickActionCard = styled(Card)(({ theme, color }) => ({
   },
 }));
 
-export const PatientMedicalRecords = () =>{
-    const {patientId} = useParams();
-    const navigate = useNavigate();
-    const {user} = useAuth();
-    const theme = useTheme();
-    const Refgrid = React.useRef();
-    const [loading,setLoading] = useState(true);
-    const [patient,setPatient] = useState(null);
-    const [records,setRecords] = useState(null);
-    const [vitals,setVitals] = useState([]);
-    const [filteredRecords,setFilteredRecords] = useState([]);
-    const [tabValue,setTabValue] = useState(0);
-    const [searchTerm,setSearchTerm] = useState('');
-    const [error,setError] = useState('');
-    const [addDialog,setAddDialog] = useState(false);
-    const [recordType,setRecordType] = useState('diagnosis');
-    const [formData,setFormData] = useState({});
-    const [submitting,setSubmitting] = useState(false);
-    const [speedDialOpen,setSpeedDialOpen] = useState(false);
-    const [anchorE1,setAnchorE1] = useState(null);
-    const [selectedRecord,setSelectedRecord] = useState(null);
+export const PatientMedicalRecords = () => {
+  const { patientId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const theme = useTheme();
+  const Refgrid = React.useRef();
+  const [loading, setLoading] = useState(true);
+  const [patient, setPatient] = useState(null);
+  const [records, setRecords] = useState(null);
+  const [vitals, setVitals] = useState([]);
+  const [filteredRecords, setFilteredRecords] = useState([]);
+  const [tabValue, setTabValue] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
+  const [addDialog, setAddDialog] = useState(false);
+  const [recordType, setRecordType] = useState('diagnosis');
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [anchorE1, setAnchorE1] = useState(null);
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
-    useEffect(()=>{
-        fetchPatientRecords();
-    },[patientId]);
-    useEffect(()=>{
-        filterRecords();
-    },[records,searchTerm,tabValue]);
+  useEffect(() => {
+    fetchPatientRecords();
+  }, [patientId]);
+  useEffect(() => {
+    filterRecords();
+  }, [records, searchTerm, tabValue]);
 
-    const fetchPatientRecords = async()=>{
-        try{
-            setLoading(true);
-            const response = await doctorSevice.getPatientMedicalRecords(patientId);
-            setRecords(response.data.records);
-            setVitals(response.data.vitals || []);
-            setError('');
-        }catch(err){
-            setError('Failed to load medical records');
-            console.error(err);
-        }finally{
-            setLoading(false);
-        }
-    };
-    
-    const filterRecords = () =>{
-        if(!records) return;
-        let filtered = [];
-        const typeMap = ['diagnoses', 'medications', 'allergies', 'lab_results', 'procedures', 'immunizations', 'notes'];
-        const currentType = typeMap[tabValue];
-    
-        if (currentType && records[currentType]){
-            filtered = [...records[currentType]];
-        }else if(tabValue === 0){
-            filtered = [
-                ...(records.diagnoses || []),
-                ...(records.medications || []),
-                ...(records.alergies || []),
-                ...(records.lab_results || []),
-                ...(records.precedures || []),
-                ...(records.immunizations || []),
-                ...(records.notes || []),
-            ];
-        }
-    
-        if(searchTerm){
-            filtered = filtered.filter(r=>
-                r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                r.description?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        setFilteredRecords(filtered);
-    };
-    
-    const handleAddRecord = async()=>{
-        setSubmitting(true)
-        try
-        {
-        const payload = {
-            recordType: recordType,title: formData.title,description: formData.description,severity: formData.severity,status: 'active',data: {},
-            };
-            if(recordType === 'medication'){
-                payload.data = {
-                    dosage: formData.dosage,instructions: formData.instructions,
-                };
-            }else if(recordType === 'allergy'){
-                payload.data = {reaction: formData.reaction};
-            }else if(recordType === 'lab'){
-                payload.data = {
-                    result: formData.result, refrence_range: formData.refrence_range,
-                };
-            }
-    
-            await doctorSevice.addPatientMedicalrecords(patientId,payload);
-            setAddDialog(false);
-            fetchPatientRecords();
-            setFormData({});
-        }catch(err){
-            console.error('Failed to add record:',err);
-        }finally{
-            setSubmitting(false);
-        }
-    };
+  const fetchPatientRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await doctorSevice.getPatientMedicalRecords(patientId);
+      setRecords(response.data.records);
+      setVitals(response.data.vitals || []);
+      setError('');
+    } catch (err) {
+      setError('Failed to load medical records');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleRecordCunt = (type)=>{
-      if(type === 'all') return records.length;
-      return records.filter(r => r.record_type === type.length);
-    };
+  const filterRecords = () => {
+    if (!records) return;
+    let filtered = [];
+    const typeMap = ['diagnoses', 'medications', 'allergies', 'lab_results', 'procedures', 'immunizations', 'notes'];
+    const currentType = typeMap[tabValue];
 
-    const handleContactPatient = () => {
-      if (patient?.phone) {
-        window.location.href = `tel:${patient.phone}`;
-      }
-    };
+    if (currentType && records[currentType]) {
+      filtered = [...records[currentType]];
+    } else if (tabValue === 0) {
+      filtered = [
+        ...(records.diagnoses || []),
+        ...(records.medications || []),
+        ...(records.alergies || []),
+        ...(records.lab_results || []),
+        ...(records.precedures || []),
+        ...(records.immunizations || []),
+        ...(records.notes || []),
+      ];
+    }
 
-    const handleEmailPatient = () => {
-      if (patient?.email) {
-        window.location.href = `mailto:${patient.email}`;
-      }
-    };
+    if (searchTerm) {
+      filtered = filtered.filter(r =>
+        r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    setFilteredRecords(filtered);
+  };
 
-    const handleExport = ()=>{
-      const csvExport = {
-        delimiter:'',utfWithBom:true
+  const handleAddRecord = async () => {
+    setSubmitting(true)
+    try {
+      const payload = {
+        recordType: recordType, title: formData.title, description: formData.description, severity: formData.severity, status: 'active', data: {},
       };
-      Refgrid.current.exportDataAsCsv(csvExport);
+      if (recordType === 'medication') {
+        payload.data = {
+          dosage: formData.dosage, instructions: formData.instructions,
+        };
+      } else if (recordType === 'allergy') {
+        payload.data = { reaction: formData.reaction };
+      } else if (recordType === 'lab') {
+        payload.data = {
+          result: formData.result, refrence_range: formData.refrence_range,
+        };
+      }
+
+      await doctorSevice.addPatientMedicalrecords(patientId, payload);
+      setAddDialog(false);
+      fetchPatientRecords();
+      setFormData({});
+    } catch (err) {
+      console.error('Failed to add record:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRecordCunt = (type) => {
+    if (type === 'all') return records.length;
+    return records.filter(r => r.record_type === type.length);
+  };
+
+  const handleContactPatient = () => {
+    if (patient?.phone) {
+      window.location.href = `tel:${patient.phone}`;
+    }
+  };
+
+  const handleEmailPatient = () => {
+    if (patient?.email) {
+      window.location.href = `mailto:${patient.email}`;
+    }
+  };
+
+  const handleExport = () => {
+    const csvExport = {
+      delimiter: '', utfWithBom: true
     };
+    Refgrid.current.exportDataAsCsv(csvExport);
+  };
 
-    const handleViewRecord = (record)=>{
-      navigate(`/doctor/get/${record.id}/medical-records`)
-    }
-    
-    const quickActions = [
-        {icon: <DiagnosisIcon/>,name:'Add Diagnosis',color:theme.palette.primary.main,action: ()=>{setRecordType('diagnosis');setAddDialog(true);}},
-        {icon: <MedicalIcon/>,name:'Add Medication',color:theme.palette.success.main,action: ()=>{setRecordType('medication');setAddDialog(true);}},
-        {icon: <AllergyIcon/>,name:'Add Allergy',color:theme.palette.warning.main,action: ()=>{setRecordType('allergy');setAddDialog(true);}},
-        {icon: <LabIcon/>,name:'Add Lab Result',color:theme.palette.info.main,action: ()=>{setRecordType('lab');setAddDialog(true);}},
-        {icon: <NoteIcon/>,name:'Add Note',color:theme.palette.secondary.main,action: ()=>{setRecordType('notes');setAddDialog(true);}},
-    ];
-    
-    const tabs = [
-        {label: 'All',icon: <DashboardIcon/>,count: filterRecords.length},
-        {label: 'Diagnoses',icon: <DiagnosisIcon/>,count: records?.diagnoses?.length || 0},
-        {label: 'Medications',icon: <MedicalIcon/>,count: records?.medications?.length || 0},
-        {label: 'Allergy',icon: <AllergyIcon/>,count: records?.allrgies?.length || 0},
-        {label: 'Lab Results',icon: <LabIcon/>,count: records?.lab_results?.length || 0},
-        {label: 'Notes',icon: <NoteIcon/>,count: records?.notes?.length || 0},
-   ];
-    
-    if(loading){
-        return(
-            <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'60vh'}}><CircularProgress size={60} thickness={4}/></Box>
-        );
-    }
+  const handleViewRecord = (record) => {
+    navigate(`/doctor/patients/${record.id}/Medical-records`)
+  }
 
-    if(error){
-        return(
-            <Box sx={{p:{xs: 2,md:3},maxWidth:1400,mx:'auto'}}>
-                <Alert severity='error'>{error}</Alert>
-            </Box>
-        );
-    }
+  const quickActions = [
+    { icon: <DiagnosisIcon />, name: 'Add Diagnosis', color: theme.palette.primary.main, action: () => { setRecordType('diagnosis'); setAddDialog(true); } },
+    { icon: <MedicalIcon />, name: 'Add Medication', color: theme.palette.success.main, action: () => { setRecordType('medication'); setAddDialog(true); } },
+    { icon: <AllergyIcon />, name: 'Add Allergy', color: theme.palette.warning.main, action: () => { setRecordType('allergy'); setAddDialog(true); } },
+    { icon: <LabIcon />, name: 'Add Lab Result', color: theme.palette.info.main, action: () => { setRecordType('lab'); setAddDialog(true); } },
+    { icon: <NoteIcon />, name: 'Add Note', color: theme.palette.secondary.main, action: () => { setRecordType('notes'); setAddDialog(true); } },
+  ];
 
+  const tabs = [
+    { label: 'All', icon: <DashboardIcon />, count: filterRecords.length },
+    { label: 'Diagnoses', icon: <DiagnosisIcon />, count: records?.diagnoses?.length || 0 },
+    { label: 'Medications', icon: <MedicalIcon />, count: records?.medications?.length || 0 },
+    { label: 'Allergy', icon: <AllergyIcon />, count: records?.allrgies?.length || 0 },
+    { label: 'Lab Results', icon: <LabIcon />, count: records?.lab_results?.length || 0 },
+    { label: 'Notes', icon: <NoteIcon />, count: records?.notes?.length || 0 },
+  ];
+
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} thickness={4} /></Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+        <Alert severity='error'>{error}</Alert>
+      </Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <IconButton
-          onClick={() => navigate('/doctor/patients')}
+          onClick={handleViewRecord}
           sx={{
             mr: 2,
             bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -602,10 +601,10 @@ export const PatientMedicalRecords = () =>{
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Add {recordType === 'diagnosis' ? 'Diagnosis' : 
-                     recordType === 'medication' ? 'Medication' : 
-                     recordType === 'allergy' ? 'Allergy' : 
-                     recordType === 'lab' ? 'Lab Order' : 'Note'} for {patient?.first_name}
+              Add {recordType === 'diagnosis' ? 'Diagnosis' :
+                recordType === 'medication' ? 'Medication' :
+                  recordType === 'allergy' ? 'Allergy' :
+                    recordType === 'lab' ? 'Lab Order' : 'Note'} for {patient?.first_name}
             </Typography>
             <IconButton onClick={() => setAddDialog(false)}>
               <CloseIcon />

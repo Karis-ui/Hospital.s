@@ -112,158 +112,159 @@ const PaymentMethodCard = styled(Card)(({ theme, selected }) => ({
   },
 }));
 
-export const CreateBill = ()=>{
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const [activeStep,setActiveStep] = useState(0);
-    const [loading,setLoading] = useState(true);
-    const [patientSearch,setPatientSearch] = useState('');
-    const [searching,setSearching] = useState(false);
-    const [searchResults,setSearchResults] = useState([]);
-    const [selectedPatients,setSelectedPatients] = useState([]);
-    const [items,setItems] = useState([
-        {id: Date.now(),description: '',quantity: 1,unitPrice: 0,total: 0}
-    ]);
-    const [billData,setBillData] = useState({amount: 0,amount_received: 0,payment_method: '',notes: ''});
-    const [error,setError] = useState('');
-    const [success,setSuccess] = useState(false);
-    const [showPAyment,setShowPAyment] = useState(false);
+export const CreateBill = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedPatients, setSelectedPatients] = useState([]);
+  const [items, setItems] = useState([
+    { id: Date.now(), description: '', quantity: 1, unitPrice: 0, total: 0 }
+  ]);
+  const [billData, setBillData] = useState({ amount: 0, amount_received: 0, payment_method: '', notes: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [showPAyment, setShowPAyment] = useState(false);
 
-    const debounceSearch = useCallback(
-        debounce(async (query)=>{
-            if(query.length < 2){setSearchResults([]);
-                return;
-            }
-            setSearching(true);
-            try{
-                const response = await OperatorService.searchStaff(query);
-                const patients = response.data.results?.patients || [];
-                setSearchResults(patients);
-            }catch(err){
-                console.error('Patient search failed',err);
-            }finally{
-                setSearching(false);
-            }
-        },500)
-    );
+  const debounceSearch = useCallback(
+    debounce(async (query) => {
+      if (query.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      setSearching(true);
+      try {
+        const response = await OperatorService.searchStaff(query);
+        const patients = response.data.results?.patients || [];
+        setSearchResults(patients);
+      } catch (err) {
+        console.error('Patient search failed', err);
+      } finally {
+        setSearching(false);
+      }
+    }, 500)
+  );
 
-    useEffect(()=>{
-        debounceSearch(patientSearch);
-        return () => debounceSearch.clear();
-    },[patientSearch,debounceSearch]);
+  useEffect(() => {
+    debounceSearch(patientSearch);
+    return () => debounceSearch.clear();
+  }, [patientSearch, debounceSearch]);
 
-    useEffect(()=>{
-        const total = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice),0);
-        setBillData(prev => 1({...prev,amount: total}));
-    },[items]);
+  useEffect(() => {
+    const total = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    setBillData(prev => 1({ ...prev, amount: total }));
+  }, [items]);
 
-    const change = billData.amount_received - billData.amount;
-    
-    const handleAddItem = async()=>{
-        setItems([...items,{id:Date.now(),description: '',quantity: 1,unitPrice: 0,total: 0}]);
-    };
+  const change = billData.amount_received - billData.amount;
 
-    const handleRemoveItem = (id)=>{
-        if(items.length > 1){
-            setItems(items.filter(item => item.id !== id));
-        }
-    };
+  const handleAddItem = async () => {
+    setItems([...items, { id: Date.now(), description: '', quantity: 1, unitPrice: 0, total: 0 }]);
+  };
 
-    const handleItemChange = (id,field,value) =>{
-        const updated = items.map(item =>{
-            if(item.id === id){
-                const updatedItem = {...item,[field]: value};
-                updatedItem.total = updatedItem.quantity * updatedItem.unitPrice;
-                return updatedItem;
-            }
-            return item;
-        });
-        setItems(updated);
-    };
+  const handleRemoveItem = (id) => {
+    if (items.length > 1) {
+      setItems(items.filter(item => item.id !== id));
+    }
+  };
 
-    const calculateSubtotal = ()=>{
-        return items.reduce((sum,item)=> sum + (item.quantity * item.unitPrice),0);
-    };
+  const handleItemChange = (id, field, value) => {
+    const updated = items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        updatedItem.total = updatedItem.quantity * updatedItem.unitPrice;
+        return updatedItem;
+      }
+      return item;
+    });
+    setItems(updated);
+  };
 
-    const calculateTotal = ()=>{
-        const subtotal = calculateSubtotal();
-        const discount = billData.discount || 0;
-        const tax = billData.tax || 0;
-        return subtotal - discount + tax;
-    };
+  const calculateSubtotal = () => {
+    return items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+  };
 
-    const validateForm = ()=>{
-        if(!selectedPatients){
-            setError('Please select a patient');
-            return false;
-        }
-        if(items.length === 0 || items.some(i => !i.description || i.unitPrice <= 0)){
-            setError('Please add at least one valid item');
-            return false;
-        }
-        if(billData.amount <= 0){
-            setError('Bill amount must be greater than 0.');
-            return false;
-        }
-        if(showPAyment && !billData.payment_method){
-            setError('Please select a payment method.');
-            return false;
-        }
-        if(showPAyment && billData.amount_received < billData.amount){
-            setError(`Amount received (${formatCurrency(billData.amount_received)}) is less than amount (${formatCurrency(billData.amount)})`);
-            return false;
-        }
-        return true;
-    };
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const discount = billData.discount || 0;
+    const tax = billData.tax || 0;
+    return subtotal - discount + tax;
+  };
 
-    const handleSubmit = async()=>{
-        if(!validateForm()) return;
-        try{
-            const payload = {
-                patient_id: selectedPatients.id,
-                amount: billData.amount,
-                amount_received: showPAyment ? billData.amount_received : billData.amount,
-                payment_method: showPAyment ? billData.payment_method : null,
-                notes: billData.notes,
-                payment_status: showPAyment ? 'Cleared' : 'Pending',
-                is_paid: showPAyment,
-                is_receipt_available: showPAyment,
-                clearance_date: showPAyment ? new Date().toISOString() : null,
-            };
-            const response = await OperatorService.createBill(payload);
-            setSuccess(true);
-            console.log(`Bill ${showPAyment ? 'Created and paid' : 'Created'} sucessfully`);
-            setTimeout(()=>{
-                navigate(`/operator/bills/${response.data.id}`);
-            },1500);
-        }catch(err){
-            console.error('Failed to create bill:',err);
-            setError(err?.response?.data?.message || 'Failed to create bill.');
-        }finally{
-            setLoading(false);
-        }
-    };
+  const validateForm = () => {
+    if (!selectedPatients) {
+      setError('Please select a patient');
+      return false;
+    }
+    if (items.length === 0 || items.some(i => !i.description || i.unitPrice <= 0)) {
+      setError('Please add at least one valid item');
+      return false;
+    }
+    if (billData.amount <= 0) {
+      setError('Bill amount must be greater than 0.');
+      return false;
+    }
+    if (showPAyment && !billData.payment_method) {
+      setError('Please select a payment method.');
+      return false;
+    }
+    if (showPAyment && billData.amount_received < billData.amount) {
+      setError(`Amount received (${formatCurrency(billData.amount_received)}) is less than amount (${formatCurrency(billData.amount)})`);
+      return false;
+    }
+    return true;
+  };
 
-    const handleNext = ()=>{
-        setActiveStep(prev => prev + 1);
-    };
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    try {
+      const payload = {
+        patient_id: selectedPatients.id,
+        amount: billData.amount,
+        amount_received: showPAyment ? billData.amount_received : billData.amount,
+        payment_method: showPAyment ? billData.payment_method : null,
+        notes: billData.notes,
+        payment_status: showPAyment ? 'Cleared' : 'Pending',
+        is_paid: showPAyment,
+        is_receipt_available: showPAyment,
+        clearance_date: showPAyment ? new Date().toISOString() : null,
+      };
+      const response = await OperatorService.createBill(payload);
+      setSuccess(true);
+      console.log(`Bill ${showPAyment ? 'Created and paid' : 'Created'} sucessfully`);
+      setTimeout(() => {
+        navigate(`/operator/bills/${response.data.id}`);
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to create bill:', err);
+      setError(err?.response?.data?.message || 'Failed to create bill.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleBack = ()=>{
-      setActiveStep(prev => prev - 1);
-    };
+  const handleNext = () => {
+    setActiveStep(prev => prev + 1);
+  };
 
-    const steps = [
-        {label: 'Select Patient',icon: <PersonIcon/>,description: 'Search and select patient'},
-        {label: 'Add Items',icon: <CartIcon/>,description: 'Add services and charges'},
-        {label: 'PAyment & Review',icon: <PaymentIcon/>,description: 'Review and create bill'},
-    ];
+  const handleBack = () => {
+    setActiveStep(prev => prev - 1);
+  };
 
-    const paymentMethods = ['Cash','Credit Card','Debit Card','M-Pesa','Cheque','Insurance'];
+  const steps = [
+    { label: 'Select Patient', icon: <PersonIcon />, description: 'Search and select patient' },
+    { label: 'Add Items', icon: <CartIcon />, description: 'Add services and charges' },
+    { label: 'PAyment & Review', icon: <PaymentIcon />, description: 'Review and create bill' },
+  ];
 
-    return (
+  const paymentMethods = ['Cash', 'Credit Card', 'Debit Card', 'M-Pesa', 'Cheque', 'Insurance'];
+
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <IconButton onClick={() => navigate('/operator/bills')} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+        <IconButton onClick={() => navigate('/operator/create')} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
@@ -272,9 +273,9 @@ export const CreateBill = ()=>{
       </Box>
 
       <Collapse in={success}>
-        <Alert 
-          icon={<CheckIcon fontSize="inherit" />} 
-          severity="success" 
+        <Alert
+          icon={<CheckIcon fontSize="inherit" />}
+          severity="success"
           sx={{ mb: 3, borderRadius: 2 }}
         >
           Bill created successfully! Redirecting...
@@ -330,7 +331,7 @@ export const CreateBill = ()=>{
                       }}
                       sx={{ mb: 2 }}
                     />
-                    
+
                     {searchResults.length > 0 && !selectedPatients && (
                       <Paper sx={{ maxHeight: 300, overflow: 'auto', borderRadius: 2 }}>
                         {searchResults.map((patient) => (
@@ -373,7 +374,7 @@ export const CreateBill = ()=>{
                         ))}
                       </Paper>
                     )}
-                    
+
                     {selectedPatients && (
                       <Fade in={!!selectedPatients}>
                         <Card sx={{ mt: 2, bgcolor: alpha(theme.palette.success.main, 0.05), border: `1px solid ${alpha(theme.palette.success.main, 0.2)}` }}>
@@ -470,9 +471,9 @@ export const CreateBill = ()=>{
                                 </Typography>
                               </Grid>
                               <Grid item xs={6} md={1}>
-                                <IconButton 
-                                  size="small" 
-                                  onClick={() => handleRemoveItem(item.id)} 
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleRemoveItem(item.id)}
                                   disabled={items.length === 1}
                                   sx={{ color: theme.palette.error.main }}
                                 >
@@ -524,7 +525,7 @@ export const CreateBill = ()=>{
                       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
                         Bill Summary
                       </Typography>
-                      
+
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderRadius: 2 }}>
                         <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
                           <PersonIcon />

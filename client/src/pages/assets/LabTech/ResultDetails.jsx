@@ -171,7 +171,6 @@ const ActionButton = styled(Button)(({ theme, variant, color }) => ({
 
 export const ResultDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const theme = useTheme();
   const confirm = useConfirm();
   const [report, setReport] = useState(null);
@@ -180,6 +179,7 @@ export const ResultDetails = () => {
   const [openApproveDialog, setOpenApproveDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [sending, setSending] = useState(false);
+  const [results, setresults] = useState([]);
 
   useEffect(() => {
     fetchReportDetails();
@@ -283,6 +283,21 @@ export const ResultDetails = () => {
     }
   };
 
+  const handleResults = async () => {
+    setLoading(true);
+    try {
+      const res = await labServices.getLabRequestList();
+      setresults(res.data);
+      toast.success('Results fetched successfully');
+    }
+    catch (err) {
+      toast.error('An error occurred', err);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
+
   const handlePrint = () => {
     if (report?.report_file) {
       window.open(report.report_file, '_blank');
@@ -327,7 +342,7 @@ export const ResultDetails = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity='error' sx={{ borderRadius: 3 }}>Report not found</Alert>
-        <Button sx={{ mt: 2 }} onClick={() => navigate('/lab/report-list/')}>Back to Results.</Button>
+        <Button sx={{ mt: 2 }} onClick={handleResults}>Back to Results.</Button>
       </Box>
     );
   }
@@ -345,7 +360,7 @@ export const ResultDetails = () => {
             <Button
               variant="contained"
               startIcon={<BackIcon />}
-              onClick={() => navigate('/lab/results')}
+              onClick={handleResults}
               sx={{
                 bgcolor: alpha('#fff', 0.2),
                 color: 'white',

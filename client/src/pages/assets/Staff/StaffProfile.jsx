@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box, Grid, Card, CardContent, Typography, TextField, Button,
   Avatar, Divider, Stack, Alert, CircularProgress, Chip,
@@ -18,7 +17,6 @@ import authService from '../../../services/authService';
 import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/adminComponents';
 
 export const OperatorProfile = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -86,7 +84,7 @@ export const OperatorProfile = () => {
 
   const handleUploadPhoto = async (event) => {
     const file = event.target.files[0];
-    if(file){
+    if (file) {
       setSelectedPhoto(file);
       const reader = new FileReader();
       reader.onloadend = async () => {

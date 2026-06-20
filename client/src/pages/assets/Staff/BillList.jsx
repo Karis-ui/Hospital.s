@@ -153,11 +153,10 @@ const BillCard = styled(motion.div)(({ theme, status }) => ({
   borderRadius: theme.spacing(2),
   marginBottom: theme.spacing(2),
   padding: theme.spacing(2),
-  borderLeft: `6px solid ${
-    status === 'paid' ? theme.palette.success.main :
+  borderLeft: `6px solid ${status === 'paid' ? theme.palette.success.main :
     status === 'pending' ? theme.palette.warning.main :
-    theme.palette.error.main
-  }`,
+      theme.palette.error.main
+    }`,
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
     transform: 'translateX(8px)',
@@ -189,14 +188,14 @@ const StatusBadge = styled(Chip)(({ theme, status }) => ({
   borderRadius: 12,
   padding: '4px 8px',
   background: status === 'paid' ? alpha(theme.palette.success.main, 0.12) :
-             status === 'pending' ? alpha(theme.palette.warning.main, 0.12) :
-             alpha(theme.palette.error.main, 0.12),
+    status === 'pending' ? alpha(theme.palette.warning.main, 0.12) :
+      alpha(theme.palette.error.main, 0.12),
   color: status === 'paid' ? theme.palette.success.main :
-         status === 'pending' ? theme.palette.warning.main :
-         theme.palette.error.main,
+    status === 'pending' ? theme.palette.warning.main :
+      theme.palette.error.main,
   border: `1px solid ${status === 'paid' ? alpha(theme.palette.success.main, 0.3) :
-                         status === 'pending' ? alpha(theme.palette.warning.main, 0.3) :
-                         alpha(theme.palette.error.main, 0.3)}`,
+    status === 'pending' ? alpha(theme.palette.warning.main, 0.3) :
+      alpha(theme.palette.error.main, 0.3)}`,
   '& .MuiChip-icon': {
     color: 'inherit',
   },
@@ -212,107 +211,125 @@ const QuickActionChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
-const BillList = () =>{
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const [loading,setLoading] = useState(true);
-    const [bills,setBills] = useState([]);
-    const [filteredBills,setFilteredBills] = useState([]);
-    const [searchTerm,setSearchTerm] = useState('');
-    const [statusFilter,setStatusFilter] = useState('all');
-    const [page,setPage] = useState(1);
-    const [rowsPerPage] = useState(10);
-    const [viewMode,setViewMode] = useState('table');
-    const [selectedBill,setSelectedBill] = useState(null);
-    const [anchorE1,setAnchorE1] = useState(null);
-    const [stats,setStats] = useState({
-        total: 0,totalAmount: 0,paid: 0,paidAmount: 0,pending: 0,pendingAmount: 0,overdue: 0,overdueAmount: 0,
-    });
+const BillList = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [bills, setBills] = useState([]);
+  const [filteredBills, setFilteredBills] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState('table');
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [anchorE1, setAnchorE1] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0, totalAmount: 0, paid: 0, paidAmount: 0, pending: 0, pendingAmount: 0, overdue: 0, overdueAmount: 0,
+  });
 
-    useEffect(()=>{
-        fetchBills();
-    },[]);
+  useEffect(() => {
+    fetchBills();
+  }, []);
 
-    useEffect(()=>{
-        filterBills();
-        calculateStats();
-    },[bills,searchTerm,statusFilter]);
+  useEffect(() => {
+    filterBills();
+    calculateStats();
+  }, [bills, searchTerm, statusFilter]);
 
-    const fetchBills = async()=>{
-        setLoading(true);
-        try{
-            const response = await OperatorService.getBills();
-            setBills(response.data);
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    const filterBills = ()=>{
-        let filtered = [...bills];
-        if(searchTerm){
-            filtered = filtered.filter(b=>
-                b.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                b.patientName.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        if (statusFilter !== 'all'){
-            filtered = filtered.filter(b => b.status === statusFilter);
-        }
-        setFilteredBills(filtered);
-        setPage(1);
-    };
-
-    const calculateStats = () =>{
-        const total = filteredBills.length;
-        const totalAmount = filteredBills.reduce((s,b)=> s + b.amount,0);
-        const paid = filteredBills.filter(b => b.status === 'paid').length;
-        const paidAmount = filteredBills.filter(b => b.status === 'paid').reduce((s,b)=> s + b.amount,0);
-        const pending = filteredBills.filter(b => b.status === 'pending').length;
-        const pendingAmount = filteredBills.filter(b => b.status === 'pending').reduce((s,b)=> s + b.amount,0);
-        const overdue = filteredBills.filter(b => b.status === 'overdue').length;
-        const overdueAmount = filteredBills.filter(b => b.status === 'overdue').reduce((s,b)=> s + b.amount,0);
-        setStats({total, totalAmount, paid, paidAmount, pending, pendingAmount, overdue, overdueAmount});
-    };
-
-    const handleViewBill = (billId)=> navigate(`/bill/detailView/${billId}`);
-    const handleSendReminder = (billId) => navigate(`/send/${billId}/reminder/`);
-    const handleProcessPayment = (billId)=> navigate(`/process/payment/${billId}`);
-    const handlePrintReceipt = async(billId)=>{
-        try{
-          const response = await OperatorService.printReceipt(billId)
-           const url = window.URL.createObjectURL(new Blob([response.data]));
-           const link = document.createElement('a');
-           link.href = url;
-           link.setAttribute('download',`receipt_${billId}.pdf`);
-           document.body.appendChild(link);
-           link.click();
-           window.URL.revokeObjectURL(url);
-           console.log('Receipt ready for printing');
-        }catch(err){
-          console.error('Failed to print receipt');
-        }
-    };
-
-    const paginatedBills = filteredBills.slice((page - 1) * rowsPerPage,page * rowsPerPage);
-
-    if (loading){
-        return(
-            <Box sx={{p:3}}>
-                <Grid container spacing={3}>
-                    {[1,2,3,4].map(i =>(
-                        <Grid item xs={12} sm={6} md={3} key={1}>
-                            <Skeleton variant='rectangular' height={120} sx={{borderRadius: 3}}/>
-                        </Grid>
-                    ))}
-                    <Grid item xs={12}>
-                        <Skeleton variant='rectangular' height={400} sx={{borderRadius: 3}}/>
-                    </Grid>
-                </Grid>
-            </Box>
-        );
+  const fetchBills = async () => {
+    setLoading(true);
+    try {
+      const response = await OperatorService.getBills();
+      setBills(response.data);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const filterBills = () => {
+    let filtered = [...bills];
+    if (searchTerm) {
+      filtered = filtered.filter(b =>
+        b.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        b.patientName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(b => b.status === statusFilter);
+    }
+    setFilteredBills(filtered);
+    setPage(1);
+  };
+
+  const calculateStats = () => {
+    const total = filteredBills.length;
+    const totalAmount = filteredBills.reduce((s, b) => s + b.amount, 0);
+    const paid = filteredBills.filter(b => b.status === 'paid').length;
+    const paidAmount = filteredBills.filter(b => b.status === 'paid').reduce((s, b) => s + b.amount, 0);
+    const pending = filteredBills.filter(b => b.status === 'pending').length;
+    const pendingAmount = filteredBills.filter(b => b.status === 'pending').reduce((s, b) => s + b.amount, 0);
+    const overdue = filteredBills.filter(b => b.status === 'overdue').length;
+    const overdueAmount = filteredBills.filter(b => b.status === 'overdue').reduce((s, b) => s + b.amount, 0);
+    setStats({ total, totalAmount, paid, paidAmount, pending, pendingAmount, overdue, overdueAmount });
+  };
+
+  const handleViewBill = (billId) => navigate(`/operator/detail-view/${billId}`);
+  const handleSendReminder = async (billId) => {
+    const confirmed = ({
+      title: 'Send Reminder',
+      message: 'Are you sure you want to send the same.',
+      type: 'success',
+      confirmText: 'Send',
+    });
+    if (confirmed) {
+      try {
+        setProcessingId(billId);
+        await OperatorService.sendReminder(billId);
+        toast.success(`Reminder sent to patient`);
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to send reminder');
+      } finally {
+        setProcessingId(null);
+      }
+    }
+  };
+  const handleProcessPayment = (billId) => navigate(`/operator/process-payment`);
+  const handlePrintReceipt = async (billId) => {
+    try {
+      const response = await OperatorService.printReceipt(billId)
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `receipt_${billId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      console.log('Receipt ready for printing');
+    } catch (err) {
+      console.error('Failed to print receipt');
+    }
+  };
+
+  const paginatedBills = filteredBills.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  if (loading) {
     return (
+      <Box sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map(i => (
+            <Grid item xs={12} sm={6} md={3} key={1}>
+              <Skeleton variant='rectangular' height={120} sx={{ borderRadius: 3 }} />
+            </Grid>
+          ))}
+          <Grid item xs={12}>
+            <Skeleton variant='rectangular' height={400} sx={{ borderRadius: 3 }} />
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  }
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Slide direction="down" in={true} timeout={600}>
         <HeroSection>
@@ -340,7 +357,7 @@ const BillList = () =>{
                 <PremiumButton
                   size="large"
                   startIcon={<ReceiptLongIcon />}
-                  onClick={() => navigate('/operator/bills/create')}
+                  onClick={() => navigate('/operator/create')}
                 >
                   Create New Bill
                 </PremiumButton>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {motion} from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Box,
   Paper,
@@ -60,128 +60,128 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import {
-    platinumTheme,PremiumHeader,StatCard,PremiumCard,PremiumTableContainer,
-    StatusChip,RoleBadge,GlassSearchBar,SectionTitle,PageTitle,ActionIconButton,PlatinumButton
+  platinumTheme, PremiumHeader, StatCard, PremiumCard, PremiumTableContainer,
+  StatusChip, RoleBadge, GlassSearchBar, SectionTitle, PageTitle, ActionIconButton, PlatinumButton
 } from '../../../theme/adminComponents';
-import {useConfirm} from '../../../theme/useConfirm';
+import { useConfirm } from '../../../theme/useConfirm';
 import { adminService } from '../../../services/users/admin';
 import { AnimatePresence } from 'framer-motion';
 
-export const UserList = ()=>{
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const confirm = useConfirm();
-    const [users,setUsers] = useState([]);
-    const [filterUsers,setFilterUsers] = useState([]);
-    const [loading,setLoading] = useState(false);
-    const [page,setPage] = useState([]);
-    const [rowsPerPage,setRowsPerPage] = useState(10);
-    const [searchTerm,setSearchTerm] = useState('');
-    const [roleFilter,setRoleFilter] = useState('all');
-    const [statusFilter,setStatusFilter] = useState('all');
-    const [tabValue,setTabValue] = useState(0);
-    const [openDeleteDialog,setOpenDeleteDialog] = useState(false);
-    const [selectedUser,setSelectedUser] = useState(false);
-    const [stats,setStats] = useState({
-        total:0,admin:0,doctor:0,lab_technician:0,staff:0,patient:0,active:0,inactive:0
+export const UserList = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const confirm = useConfirm();
+  const [users, setUsers] = useState([]);
+  const [filterUsers, setFilterUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState([]);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [tabValue, setTabValue] = useState(0);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0, admin: 0, doctor: 0, lab_technician: 0, staff: 0, patient: 0, active: 0, inactive: 0
+  });
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    filterUser();
+  }, [users, searchTerm, roleFilter, statusFilter, tabValue]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await adminService.getallUsers();
+      if (response.data.status === 'success') {
+        setUsers(response.data.data);
+        calculateStats(response.data.data);
+      }
+    } catch (err) {
+      toast.error('Failed to load users.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (usersList) => {
+    const total = usersList.length;
+    const admin = usersList.filter(u => u.role === 'admin').length;
+    const doctor = usersList.filter(u => u.role === 'doctor').length;
+    const lab_technician = usersList.filter(u => u.role === 'lab_technician').length;
+    const patient = usersList.filter(u => u.role === 'patient').length;
+    const staff = usersList.filter(u => u.role === 'staff').length;
+    const active = usersList.filter(u => u.is_active).length;
+    const inactive = usersList.filter(u => !u.is_active).length;
+    setStats({ total, admin, doctor, lab_technician, staff, patient, active, inactive })
+  };
+
+  const filterUser = () => {
+    let filtered = [...users];
+    if (tabValue === 1) filtered = filtered.filter(u => u.role === 'admin');
+    if (tabValue === 2) filtered = filtered.filter(u => u.role === 'doctor');
+    if (tabValue === 3) filtered = filtered.filter(u => u.role === 'lab_technician');
+    if (tabValue === 4) filtered = filtered.filter(u => u.role === 'patient');
+    if (tabValue === 5) filtered = filtered.filter(u => u.role === 'staff');
+
+    if (searchTerm) {
+      filtered = filtered.filter(u =>
+        u.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.username?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(u => statusFilter === 'active' ? u.is_active : !u.is_active);
+    }
+    setFilterUsers(filtered);
+  };
+  const handleDeleteUser = async () => {
+    const confirmed = await confirm({
+      title: 'Delete User',
+      content: `Are you sure you want to delete user ${selectedUser.full_name}? This action cannot be undone.`,
+      type: 'warning',
+      confirmText: 'Delete',
+      confirmColor: 'error',
     });
+    if (!confirmed) return;
+    if (!selectedUser) return;
+    try {
+      await adminService.deleteUser(selectedUser.id);
+      toast.success('User deleted sucessfully.');
+      setOpenDeleteDialog(false);
+      fetchUsers();
+    } catch (err) {
+      toast.error('An error occurred!');
+    }
+  };
 
-    useEffect(()=>{
-        fetchUsers();
-    },[]);
+  const handleToggleStatus = async (user) => {
+    try {
+      await adminService.deactivateUser(user.id)
+      toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
+      fetchUsers();
+    } catch (err) {
+      toast.error('Failed to updated status.Try again');
+    }
+  };
 
-    useEffect(()=>{
-        filterUser();
-    },[users,searchTerm,roleFilter,statusFilter,tabValue]);
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case 'admin': return <AdminIcon fontSize='small' />;
+      case 'doctor': return <DoctorIcon fontSize='small' />;
+      case 'lab_technician': return <LabIcon fontSize='small' />;
+      default: return <PatientIcon fontSize='small' />;
+    }
+  };
 
-    const fetchUsers = async()=>{
-        setLoading(true);
-        try{
-            const response = await adminService.getallUsers();
-            if(response.data.status === 'success'){
-                setUsers(response.data.data);
-                calculateStats(response.data.data);
-            }
-        }catch(err){
-            toast.error('Failed to load users.');
-        }finally{
-            setLoading(false);
-        }
-    };
-
-    const calculateStats = (usersList)=>{
-        const total = usersList.length;
-        const admin = usersList.filter(u => u.role === 'admin').length;
-        const doctor = usersList.filter(u =>u.role === 'doctor').length;
-        const lab_technician = usersList.filter(u => u.role === 'lab_technician').length;
-        const patient = usersList.filter(u => u.role === 'patient').length;
-        const staff = usersList.filter(u => u.role === 'staff').length;
-        const active = usersList.filter(u => u.is_active).length;
-        const inactive = usersList.filter(u => !u.is_active).length;
-        setStats({total,admin,doctor,lab_technician,staff,patient,active,inactive})
-    };
-
-    const filterUser = ()=>{
-        let filtered = [...users];
-        if(tabValue === 1) filtered = filtered.filter(u => u.role === 'admin');
-        if(tabValue === 2) filtered = filtered.filter(u => u.role === 'doctor');
-        if(tabValue === 3) filtered = filtered.filter(u => u.role === 'lab_technician');
-        if(tabValue === 4) filtered = filtered.filter(u => u.role === 'patient');
-        if(tabValue === 5) filtered = filtered.filter(u => u.role === 'staff');
-
-        if(searchTerm){
-            filtered = filtered.filter(u =>
-                u.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.username?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        if(roleFilter !== 'all'){
-            filtered = filtered.filter(u => statusFilter === 'active' ? u.is_active: !u.is_active);
-        }
-        setFilterUsers(filtered);
-    };
-    const handleDeleteUser = async()=>{
-      const confirmed = await confirm({
-        title: 'Delete User',
-        content: `Are you sure you want to delete user ${selectedUser.full_name}? This action cannot be undone.`,
-        type:'warning',
-        confirmText:'Delete',
-        confirmColor:'error',
-      });
-      if (!confirmed) return;
-        if(!selectedUser) return;
-        try{
-            await adminService.deleteUser(selectedUser.id);
-            toast.success('User deleted sucessfully.');
-            setOpenDeleteDialog(false);
-            fetchUsers();
-        }catch(err){
-            toast.error('An error occurred!');
-        }
-    };
-
-    const handleToggleStatus = async(user)=>{
-        try{
-            await adminService.deactivateUser(user.id)
-            toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
-            fetchUsers();
-        }catch(err){
-            toast.error('Failed to updated status.Try again');
-        }
-    };
-
-    const getRoleIcon = (role)=>{
-        switch(role){
-            case 'admin': return <AdminIcon fontSize='small'/>;
-            case 'doctor': return <DoctorIcon fontSize='small'/>;
-            case 'lab_technician': return <LabIcon fontSize='small'/>;
-            default: return <PatientIcon fontSize='small'/>;
-        }
-    };
-
-    return (
+  return (
     <Box sx={{ p: 3, bgcolor: platinumTheme.background.default, minHeight: '100vh' }}>
       <PremiumHeader>
         <motion.div
@@ -281,8 +281,8 @@ export const UserList = ()=>{
         </Grid>
         <Grid item xs={12} md={6}>
           <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <PlatinumButton startIcon={<AddIcon />} onClick={() => navigate('/admin/users/create')}>
-              Add New User
+            <PlatinumButton startIcon={<AddIcon />} onClick={() => navigate('/admin/approvals')}>
+              Set Approval For New User
             </PlatinumButton>
           </Stack>
         </Grid>
@@ -353,8 +353,8 @@ export const UserList = ()=>{
                             <VisbilityIcon fontSize="small" />
                           </ActionIconButton>
                         </Tooltip>
-                        <Tooltip title="Edit User">
-                          <ActionIconButton action="edit" size="small" onClick={() => navigate(`/admin/users/${user.id}/edit`)}>
+                        <Tooltip title="Update/edit User">
+                          <ActionIconButton action="edit" size="small" onClick={() => navigate(`/admin/users/${user.id}`)}>
                             <EditIcon fontSize="small" />
                           </ActionIconButton>
                         </Tooltip>

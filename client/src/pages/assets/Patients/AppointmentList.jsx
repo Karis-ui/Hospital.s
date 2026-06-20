@@ -145,11 +145,15 @@ const AppointmentList = () => {
     setSelectedAppointment(null);
   };
 
-  const Reschedule = () => {
+  const Reschedule = async (appointment_id) => {
     if (selectedAppointment) {
-      navigate(`/appointments/${selectedAppointment.id}/reschedule/`);
+      await PatientService.rescheduleAppointments(appointment_id);
     }
     MenuClose();
+  };
+
+  const handleDetailAppointment = async (appointmentId) => {
+    await PatientService.detailAppointmentView(appointmentId);
   };
 
   const handleCl = () => {
@@ -315,7 +319,7 @@ const AppointmentList = () => {
                   <TableCell align="center">
                     <IconButton
                       size="small"
-                      onClick={() => navigate(`/patient/appointments/${apt.id}`)}
+                      onClick={handleDetailAppointment}
                     >
                       <ViewIcon fontSize="small" />
                     </IconButton>
@@ -349,7 +353,7 @@ const AppointmentList = () => {
           <Button
             variant="contained"
             startIcon={<CalendarIcon />}
-            onClick={() => navigate('/book/appointment/')}
+            onClick={() => navigate('/patient/book-appointment/')}
             sx={{ mt: 2 }}
           >
             Book Your First Appointment
@@ -373,7 +377,7 @@ const AppointmentList = () => {
         open={Boolean(anchor)}
         onClose={MenuClose}
       >
-        <MenuItem onClick={() => navigate(`/patient/appointments/${selectedAppointment.id}`)}>View Details</MenuItem>
+        <MenuItem onClick={handleDetailAppointment}>View Details</MenuItem>
         {selectedAppointment?.status?.toLowerCase() !== 'cancelled' &&
           selectedAppointment?.status?.toLowerCase() !== 'completed' && (
             <MenuItem onClick={Reschedule}>Reschedule</MenuItem>

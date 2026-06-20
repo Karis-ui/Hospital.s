@@ -58,7 +58,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
-import {useAuth} from '../../../context/authContext';
+import { useAuth } from '../../../context/authContext';
 import { labServices } from '../../../services/users/labtech';
 
 const ProfileHeader = styled(Paper)(({ theme }) => ({
@@ -169,131 +169,131 @@ const EditButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-export const Profile = ()=>{
-    const {user} = useAuth();
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const [profile,setProfile] = useState(null);
-    const [loading,setLoading] = useState(true);
-    const [editing,setEditing] = useState(false);
-    const [saving,setSaving] = useState(false);
-    const [editForm,setEditForm] = useState([]);
-    const [stats,setStats] = useState({
-        total: 0,
-        completed: 0,
-        pending: 0,
-        approvalRate: 0,
-    });
-    const [snackbar,setSnackbar] = useState({open:false,message:'',severity:'success'});
+export const Profile = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    approvalRate: 0,
+  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    useEffect(()=>{
-        fetchProfile();
-        fetchStats();
-    },[]);
+  useEffect(() => {
+    fetchProfile();
+    fetchStats();
+  }, []);
 
-    const fetchProfile = async()=>{
-        setLoading(true);
-        try{
-            const response = await labServices.labProfile();
-            if(response.data.status === 'success'){
-                setProfile(response.data.data);
-                setEditForm(response.data.data);
-            }else{
-                throw new Error('Failed to load profile.');
-            }
-        }catch(err){
-            console.error('Something went wrong.Try again please.');
-            toast.error(err.response?.data?.message);
-        }finally{
-            setLoading(false);
-        }
-    };
-
-
-    const fetchStats = async()=>{
-        try{
-            const response = await labServices.stats();
-            if(response.data.status ==='status'){
-                setStats(response.data.data);
-            }
-        }catch(err){
-            console.error('Error fetching your stats:',err);
-        }
-    } ;
-
-    const handleEdit = async()=>{
-        setEditing(true);
-        const response = await labServices.updateProfile();
-    };
-
-    const handleSave = async()=>{
-        setSaving(true);
-        try{
-            const response = await labServices.updateProfile(editForm);
-            if(response.data.status === 'success'){
-                setProfile(response.data.data);
-                setEditing(false);
-                toast.success('Profile updated successfully.');
-                setSnackbar({open:true,message:'Profile updated successfully.',severity:'success'});
-            }else{
-                throw new Error('Failed to update profile.Try again.');
-            }
-        }catch(err){
-            toast.error(err.response?.data?.message);
-            setSnackbar({open:true,message:'Failed to update profile',severity:'error'});
-        }finally{setLoading(false);}
-    };
-
-const handleToggleAvailability = (id) => {
-  console.log('Toggle availability for:', id);
-};
-
-const handleCancel = () => {
-  console.log('Cancel action');
-  navigate('/lab-techs');
-};
-
-    const handleChange = (field,value)=>{
-        setEditForm(prev =>({...prev,[field]:value}));
-    };
-
-    const getInitials =(name)=>{
-        return name?.split(' ').map(word =>word[0]).join('').toUpperCase().slIce(0,2) || 'LT';
-    };
-
-    const formatDate = (date)=>{
-        if(!date) return 'Not Provided';
-        return format(new Date(date), 'MMMMM dd yyyy');
-    };
-    if(loading){
-        return(
-            <Box sx={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'400px'}}><CircularProgress/></Box>
-        );
+  const fetchProfile = async () => {
+    setLoading(true);
+    try {
+      const response = await labServices.labProfile();
+      if (response.data.status === 'success') {
+        setProfile(response.data.data);
+        setEditForm(response.data.data);
+      } else {
+        throw new Error('Failed to load profile.');
+      }
+    } catch (err) {
+      console.error('Something went wrong.Try again please.');
+      toast.error(err.response?.data?.message);
+    } finally {
+      setLoading(false);
     }
-    if(!profile){
-        return(
-            <Box sx={{p:2}}>
-                <Alert severity='error' sx={{borderRadius:3}}>Failed to load profile data.</Alert>
-            </Box>
-        );
-    }
+  };
 
+
+  const fetchStats = async () => {
+    try {
+      const response = await labServices.stats();
+      if (response.data.status === 'status') {
+        setStats(response.data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching your stats:', err);
+    }
+  };
+
+  const handleEdit = async () => {
+    setEditing(true);
+    const response = await labServices.updateProfile();
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await labServices.updateProfile(editForm);
+      if (response.data.status === 'success') {
+        setProfile(response.data.data);
+        setEditing(false);
+        toast.success('Profile updated successfully.');
+        setSnackbar({ open: true, message: 'Profile updated successfully.', severity: 'success' });
+      } else {
+        throw new Error('Failed to update profile.Try again.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message);
+      setSnackbar({ open: true, message: 'Failed to update profile', severity: 'error' });
+    } finally { setLoading(false); }
+  };
+
+  const handleToggleAvailability = (id) => {
+    console.log('Toggle availability for:', id);
+  };
+
+  const handleCancel = () => {
+    console.log('Cancel action');
+    fetchProfile();
+  };
+
+  const handleChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const getInitials = (name) => {
+    return name?.split(' ').map(word => word[0]).join('').toUpperCase().slIce(0, 2) || 'LT';
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Not Provided';
+    return format(new Date(date), 'MMMMM dd yyyy');
+  };
+  if (loading) {
     return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}><CircularProgress /></Box>
+    );
+  }
+  if (!profile) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity='error' sx={{ borderRadius: 3 }}>Failed to load profile data.</Alert>
+      </Box>
+    );
+  }
+
+  return (
     <Box sx={{ p: 3 }}>
       <ProfileHeader>
         <EditButton onClick={handleEdit} disabled={editing}>
           <EditIcon />
         </EditButton>
-        
+
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <ProfileAvatar>
             {getInitials(profile.full_name)}
           </ProfileAvatar>
-          
+
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
             {profile.full_name}
           </Typography>
-          
+
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
             <Chip
               icon={<LabIcon />}
@@ -308,7 +308,7 @@ const handleCancel = () => {
               size="small"
             />
           </Box>
-          
+
           <Typography variant="body2" sx={{ opacity: 0.9, maxWidth: 500 }}>
             Licensed Laboratory Technician with expertise in clinical diagnostics and quality assurance
           </Typography>
@@ -335,7 +335,7 @@ const handleCancel = () => {
             </CardContent>
           </StatCard>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <StatCard color="#2e7d32">
             <CardContent>
@@ -355,7 +355,7 @@ const handleCancel = () => {
             </CardContent>
           </StatCard>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <StatCard color="#ed6c02">
             <CardContent>
@@ -375,7 +375,7 @@ const handleCancel = () => {
             </CardContent>
           </StatCard>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <StatCard color="#0288d1">
             <CardContent>
@@ -403,7 +403,7 @@ const handleCancel = () => {
               <SectionTitle variant="h6">
                 <PersonIcon /> Personal Information
               </SectionTitle>
-              
+
               <Stack spacing={1}>
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Full Name:</Typography>
@@ -418,7 +418,7 @@ const handleCancel = () => {
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>{profile.full_name}</Typography>
                   )}
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Email Address:</Typography>
                   {editing ? (
@@ -433,7 +433,7 @@ const handleCancel = () => {
                     <Typography variant="body2">{profile.email}</Typography>
                   )}
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Phone Number:</Typography>
                   {editing ? (
@@ -447,7 +447,7 @@ const handleCancel = () => {
                     <Typography variant="body2">{profile.phone_number || 'Not provided'}</Typography>
                   )}
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Date of Birth:</Typography>
                   {editing ? (
@@ -463,7 +463,7 @@ const handleCancel = () => {
                     <Typography variant="body2">{formatDate(profile.date_of_birth)}</Typography>
                   )}
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Gender:</Typography>
                   {editing ? (
@@ -494,7 +494,7 @@ const handleCancel = () => {
               <SectionTitle variant="h6">
                 <WorkIcon /> Professional Information
               </SectionTitle>
-              
+
               <Stack spacing={1}>
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">License Number:</Typography>
@@ -509,7 +509,7 @@ const handleCancel = () => {
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>{profile.license_number || 'Not provided'}</Typography>
                   )}
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Qualifications:</Typography>
                   {editing ? (
@@ -525,7 +525,7 @@ const handleCancel = () => {
                     <Typography variant="body2">{profile.qualifications || 'Not provided'}</Typography>
                   )}
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Status:</Typography>
                   <FormControlLabel
@@ -539,7 +539,7 @@ const handleCancel = () => {
                     label={profile.is_available ? 'Available for tests' : 'Unavailable'}
                   />
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Member Since:</Typography>
                   <Typography variant="body2">
@@ -557,7 +557,7 @@ const handleCancel = () => {
               <SectionTitle variant="h6">
                 <HistoryIcon /> Recent Activity
               </SectionTitle>
-              
+
               {profile.recent_activity && profile.recent_activity.length > 0 ? (
                 <Stack spacing={2}>
                   {profile.recent_activity.map((activity, index) => (
@@ -594,20 +594,20 @@ const handleCancel = () => {
               <SectionTitle variant="h6">
                 <SecurityIcon /> Account Security
               </SectionTitle>
-              
+
               <Stack spacing={2}>
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Username:</Typography>
                   <Typography variant="body2">{profile.user?.username || 'N/A'}</Typography>
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Last Login:</Typography>
                   <Typography variant="body2">
                     {profile.last_login ? format(new Date(profile.last_login), 'MMM dd, yyyy hh:mm a') : 'Never'}
                   </Typography>
                 </DetailRow>
-                
+
                 <DetailRow>
                   <Typography variant="body2" color="textSecondary">Account Status:</Typography>
                   <Chip
@@ -617,11 +617,11 @@ const handleCancel = () => {
                     sx={{ bgcolor: '#e8f5e9', color: '#2e7d32' }}
                   />
                 </DetailRow>
-                
+
                 <Button
                   variant="outlined"
                   startIcon={<LockIcon />}
-                  onClick={() => navigate('/change-password')}
+                  onClick={() => navigate('/reset-password')}
                   fullWidth
                   sx={{ mt: 2, borderRadius: 2 }}
                 >
@@ -678,4 +678,6 @@ const handleCancel = () => {
       </Snackbar>
     </Box>
   );
-}
+};
+
+export default Profile;

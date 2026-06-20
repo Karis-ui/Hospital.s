@@ -155,7 +155,6 @@ const SummaryCard = styled(Card)(({ theme, color }) => ({
 
 export const DoctorAppointmentList = () => {
   const id = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
@@ -177,14 +176,14 @@ export const DoctorAppointmentList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
-  const [rescheduleData,setRescheduleData] = useState({new_date:null,new_time:'',reason:'',});
+  const [rescheduleData, setRescheduleData] = useState({ new_date: null, new_time: '', reason: '', });
   const [anchorE1, setAnchorE1] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [actionType, setActionType] = useState('');
   const [actionDialog, setActionDialog] = useState(false);
   const [actionreason, setActionReason] = useState('');
-  const [startNotes,setStartNotes] = useState('');
-  const [paginatedAppointments,setPaginatedAppointments] = useState(1);
+  const [startNotes, setStartNotes] = useState('');
+  const [paginatedAppointments, setPaginatedAppointments] = useState(1);
 
   useEffect(() => {
     fetchAppointments();
@@ -208,34 +207,34 @@ export const DoctorAppointmentList = () => {
     }
   };
 
-  const startAppointment = async()=>{
-    try{
-      await doctorSevice.updateAppointment(selectedAppointment.id,{
+  const startAppointment = async () => {
+    try {
+      await doctorSevice.updateAppointment(selectedAppointment.id, {
         notes: startNotes,
         started_at: new Date().toISOString(),
-        status:'in-progress'
+        status: 'in-progress'
       });
       toast.success("Appointment started.");
       setActionType('Set off');
       fetchAppointments();
-    }catch(err){
+    } catch (err) {
       toast.error('Failed to start the same.');
     }
   };
 
-  const handleReschedule = async()=>{
+  const handleReschedule = async () => {
     setActionType("Reschedule");
-    try{
-      await doctorSevice.rescheduleAppointments(selectedAppointment.id,{
-        new_date:rescheduleData.new_date,
-        new_time:rescheduleData.new_time,
-        reason:rescheduleData.reason,
-        status:'rescheduled',
+    try {
+      await doctorSevice.rescheduleAppointments(selectedAppointment.id, {
+        new_date: rescheduleData.new_date,
+        new_time: rescheduleData.new_time,
+        reason: rescheduleData.reason,
+        status: 'rescheduled',
       });
       toast.success('Appointment rescheduled successfully.');
-      setRescheduleData({new_date:null,new_time:'',reason:''});
+      setRescheduleData({ new_date: null, new_time: '', reason: '' });
       fetchAppointments();
-    }catch(err){
+    } catch (err) {
       toast.error("Failed to complete action.Try again!");
     }
   };
@@ -317,8 +316,18 @@ export const DoctorAppointmentList = () => {
       total: filteredAppointments.length, today, pending, completed, cancelled, inProgress,
     });
   };
-  const handleViewDetails = (appointment) => {
-    navigate(`/appointment/${id}/view`);
+
+  const handleViewDetails = async (appointmentId) => {
+    try {
+      setProcessingId(appointmentId);
+      await doctorSevice.appointmentView(appointmentId);
+      toast.success('Appointment fetched successfully');
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to fetch appointment');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleUpdateStatus = async (appointmentId, newStatus) => {
@@ -334,7 +343,7 @@ export const DoctorAppointmentList = () => {
     }
   };
 
-  const handleComplete = async(appointment) => {
+  const handleComplete = async (appointment) => {
     setSelectedAppointment(appointment);
     setActionType('complete');
     setActionDialog(true);

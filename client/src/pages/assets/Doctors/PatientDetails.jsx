@@ -195,6 +195,7 @@ export const PatientDetails = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [patient, setPatient] = useState(null);
+  const [patients, setPatients] = useState([]);
   const [error, setError] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [appointments, setAppointments] = useState([]);
@@ -222,7 +223,7 @@ export const PatientDetails = () => {
       const patientAppointments = appointmentResponse.data.filter(apt => apt.patient_id === parseInt(id));
       setAppointments(patientAppointments);
 
-      const labResponse = await doctorSevice.getlabRequest(id);
+      const labResponse = await doctorSevice.getlabResult(id);
       setLabResults(labResponse.data || []);
       setError('');
     } catch (err) {
@@ -259,20 +260,58 @@ export const PatientDetails = () => {
     }
   };
 
-  const handleViewAppointment = (appointmentId) => {
-    navigate(`/appointment/${appointmentId}/view`);
+  const handleViewAppointment = async (appointmentId) => {
+    try {
+      setProcessingId(appointmentId);
+      await doctorSevice.appointmentView(appointmentId);
+      toast.success('Appointment fetched successfully');
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to fetch appointment');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleCreateLabRequest = () => {
-    navigate('/lab/requests', { state: { patientId: id } });
+    navigate('/doctor/lab/new', { state: { patientId: id } });
   };
 
-  const handleRescheduleAppointment = (appointmentId) => {
-    navigate(`/appointments/${appointmentId}/reschedule`);
+  const handleRescheduleAppointment = async (appointment_id) => {
+    setActionType("Reschedule");
+    try {
+      await doctorSevice.rescheduleAppointments(appointment_id, {
+        new_date: rescheduleData.new_date,
+        new_time: rescheduleData.new_time,
+        reason: rescheduleData.reason,
+        status: 'rescheduled',
+      });
+      toast.success('Appointment rescheduled successfully.');
+      setRescheduleData({ new_date: null, new_time: '', reason: '' });
+      fetchAppointments();
+    } catch (err) {
+      toast.error("Failed to complete action.Try again!");
+    }
   };
 
   const handleMessagePatient = () => {
     setSendDialog(true);
+  };
+
+  const getAllPatients = async () => {
+    setLoading(true);
+    if (patients.length !== 0) {
+      try {
+        const res = doctorSevice.myPatients();
+        setPatients(res.data());
+        toast.success('All Patients fetched successfully');
+      } catch (err) {
+        toast.error('An error occurred...', err);
+      }
+      finally { setLoading(false); }
+    } else {
+      toast.info('No patients yet...');
+    }
   };
 
   const handleContactPatient = () => {
@@ -310,7 +349,7 @@ export const PatientDetails = () => {
   if (error || !patient) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity='error' action={<Button color='inherit' size='small' onClick={() => navigate('/my/patients')}>Back to Patients.</Button>}>{error || 'Patient not found'}</Alert>
+        <Alert severity='error' action={<Button color='inherit' size='small' onClick={getAllPatients}>Back to Patients.</Button>}>{error || 'Patient not found'}</Alert>
       </Box>
     );
   }
@@ -318,7 +357,7 @@ export const PatientDetails = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={() => navigate('/doctor/patients')} sx={{ mr: 2 }}>
+        <IconButton onClick={() => navigate('/doctor/patients-details')} sx={{ mr: 2 }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -594,7 +633,7 @@ export const PatientDetails = () => {
                         <TableCell>
                           <Button
                             size="small"
-                            onClick={() => navigate(`/doctor/lab-results/${lab.id}`)}
+                            onClick={() => navigate('/doctor/patients-details')}
                             disabled={lab.status !== 'completed'}
                           >
                             {lab.status === 'completed' ? 'View' : 'Pending'}

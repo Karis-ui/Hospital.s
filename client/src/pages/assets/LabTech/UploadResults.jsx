@@ -249,7 +249,7 @@ export const UploadResult = () => {
       const response = await labServices.saveResultEntry(id, formData);
       if (response.data.status === 'success') {
         toast.success(`Results saved ${criticalAlerts.length > 0 ? 'Critical alerts sent.' : ''}`);
-        navigate(`/labTechnician/detail_view/${id}/request`);
+        navigate(`/lab/requests/${id}`);
       }
     } catch (err) {
       toast.error('Failed to save Results');

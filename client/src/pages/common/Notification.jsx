@@ -1,5 +1,5 @@
 import React from 'react';
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Paper, Typography, List, ListItem, ListItemAvatar, ListItemText,
   Avatar, IconButton, Tabs, Tab, Badge, Button, Stack, Chip,
@@ -19,6 +19,7 @@ import {
   Person as PersonIcon,
   AccessTime as TimeIcon,
   MoreVert as MoreVertIcon,
+  Home,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -28,20 +29,20 @@ import { platinumTheme, PremiumHeader, PremiumCard } from '../../../theme/adminC
 
 
 const getNotificationIcon = (type) => {
-    switch(type){
-        case 'appointment':return platinumTheme.accent.blue;
-        case 'lab':return platinumTheme.accent.orange;
-        case 'billing':return platinumTheme.accent.purple;
-        case 'medical':return platinumTheme.accent.green;
-        default:return platinumTheme.primary.main;
-    }
+  switch (type) {
+    case 'appointment': return platinumTheme.accent.blue;
+    case 'lab': return platinumTheme.accent.orange;
+    case 'billing': return platinumTheme.accent.purple;
+    case 'medical': return platinumTheme.accent.green;
+    default: return platinumTheme.primary.main;
+  }
 };
 
-const NotificationItem = ({notification,onMarkread,onDelete}) => {
-    const [anchorE1,setAnchorE1] = useState(null);
-    const isUnRead = !notification.is_read;
+const NotificationItem = ({ notification, onMarkread, onDelete }) => {
+  const [anchorE1, setAnchorE1] = useState(null);
+  const isUnRead = !notification.is_read;
 
-    return (
+  return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -115,100 +116,100 @@ const NotificationItem = ({notification,onMarkread,onDelete}) => {
 };
 
 export const Notifications = () => {
-    const navigate = useNavigate();
-    const [notifications,setNotifications] = useState([]);
-    const [loading,setLoading] = useState(true);
-    const [tabValue,setTabValue] = useState(0);
-    const [filteredNotifications,setFilteredNotifications] = useState([]);
-    const [stats,setStats] = useState({
-        total:0,
-        unread:0,
-        read:0,
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+  const [filteredNotifications, setFilteredNotifications] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    unread: 0,
+    read: 0,
+  });
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  useEffect(() => {
+    filterNotifications();
+  }, [notifications, tabValue]);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const response = await coreServices.notifications();
+      if (response.status === 'success') {
+        setNotifications(response.data.data);
+        calculateStats(response.data.data);
+      }
+    } catch (err) {
+      setNotifications([]);
+      calculateStats([]);
+      toast.error('Failed to fetch notifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (notifications) => {
+    setStats({
+      total: notifications.length,
+      unread: notifications.filter(n => !n.is_read).length,
+      read: notifications.filter(n => n.is_read).length,
     });
+  };
 
-    useEffect(()=>{
-        fetchNotifications();
-    },[]);
+  const filterNotifications = () => {
+    let filtered = [...notifications];
+    if (tabValue === 1) filtered = filtered.filter(n => !n.is_read);
+    if (tabValue === 2) filtered = filtered.filter(n => n.is_read);
+    setFilteredNotifications(filtered);
+  };
 
-    useEffect(()=>{
-        filtereNotifications();
-    },[notifications,tabValue]);
+  const handleMarkRead = async (id) => {
+    try {
+      await coreSservices.markNotification(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      toast.success('Notification marked as read');
+    } catch (err) {
+      toast.error('Failed to mark notification as read');
+    }
+  };
 
-    const fetchNotifications = async()=>{
-        setLoading(true);
-        try{
-            const response = await coreServices.notifications();
-            if(response.status === 'success'){
-                setNotifications(response.data.data);
-                calculateStats(response.data.data);
-            }
-        }catch(err){
-            setNotifications([]);
-            calculateStats([]);
-            toast.error('Failed to fetch notifications');
-        }finally{
-            setLoading(false);
-        }
-    };
+  const handleMarkAllRead = async () => {
+    try {
+      await coreServices.markNotifications();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      toast.success('All notifications marked as read');
+    } catch (err) {
+      toast.error('Failed to mark all notifications as read');
+    }
+  };
 
-    const calculateStats = (notifications)=>{
-        setStats({
-            total:notifications.length,
-            unread:notifications.filter(n=>!n.is_read).length,
-            read:notifications.filter(n=>n.is_read).length,
-        });
-    };
+  const handleDelete = async (id) => {
+    try {
+      await coreServices.deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success('Notification deleted');
+    } catch (err) {
+      toast.error('Failed to delete notification');
+    }
+  };
 
-    const filterNotifications = ()=>{
-        let filtered = [...notifications];
-        if(tabValue === 1) filtered = filtered.filter(n=>!n.is_read);
-        if(tabValue === 2) filtered = filtered.filter(n=>n.is_read);
-        setFilteredNotifications(filtered);
-    };
+  const handleDeleteAll = async () => {
+    if (window.confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
+      try {
+        await coreServices.deleteNotifications();
+        setNotifications([]);
+        toast.success('All notifications deleted');
+      } catch (err) {
+        toast.error('Failed to delete all notifications');
+      }
+    }
+  };
 
-    const handleMarkRead = async(id)=>{
-        try{
-            await coreSservices.markNotification(id);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-            toast.success('Notification marked as read');
-        }catch(err){
-            toast.error('Failed to mark notification as read');
-        }
-    };
-
-    const handleMarkAllRead = async()=>{
-        try{
-            await coreServices.markNotifications();
-            setNotifications(prev => prev.map(n=>({...n,is_read:true})));
-            toast.success('All notifications marked as read');
-        }catch(err){
-            toast.error('Failed to mark all notifications as read');
-        }
-    };
-
-    const handleDelete = async(id)=>{
-        try{
-            await coreServices.deleteNotification(id);
-            setNotifications(prev => prev.filter(n => n.id !== id));
-            toast.success('Notification deleted');
-        }catch(err){
-            toast.error('Failed to delete notification');
-        }
-    };
-
-    const handleDeleteAll = async()=>{
-        if(window.confirm('Are you sure you want to delete all notifications? This action cannot be undone.')){
-            try{
-                await coreServices.deleteNotifications();
-                setNotifications([]);
-                toast.success('All notifications deleted');
-            }catch(err){
-                toast.error('Failed to delete all notifications');
-            }
-        }
-    };
-
-    return (
+  return (
     <Box sx={{ p: 3, bgcolor: platinumTheme.background.default, minHeight: '100vh' }}>
       <PremiumHeader>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
@@ -251,7 +252,7 @@ export const Notifications = () => {
           </Tabs>
           <Stack direction="row" spacing={1} sx={{ p: 1 }}>
             <Tooltip title="Mark all as read">
-              <IconButton onClick={handleMarkAllAsRead} disabled={stats.unread === 0}>
+              <IconButton onClick={handleMarkAllRead} disabled={stats.unread === 0}>
                 <DoneAllIcon />
               </IconButton>
             </Tooltip>
@@ -260,9 +261,9 @@ export const Notifications = () => {
                 <DeleteIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Notification Settings">
-              <IconButton onClick={() => navigate('/settings')}>
-                <SettingsIcon />
+            <Tooltip title="Home">
+              <IconButton onClick={() => navigate('/home')}>
+                <Home />
               </IconButton>
             </Tooltip>
           </Stack>
@@ -283,7 +284,7 @@ export const Notifications = () => {
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
-                  onMarkRead={handleMarkAsRead}
+                  onMarkRead={handleMarkRead}
                   onDelete={handleDelete}
                 />
               ))}

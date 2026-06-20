@@ -80,12 +80,12 @@ const PageHeader = styled(Paper)(({ theme }) => ({
   },
 }));
 
-const ResultCard = styled(Card)(({theme})=>({
-  borderRadius:theme.spacing(2),
+const ResultCard = styled(Card)(({ theme }) => ({
+  borderRadius: theme.spacing(2),
   transition: 'all 0.3s ease',
   cursor: 'pointer',
   marginBottom: theme.spacing(2),
-  '&:hover':{
+  '&:hover': {
     transform: 'translateX(8px)',
     boxShadow: theme.shadows[4],
     borderLeft: `4px solid ${theme.palette.primary.main}`,
@@ -140,77 +140,77 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   },
 }));
 
-export const Search = ()=>{
-    const navigate = useNavigate();
-    const theme = useTheme();
-    const location = useLocation();
-    const [searchQuery,setSearchQuery] = useState('');
-    const [loading,setLoading] = useState(false);
-    const [results,setResults] = useState({requests:[],reports:[]});
-    const [tabValue,setTabValue] = useState(0);
+export const Search = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState({ requests: [], reports: [] });
+  const [tabValue, setTabValue] = useState(0);
 
-    useEffect(()=>{
-      const params = new URLSearchParams(location.search);
-      const query = params.get('q');
-      if(query){
-        searchQuery(query);
-        performSearch(query);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get('q');
+    if (query) {
+      searchQuery(query);
+      performSearch(query);
+    }
+  }, [location.search]);
+
+  const performSearch = async (query) => {
+    if (!query.trim()) return;
+    setLoading(true);
+    try {
+      const response = await labServices.searchItems(query);
+      if (response.data.status === 'success') {
+        setResults(response.data.results);
+      } else {
+        throw new Error('Search failed.Try again!');
       }
-    },[location.search]);
+    } catch (err) {
+      console.error('Search error:', err);
+      toast.error('Search failed.Try again!');
+      setResults({ requests: [], reports: [] });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const performSearch = async(query)=>{
-      if(!query.trim()) return;
-      setLoading(true);
-      try{
-        const response = await labServices.searchItems(query);
-        if(response.data.status === 'success'){
-          setResults(response.data.results);
-        }else{
-          throw new Error('Search failed.Try again!');
-        }
-      }catch(err){
-        console.error('Search error:',err);
-        toast.error('Search failed.Try again!');
-        setResults({requests:[],reports:[]});
-      }finally{
-        setLoading(false);
-      }
-    };
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      navigate(`/lab/search?q=${encodeURIComponent(searchQuery)}`);
+      performSearch(searchQuery);
+    }
+  };
 
-    const handleSearch = ()=>{
-      if(searchQuery.trim()){
-        navigate(`/search?q=${encodeURIComponent(searchQuery)}/lab-views`);
-        performSearch(searchQuery);
-      }
-    };
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') handleSearch();
+  };
 
-    const handleKeyPress = (e)=>{
-      if(e.key === 'Enter') handleSearch();
-    };
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setResults({ requests: [], reports: [] });
+    navigate('/lab/search');
+  };
 
-    const handleClearSearch = ()=>{
-      setSearchQuery('');
-      setResults({requests:[],reports:[]});
-      navigate('/search/lab-views/');
-    };
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'requested': return <RequestIcon sx={{ fontSize: 16 }} />;
+      case 'cancelled': return <CancelIcon sx={{ fontSize: 16 }} />;
+      case 'ready': return <ApprovedIcon sx={{ fontSize: 16 }} />;
+    }
+  };
 
-    const getStatusIcon = (status)=>{
-      switch(status){
-        case 'requested': return <RequestIcon sx={{fontSize:16}}/>;
-        case 'cancelled': return <CancelIcon sx={{fontSize:16}}/>;
-        case 'ready': return <ApprovedIcon sx={{fontSize:16}}/>;   
-      }
-    };
+  const totalResults = (results.requests?.length || 0) + (results.reports?.length || 0);
 
-    const totalResults = (results.requests?.length || 0) + (results.reports?.length || 0);
-
-    return (
+  return (
     <Box sx={{ p: 3 }}>
       <PageHeader>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
           Search Lab Records
         </Typography>
-        
+
         <GlassSearchBar>
           <SearchIcon sx={{ color: 'text.secondary', mx: 1.5 }} />
           <TextField

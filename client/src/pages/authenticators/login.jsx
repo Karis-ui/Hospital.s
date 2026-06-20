@@ -104,7 +104,7 @@ const GoldButton = styled(Button)({
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -127,7 +127,7 @@ const Login = () => {
 
     try {
       const response = await login(formData.email, formData.password);
-      
+
       const userType = response.data.user.user_type;
       if (userType === 'patient') {
         navigate('/patient/dashboard');
@@ -137,8 +137,8 @@ const Login = () => {
         navigate('/admin/dashboard');
       } else if (userType === 'operator') {
         navigate('/operator/dashboard');
-      }else if (userType === 'lab_tech'){
-        navigate('/lab_tech/dashboard');
+      } else if (userType === 'lab_tech') {
+        navigate('/lab/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password');

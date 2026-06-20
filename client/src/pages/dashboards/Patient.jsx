@@ -114,30 +114,27 @@ export const PatientDashboard = () => {
       toast.info('No new notifications');
       return;
     }
-    navigate('/patient/notification');
+    navigate('/patient/dashboard');
   };
 
-  const handleActionCardClick = (action, patientId) => {
+  const handleActionCardClick = async (action, patientId) => {
     switch (action) {
       case 'book':
-        navigate(`/book/appointment/`);
-        break;
-      case 'prescription':
-        navigate(`/patient/prescriptions`);
+        navigate(`/patient/book-appointment`);
         break;
       case 'download':
-        navigate(`/download/report/${patientId}`);
+        await PatientService.downloadReport(patientId);
         break;
       case 'pay':
-        navigate(`/view/bill/${patientId}`);
+        navigate('/patient/bills');
         break;
       default:
         toast.info(`Opening ${action} module`);
     }
   };
 
-  const handleViewAppointment = (appointmentId) => {
-    navigate(`/edit/appointment/${appointmentId}`);
+  const handleViewAppointment = () => {
+    navigate('/patient/appointments');
   };
 
   const handleCancelAppointment = async (appointmentId) => {
@@ -176,7 +173,7 @@ export const PatientDashboard = () => {
       try {
         setLoading(true);
         const results = await PatientService.searchAll(searchTerm);
-        navigate('/patient/search/suggestion', {
+        navigate('/patient/search', {
           state: {
             query: searchTerm, results: results.data
           }
