@@ -283,7 +283,7 @@ export const DoctorDashboard = () => {
     await doctorService.patientDetail(patientId);
   };
 
-  const handleQuickAction = (action) => {
+  const handleQuickAction = (id,action) => {
     switch (action) {
       case 'prescriptions':
         navigate('/doctor/prescriptions');

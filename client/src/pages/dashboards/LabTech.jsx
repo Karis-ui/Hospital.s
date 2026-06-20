@@ -851,7 +851,7 @@ export const LabDashboard = () => {
                       borderColor: test.color, boxShadow: `0 10px 20px ${alpha(test.color, 0.2)}`
                     }
                   }}
-                    onClick={() => navigate(`/lab/requests/${id}`)}>
+                    onClick={() => navigate(`/lab/requests/${user.id}`)}>
                     <Box sx={{ color: test.color, fontSize: '2.5rem', mb: 1 }}>{test.icon}</Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{test.title}</Typography>
                     <Typography variant="caption" color="textSecondary">{test.desc}</Typography>

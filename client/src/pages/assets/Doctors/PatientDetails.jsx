@@ -203,10 +203,17 @@ export const PatientDetails = () => {
   const [sendDialog, setSendDialog] = useState(false);
   const [anchorE1, setAnchorE1] = useState('');
   const [messageText, setMessageText] = useState('');
+  const [actionType,setActionType] = useState('');
   const [appointmentData, setAppointmentData] = useState({
     date: null,
     time: '',
     reason: '',
+  });
+  const [rescheduleData, setRescheduleData] = useState({
+    new_date: null,
+    new_time: '',
+    reason: '',
+    status:'',
   });
 
   useEffect(() => {
@@ -262,14 +269,13 @@ export const PatientDetails = () => {
 
   const handleViewAppointment = async (appointmentId) => {
     try {
-      setProcessingId(appointmentId);
       await doctorSevice.appointmentView(appointmentId);
       toast.success('Appointment fetched successfully');
-      fetchDashboardData();
+      fetchPatientData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to fetch appointment');
     } finally {
-      setProcessingId(null);
+      setLoading(false);
     }
   };
 
@@ -288,7 +294,7 @@ export const PatientDetails = () => {
       });
       toast.success('Appointment rescheduled successfully.');
       setRescheduleData({ new_date: null, new_time: '', reason: '' });
-      fetchAppointments();
+      fetchPatientData();
     } catch (err) {
       toast.error("Failed to complete action.Try again!");
     }

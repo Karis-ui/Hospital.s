@@ -264,19 +264,6 @@ export const DetailedRequest = () => {
     }
   };
 
-  const handleResults = async () => {
-    try {
-      setLoading(true);
-      const res = await labServices.getLabReportList();
-      setResults = res.data();
-      toast.success('Results fetched successfully.');
-    }
-    catch (err) {
-      toast.error('An error occurred', err);
-    }
-    finally { setLoading(false); }
-  }
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}><CircularProgress /></Box>

@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from Backend.accounts import models
+from accounts import models
 from Hospital.Api.serializers import PrescriptionSerializer
 from django.db.models import Q
 from Hospital.Api.serializers import NotificationSerializer
@@ -7,7 +7,7 @@ from django.http import FileResponse
 from django.http import Http404
 from system.utils import get_system_settings
 from django.db import transaction
-from Backend.accounts.models import User
+from accounts.models import CustomUser
 from datetime import datetime
 from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription
 from core.util.pdf_generator import generate_pdf
@@ -25,6 +25,8 @@ from Hospital.Api.serializers import (
 import os
 from Hospital.Api.permissions import IsPatient,IsDoctor
 from Hospital import settings
+
+User = CustomUser
 
 class Patientdashboard(APIView):
     permission_classes = [IsAuthenticated,IsPatient]

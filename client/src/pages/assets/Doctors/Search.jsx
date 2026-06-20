@@ -43,6 +43,7 @@ import { useAuth } from '../../../context/authContext';
 import doctorSevice from '../../../services/users/doctor';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
 
 const GlassSearchBar = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(1.5, 2.5),
@@ -174,15 +175,14 @@ export const DoctorSearch = () => {
   };
 
   const handleViewAppointment = async (appointmentId) => {
+    setLoading(true);
     try {
-      setProcessingId(appointmentId);
       await doctorSevice.appointmentView(appointmentId);
       toast.success('Appointment fetched successfully');
-      fetchDashboardData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to fetch appointment');
     } finally {
-      setProcessingId(null);
+      setLoading(false);
     }
   };
 

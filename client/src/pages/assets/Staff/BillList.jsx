@@ -77,6 +77,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/authContext';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate } from '../../../formatters';
+import { toast } from 'react-toastify';
 
 const HeroSection = styled(Paper)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.info.main} 100%)`,
@@ -284,13 +285,12 @@ const BillList = () => {
     });
     if (confirmed) {
       try {
-        setProcessingId(billId);
         await OperatorService.sendReminder(billId);
         toast.success(`Reminder sent to patient`);
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to send reminder');
       } finally {
-        setProcessingId(null);
+        setLoading(false);
       }
     }
   };

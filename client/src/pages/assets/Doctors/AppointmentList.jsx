@@ -319,14 +319,13 @@ export const DoctorAppointmentList = () => {
 
   const handleViewDetails = async (appointmentId) => {
     try {
-      setProcessingId(appointmentId);
       await doctorSevice.appointmentView(appointmentId);
       toast.success('Appointment fetched successfully');
-      fetchDashboardData();
+      fetchAppointments();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to fetch appointment');
     } finally {
-      setProcessingId(null);
+      setLoading(false);
     }
   };
 
