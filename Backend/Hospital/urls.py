@@ -33,6 +33,6 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     path('api/patient/', include('patients.urls')),
     path('api/doctors/', include('doctors.urls')),
-    path('api/billoperator/', include('billoperator.urls')),
+    path('api/operator/', include('billoperator.urls')),
     path('api/lab/',include('Lab.urls')),
 ]
