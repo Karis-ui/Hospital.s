@@ -230,7 +230,7 @@ const PatientRegister = () => {
         navigate('/patient/dashboard');
       }, 2000);
     } catch (err) {
-      setError('Registration failed');
+      setError(err);
     } finally {
       setLoading(false);
     }
