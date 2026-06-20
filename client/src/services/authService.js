@@ -5,7 +5,7 @@ import { useEffect } from "react";
 export const authService = {
     registerPatient: async (userData) => {
         try {
-            const response = await api.post('/signup/', {
+            const response = await api.post('/accounts/signup/', {
                 email: userData.email,
                 password: userData.password,
                 confirm_password: userData.confirm_password,
@@ -26,7 +26,7 @@ export const authService = {
 
     registerDoctor: async (doctorData) => {
         try {
-            const response = await api.post('/doctor/register/', {
+            const response = await api.post('/accounts/doctor/register/', {
                 email: doctorData.email,
                 password: doctorData.password,
                 confirm_password: doctorData.confirm_password,
@@ -47,7 +47,7 @@ export const authService = {
 
     registerOperator: async (operatorData) => {
         try {
-            const response = await api.post('/operator/register/', {
+            const response = await api.post('/accounts/operator/register/', {
                 email: operatorData.email,
                 password: operatorData.password,
                 confirm_password: operatorData.confirm_password,
@@ -65,7 +65,7 @@ export const authService = {
 
     registerLabTechnician: async (labTechData) => {
         try {
-            const response = await api.post('/lab/register/', {
+            const response = await api.post('/accounts/lab/register/', {
                 email: labTechData.email,
                 password: labTechData.password,
                 confirm_password: labTechData.confirm_password,
@@ -84,7 +84,7 @@ export const authService = {
     login: async (email, password) => {
         try {
             console.log('Attempting login for:', email);
-            const response = await api.post('/login/', { email, password });
+            const response = await api.post('/accounts/login/', { email, password });
 
             if (response.data.data.tokens) {
                 localStorage.setItem('access_token', response.data.data.tokens.access);
@@ -101,7 +101,7 @@ export const authService = {
     forgotPassword: async (email) => {
         try {
             console.log("📧 Requesting password reset for:", email);
-            const response = await api.post('/forgot-password/', { email });
+            const response = await api.post('/accounts/forgot-password/', { email });
             console.log("Password reset email sent:", response.data);
             return response.data;
         } catch (err) {
@@ -113,7 +113,7 @@ export const authService = {
     resetPassword: async (uId, token, newPassword, confirmPassword) => {
         try {
             console.log('Reseting password for UID:', uId);
-            const response = await api.post('/change-password/', {
+            const response = await api.post('/accounts/change-password/', {
                 uId: uId, token: token, newPassword: newPassword, confirm_Password: confirmPassword
             });
             console.log('Password reset successfully');
@@ -128,7 +128,7 @@ export const authService = {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = '/accounts/login';
     },
 
     getCurrentUser: async (uId) => {
@@ -138,7 +138,7 @@ export const authService = {
                 throw new Error('No access token available');
             }
             console.log('Getting current user for UID:', uId);
-            const response = await api.get('/profile/', {
+            const response = await api.get('/accounts/profile/', {
                 uId: uId
             });
             console.log('Current user retrieved successfully');
@@ -151,7 +151,7 @@ export const authService = {
 
     refreshToken: async () => {
         try {
-            const refresh = localStorage.getItem('refresh_token');
+            const refresh = localStorage.getItem('/accounts/refresh_token/');
             if (!refresh) {
                 throw new Error('No refresh token available');
             }
