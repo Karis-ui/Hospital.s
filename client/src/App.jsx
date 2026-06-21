@@ -1,13 +1,15 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider,createTheme } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {AuthLayout,AppLayout} from './theme/adminComponents';
+import { AuthLayout, AppLayout } from './theme/adminComponents';
 
 import Home from './pages/authenticators/Home';
 import Login from './pages/authenticators/login';
+import AdminLogin from './pages/authenticators/adminLogin';
+import RegisterAdmin from './pages/authenticators/registerAdmin';
 import DoctorRegister from './pages/authenticators/registerDoc';
 import LabTechRegister from './pages/authenticators/registerLabTech';
 import PatientRegister from './pages/authenticators/registration';
@@ -69,7 +71,7 @@ import NotFound from './pages/common/NotFound';
 import Unauthorized from './pages/common/Unauthorized';
 
 import { AuthProvider, useAuth } from './context/authContext';
-import {ThemeContextProvider} from './context/ThemeContext';
+import { ThemeContextProvider } from './context/ThemeContext';
 
 const theme = createTheme({
   palette: {
@@ -176,7 +178,7 @@ const RoleBasedRedirect = () => {
   };
 
   const redirectPath = roleRoutes[user.role] || '/home';
-  return <Navigate to={redirectPath} replace/>;
+  return <Navigate to={redirectPath} replace />;
 };
 
 function App() {
@@ -188,15 +190,17 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route element={<AuthLayout />}>
-              <Route index element={<Navigate to="/home" replace />} />
-                <Route path='/home' element={<Home/>}/>
+                <Route index element={<Navigate to="/home" replace />} />
+                <Route path='/home' element={<Home />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/register/doctor" element={<DoctorRegister />} />
                 <Route path="/register/bill-operator" element={<RegisterStaff />} />
                 <Route path="/register/lab-technician" element={<LabTechRegister />} />
                 <Route path="/register/patient" element={<PatientRegister />} />
+                <Route path="/register/admin" element={<RegisterAdmin />} />
               </Route>
 
               <Route path="/" element={<RoleBasedRedirect />} />

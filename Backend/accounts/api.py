@@ -1,12 +1,14 @@
+import secrets
+import string
+from random import random
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from core.models import Appointment
 from rest_framework import status
 import random,string
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import authenticate,login,logout
@@ -15,17 +17,18 @@ from django.core.mail import send_mail
 from django.db.models import Q
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from .serializers import SignUp,LoginSerializer,ForgotPassword,ChangePasswordSerializer,UserProfile
-from Hospital.Api.serializers import UserSerializer
+from Hospital.Api.serializers import UserSerializer,HospitalAdminSerializer
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated
-from core.models import Patient,Doctor,OperatorField
+from core.models import Patient,Doctor,OperatorField,HospitalAdmin
 from Lab.models import LabTech
-from .models import CustomUser as User
 from django.db import transaction
 from django.contrib.sites.shortcuts import get_current_site
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes,force_str
+
+User = get_user_model()
 
 USER_TYPES = {
     'PATIENT': 'patient',
@@ -48,7 +51,112 @@ def generate_token(user):
 
 def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email) is not None
+    return random.match(pattern, email) is not None
+
+class RegisterHospitalAdmin(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self,request):
+        if not request.user.is_superuser:
+            return Response({'status':'error','message':'Unauthorized for this auction'},status=403)
+        data = request.data
+        
+        required = ['email','full_name','admin_level']
+        for field in required:
+            if not data.get(field):
+                return Response({'status':'error','message': f'{field} is required'},status=400)
+        
+        if User.objects.filter(email=data['email']).exists():
+            return Response({
+                'status':'error','message':'User already exists'
+            },status=400)
+        alphabet = string.ascii_letters + string.digits
+        temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+        user = User.objects.create_user(
+            username=data['email'],
+            email=data['email'],
+            password=temp_password,
+            first_name=data.get('first_name',''),
+            last_name=data.get('last_name',''),
+            is_staff=True,
+            is_active=True,
+        )
+        admin = HospitalAdmin.objects.create(
+            user=user,
+            full_name=data['full_name'],
+            email=data['email'],
+            phone=data.get('phone', ''),
+            admin_level=data.get('admin_level', 'operations'),
+            department=data.get('department', ''),
+            can_manage_users=data.get('can_manage_users', False),
+            can_manage_doctors=data.get('can_manage_doctors', False),
+            can_manage_departments=data.get('can_manage_departments', False),
+            can_view_reports=data.get('can_view_reports', True),
+            can_manage_billing=data.get('can_manage_billing', False),
+            can_manage_settings=data.get('can_manage_settings', False),
+        )
+        send_mail(
+            subject='Hosptial Admin Account created successfully',
+            message=f'Your admin account has been created. \nTemporary password:{temp_password}',
+            from_email='admin@smartcare.com',
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+        return Response({
+            'status': 'success',
+            'message': 'Hospital admin created successfully',
+            'data': {
+                'user_id': user.id,
+                'email': user.email,
+                'temporary_password': temp_password,  # Remove in production
+                'admin': HospitalAdminSerializer(admin).data
+            }
+        }, status=201)
+
+class HospitalAdminLogin(APIView):
+    permission_classes=[AllowAny]
+    def post(self,request):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({
+                'status':'error',
+                'message':'Email and password required'
+            },status==status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            if not user.check_password(password):
+                raise User.DoesNotExist
+            
+            if not hasattr(user,'hospital_admin'):
+                return Response({'status':'success','message':'Unautjorized for this page'},status=status.HTTP_403_FORBIDDEN)
+            if not user.hospital_admin.is_active:
+                return Response({
+                    'status':'error','messgae':'Admin account is inactive'
+                },status=403)
+            refresh = RefreshToken.for_user(user)
+
+            return Response({
+                'status':'success','message':'Login successful','data':{
+                    'tokens': {
+                        'access': str(refresh.access_token),
+                        'refresh': str(refresh),
+                    },
+                    'user': {
+                        'id': user.id,
+                        'email': user.email,
+                        'full_name': user.hospital_admin.full_name,
+                        'admin_level': user.hospital_admin.admin_level,
+                    }
+                }
+            })
+        except User.DoesNotExist:
+            return Response({
+                'status':'error',
+                'message':'Invalid credentials'
+            },status=status.HTTP_401_UNAUTHORIZED)
 
 class SignUp(APIView):
     permission_classes = [AllowAny]
@@ -308,9 +416,8 @@ class LabTechnRegistrationAPIView(APIView):
                 user.is_approved = False
                 user.save()
                 
-                lab_technician = Lab.objects.create(
+                lab_technician = LabTech.objects.create(
                     user=user,
-                    department=department,
                     phone=phone,
                     gender=gender,
                     qualifications=qualifications,
@@ -494,10 +601,70 @@ class LoginAPIView(APIView):
  
 class CurrentProfileApi(APIView):
     permission_classes = [IsAuthenticated]
+    def get_client_ip(self,request):
+        x_forwaded_for = request.META.get('HTTP_X_FORWARDED_FOR')   
+        if x_forwaded_for:
+            ip = x_forwaded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+    def get_user_profile_data(self, user):
+        if user.user_type == 'patient':
+            try:
+                profile = Patient.objects.get(user=user)
+                return {
+                    'id': profile.id,
+                    'first_name': profile.first_name,
+                    'last_name': profile.last_name,
+                    'phone': profile.phone,
+                }
+            except Patient.DoesNotExist:
+                return None
+        elif user.user_type == 'doctor':
+            try:
+                profile = Doctor.objects.get(user=user)
+                return {
+                    'id': profile.id,
+                    'specialization': profile.specialization,
+                    'department': profile.department
+                }
+            except Doctor.DoesNotExist:
+                return None
+        elif user.user_type == 'operator':
+            try:
+                profile = OperatorField.objects.get(user=user)
+                return {
+                    'id': profile.id,
+                    'department': profile.department,
+                    'shift_time': profile.shift_time
+                }
+            except OperatorField.DoesNotExist:
+                return None
+        return None
+
+    def get_dashboard_url(self, user):
+        user_type = getattr(user, 'user_type', None)
+        if user_type == 'patient':
+            return '/patient/dashboard'
+        elif user_type == 'doctor':
+            return '/doctor/dashboard'
+        elif user_type == 'operator':
+            return '/operator/dashboard'
+        elif user_type in ['lab_tech', 'lab_technician']:
+            return '/lab/dashboard'
+        elif user_type == 'admin' or user.is_superuser:
+            return '/admin/dashboard'
+        return '/dashboard'
+        
+    def get_user_permissions(self, user):
+        if hasattr(user, 'get_all_permissions'):
+            return list(user.get_all_permissions())
+        return []
     def get(self,request):
         user = request.user
-        profie_data = get_user_profile_data(user)
-        dashboard_url = get_dashboard_url(user)
+        profie_data = CurrentProfileApi.get_user_profile_data(user)
+        dashboard_url = CurrentProfileApi.get_dashboard_url(user)
         serializer = UserSerializer(user)
         
         return Response({
@@ -508,7 +675,7 @@ class CurrentProfileApi(APIView):
             'permissions': self.get_user_permissions(user),
             'session': {
                 'last_login': user.last_login,
-                'ip_address': get_client_ip(request)
+                'ip_address': CurrentProfileApi.get_client_ip(request)
             }
         },status=status.HTTP_200_OK)
     def patch(self,request):
@@ -567,13 +734,6 @@ class CurrentProfileApi(APIView):
                 operator.save(update_fields=['phone_number','shift_time'])
             except OperatorField.DoesNotExist:
                 pass
-    def get_client_ip(self,request):
-        x_forwaded_for = request.META.get('HTTP_X_FORWARDED_FOR')   
-        if x_forwaded_for:
-            ip = x_forwaded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
             
 class Logout(APIView):
     permission_classes = [IsAuthenticated]

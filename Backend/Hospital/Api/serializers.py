@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Appointment,Bill,Patient,Doctor,Report,OperatorField,Prescription,AuditLog,Notification,MedicalRecords,VitalSign,AdminReport
+from core.models import Appointment,Bill,Patient,Doctor,Report,OperatorField,Prescription,AuditLog,Notification,MedicalRecords,VitalSign,AdminReport,HospitalAdmin
 from Lab.models import labRequest,LabReport,LabTech,TestParameter,TestProfile
 from system.models import SystemSettings
 
@@ -23,6 +23,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if data['new_date'] < data['old_date']:
             raise serializers.ValidationError('Doctor might be occupied on earlier date.Select a later date!')
         return data
+
+class HospitalAdminSerializer(serializers.Serializer):
+    class Meta:
+        models = HospitalAdmin
+        fields = '__all__'
 
 class AdminReportSerializer(serializers.Serializer):
     class Meta:

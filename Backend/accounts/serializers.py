@@ -7,6 +7,7 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
+
 class SignUp(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     class Meta:

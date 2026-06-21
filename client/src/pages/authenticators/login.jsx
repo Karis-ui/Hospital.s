@@ -24,7 +24,7 @@ import {
   Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { useAuth } from '../../context/authContext';
+import authService from '../../services/authService';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -103,7 +103,7 @@ const GoldButton = styled(Button)({
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login } = authService.login();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -133,8 +133,6 @@ const Login = () => {
         navigate('/patient/dashboard');
       } else if (userType === 'doctor') {
         navigate('/doctor/dashboard');
-      } else if (userType === 'admin') {
-        navigate('/admin/dashboard');
       } else if (userType === 'operator') {
         navigate('/operator/dashboard');
       } else if (userType === 'lab_tech') {

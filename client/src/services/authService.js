@@ -3,6 +3,38 @@ import api from "./api";
 import { useEffect } from "react";
 
 export const authService = {
+    registerAdmin: async (adminData) => {
+        try {
+            const response = await api.post('/accounts/admin/register/', {
+                email: adminData.email,
+                password: adminData.password,
+                confirm_password: adminData.confirm_password,
+                full_name: adminData.full_name,
+                phone: adminData.phone
+            });
+            console.log('Admin Registration successful:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Admin Registration failed.', error.response?.data || error.message);
+            throw error;
+        }
+    },
+    adminLogin: async (email, password) => {
+        try {
+            console.log('Attempting login for:', email);
+            const response = await api.post('/accounts/admin/login/', { email, password });
+
+            if (response.data.data.tokens) {
+                localStorage.setItem('access_token', response.data.data.tokens.access);
+                localStorage.setItem('refresh_token', response.data.data.tokens.refresh);
+                localStorage.setItem('user', JSON.stringify(response.data.data.user));
+            }
+            return response.data
+        } catch (err) {
+            console.log('Login Failed:', err.response?.data || err.message);
+            throw err;
+        }
+    },
     registerPatient: async (userData) => {
         try {
             const response = await api.post('/accounts/signup/', {

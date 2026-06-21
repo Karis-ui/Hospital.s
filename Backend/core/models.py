@@ -10,6 +10,37 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
 
+class HospitalAdmin(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='hospital_admin')
+    full_name = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20,blank=True)
+    admin_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('super', 'Super Admin'),
+            ('operations', 'Operations Admin'),
+            ('billing', 'Billing Admin'),
+            ('hr', 'HR Admin'),
+        ],
+        default='operations'
+    )
+    department = models.CharField(max_length=100,blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    can_manage_users = models.BooleanField(default=False)
+    can_manage_doctors = models.BooleanField(default=False)
+    can_manage_departments = models.BooleanField(default=False)
+    can_view_reports = models.BooleanField(default=True)
+    can_manage_billing = models.BooleanField(default=False)
+    can_manage_settings = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"Hospital Admin: {self.full_name}"
+    class Meta:
+        verbose_name_plural = 'Hospital Admins'
+
 class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=100)
