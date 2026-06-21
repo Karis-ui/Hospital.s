@@ -36,7 +36,7 @@ import {
   LocalHospital as HospitalIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { useAuth } from '../../context/authContext';
+import authService from '../../services/authService';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -131,7 +131,7 @@ const steps = [
 
 const DoctorRegister = () => {
   const navigate = useNavigate();
-  const { registerDoctor } = useAuth();
+  const { registerDoctor } = authService.registerDoctor();
   
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({

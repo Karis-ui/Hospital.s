@@ -111,7 +111,7 @@ export const LabTechRegister = () => {
       };
       delete submitData.confirm_password;
 
-      const response = await authService.register(submitData);
+      const response = await authService.registerLabTechnician(submitData);
       if (response.data.status === 'success') {
         toast.success('Registration successful! Awaiting admin approval.');
         setTimeout(() => navigate('/login'), 3000);
