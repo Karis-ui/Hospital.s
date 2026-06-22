@@ -241,13 +241,13 @@ const RegisterAdmin = () => {
                                     mb: 1,
                                 }}
                             >
-                                Staff Registration
+                                Admin Registration
                             </Typography>
                             <Typography sx={{ color: goldTheme.textSecondary }}>
-                                Join Our Elite Staff Team
+                                Join Our Elite Administrative Foundation
                             </Typography>
                             <Typography variant="caption" sx={{ color: goldTheme.primary, display: 'block', mt: 1 }}>
-                                * Your registration will be reviewed by hospital administration
+                                * Your registration will be reviewed by hospital and feedback presented soon.
                             </Typography>
                         </Box>
 
