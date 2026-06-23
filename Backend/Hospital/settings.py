@@ -99,7 +99,6 @@ CORS_ALLOWED_ORIGINS = [
     'https://hospitals-production.up.railway.app'
 ]
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -120,6 +119,17 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://hospitals-production.up.railway.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CSRF_COOKIE_SECURE = True 
+CSRF_COOKIE_HTTPONLY = False  
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 TEMPLATES = [
     {
