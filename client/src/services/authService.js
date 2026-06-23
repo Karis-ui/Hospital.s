@@ -183,13 +183,13 @@ export const authService = {
 
     refreshToken: async () => {
         try {
-            const refresh = localStorage.getItem('/accounts/refresh_token/');
+            const refresh = localStorage.getItem('refresh_token');
             if (!refresh) {
                 throw new Error('No refresh token available');
             }
 
             console.log('🔄 Refreshing access token');
-            const response = await api.post('/refresh_token/', { refresh: refresh });
+            const response = await api.post('/accounts/refresh_token/', { refresh: refresh });
             localStorage.setItem('access_token', response.data.data.access);
             console.log('Token refreshed successfully.');
             return response;

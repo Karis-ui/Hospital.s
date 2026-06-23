@@ -1,4 +1,4 @@
-from .api import SignUp,LoginAPIView,ChangePassword,CurrentProfileApi,RefreshToken,ForgotPassword,VerifyToken,Logout,DoctorRegistrationAPIView,LabTechnRegistrationAPIView,OperatorRegistrationAPIView,RegisterHospitalAdmin,HospitalAdminLogin
+from .api import SignUp,LoginAPIView,ChangePassword,CurrentProfileApi,RefreshTokenView,ForgotPassword,VerifyToken,Logout,DoctorRegistrationAPIView,LabTechnRegistrationAPIView,OperatorRegistrationAPIView,RegisterHospitalAdmin,HospitalAdminLogin
 from django.urls import path
 
 urlpatterns = [
@@ -10,7 +10,7 @@ urlpatterns = [
     path('operator/register/',OperatorRegistrationAPIView.as_view(),name='operator_register'),
     path('login/',LoginAPIView.as_view(),name='login'),
     path('logout/',Logout.as_view(),name='logout'),
-    path('refresh_token/',RefreshToken.as_view(),name='refresh_token'),
+    path('refresh_token/',RefreshTokenView.as_view(),name='refresh_token'),
     path('forgot-password/',ForgotPassword.as_view(),name='forgot_password'),
     path('profile/',CurrentProfileApi.as_view(),name='current_profile'),
     path('change-password/',ChangePassword.as_view(),name='change_password'),

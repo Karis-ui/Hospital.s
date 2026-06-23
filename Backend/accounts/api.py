@@ -115,7 +115,6 @@ class RegisterHospitalAdmin(APIView):
 class HospitalAdminLogin(APIView):
     permission_classes=[AllowAny]
     def post(self,request):
-        from rest_framework_simplejwt.tokens import RefreshToken
         email = request.data.get('email')
         password = request.data.get('password')
 
@@ -753,7 +752,7 @@ class Logout(APIView):
                 'Message': "Invalid token or already logged out"
             },status=status.HTTP_400_BAD_REQUEST)
                 
-class RefreshToken(APIView):
+class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
     def post(self,request):
         refresh_token = request.data.get('refresh')
