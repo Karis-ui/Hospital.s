@@ -1,6 +1,6 @@
+from re import match
 import secrets
 import string
-from random import random
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -51,7 +51,7 @@ def generate_token(user):
 
 def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return random.match(pattern, email) is not None
+    return match(pattern, email) is not None
 
 class RegisterHospitalAdmin(APIView):
     permission_classes = [IsAuthenticated]
