@@ -431,6 +431,24 @@ const PatientRegister = () => {
 
                     <GoldTextField
                       fullWidth
+                      name="phone"
+                      label="Phone Number"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      margin="normal"
+                      required
+                      helperText="Include country code (e.g., +1234567890)"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIcon />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+
+                    <GoldTextField
+                      fullWidth
                       name="age"
                       label="Age"
                       type="number"
@@ -447,7 +465,13 @@ const PatientRegister = () => {
                         ),
                       }}
                     />
+                  </Box>
+                </Grow>
+              )}
 
+              {activeStep === 2 && (
+                <Grow in timeout={500}>
+                  <Box>
                     <GoldTextField
                       fullWidth
                       name="gender"
@@ -470,30 +494,6 @@ const PatientRegister = () => {
                       <MenuItem value="F">Female</MenuItem>
                       <MenuItem value="O">Other</MenuItem>
                     </GoldTextField>
-                  </Box>
-                </Grow>
-              )}
-
-              {activeStep === 2 && (
-                <Grow in timeout={500}>
-                  <Box>
-                    <GoldTextField
-                      fullWidth
-                      name="phone"
-                      label="Phone Number"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      helperText="Include country code (e.g., +1234567890)"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PhoneIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
 
                     <GoldTextField
                       fullWidth
