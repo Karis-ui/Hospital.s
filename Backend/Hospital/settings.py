@@ -147,6 +147,7 @@ if DATABASE_URL:
             default=DATABASE_URL,conn_max_age=600,conn_health_checks=True
         )
     }
+    print("Using POSTGRESQL!!!!!!!!!!!!")
 else:
     DATABASES = {
         'default':{
@@ -154,6 +155,7 @@ else:
             'NAME':BASE_DIR / 'db.sqlite3',
         }
     }
+    print('Using SQLITE3')
 
 CACHES = {
     'default':{
