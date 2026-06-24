@@ -119,6 +119,10 @@ export const LabTechRegister = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');
+      setFormData((prev) => ({
+        ...prev, password: '', confirm_password: ''
+      }));
+      document.getElementById('password')?.focus();
     } finally {
       setLoading(false);
     }

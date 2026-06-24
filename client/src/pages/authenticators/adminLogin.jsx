@@ -132,6 +132,10 @@ const AdminLogin = () => {
             navigate('/admin/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid email or password');
+            setFormData((prev) => ({
+                ...prev, password: ''
+            }));
+            document.getElementById('password')?.focus();
         } finally {
             setLoading(false);
         }

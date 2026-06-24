@@ -231,6 +231,10 @@ const PatientRegister = () => {
       }, 2000);
     } catch (err) {
       setError('Registration failed:', err);
+      setFormData((prev) => ({
+        ...prev, password: '', confirm_password: ''
+      }));
+      document.getElementById('password')?.focus();
     } finally {
       setLoading(false);
     }

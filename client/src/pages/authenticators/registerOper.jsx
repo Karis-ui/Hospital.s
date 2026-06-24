@@ -211,6 +211,10 @@ const RegisterStaff = () => {
       }, 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
+      setFormData((prev) => ({
+        ...prev, password: '', confirm_password: ''
+      }));
+      document.getElementById('password')?.focus();
     } finally {
       setLoading(false);
     }
