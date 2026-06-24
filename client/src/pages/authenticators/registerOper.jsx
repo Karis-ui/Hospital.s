@@ -36,7 +36,7 @@ import {
   VisibilityOff,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink, Link } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -120,7 +120,8 @@ const steps = [
 
 const RegisterStaff = () => {
   const navigate = useNavigate();
-  
+  const register = useAuth();
+
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
@@ -144,7 +145,7 @@ const RegisterStaff = () => {
 
   const validateStep = () => {
     setError('');
-    
+
     if (activeStep === 0) {
       if (!formData.email || !formData.password || !formData.confirm_password) {
         setError('All fields are required');
@@ -163,7 +164,7 @@ const RegisterStaff = () => {
         return false;
       }
     }
-    
+
     if (activeStep === 1) {
       if (!formData.full_name || !formData.phone) {
         setError('All fields are required');
@@ -174,14 +175,14 @@ const RegisterStaff = () => {
         return false;
       }
     }
-    
+
     if (activeStep === 2) {
       if (!formData.specialization || !formData.license_number || !formData.qualifications) {
         setError('All fields are required');
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -198,12 +199,12 @@ const RegisterStaff = () => {
 
   const handleSubmit = async () => {
     if (!validateStep()) return;
-    
+
     setLoading(true);
     setError('');
 
     try {
-      await authService.registerOperator(formData);
+      await register(formData, 'operator');
       setSuccess('Registration submitted! Pending admin approval. You will receive an email once approved.');
       setTimeout(() => {
         navigate('/login');
@@ -323,7 +324,7 @@ const RegisterStaff = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="password"
@@ -353,7 +354,7 @@ const RegisterStaff = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="confirm_password"
@@ -394,7 +395,7 @@ const RegisterStaff = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="phone"

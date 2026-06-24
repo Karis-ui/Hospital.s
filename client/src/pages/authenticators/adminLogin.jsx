@@ -24,7 +24,7 @@ import {
     Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
     primary: '#D4AF37',
@@ -103,7 +103,7 @@ const GoldButton = styled(Button)({
 
 const AdminLogin = () => {
     const navigate = useNavigate();
-    const { login } = authService.adminLogin();
+    const { adminLogin } = useAuth();
 
     const [formData, setFormData] = useState({
         email: '',
@@ -126,7 +126,7 @@ const AdminLogin = () => {
         setError('');
 
         try {
-            const response = await login(formData.email, formData.password);
+            const response = await adminLogin(formData.email, formData.password);
 
             const userType = response.data.user.user_type;
             navigate('/admin/dashboard');

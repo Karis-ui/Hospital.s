@@ -20,7 +20,7 @@ import {
   Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -83,6 +83,7 @@ const GoldButton = styled(Button)({
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
+  const forgotPass = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -94,7 +95,7 @@ const ForgotPassword = () => {
     setError('');
 
     try {
-      await authService.forgotPassword(email);
+      await forgotPass(email);
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset email');

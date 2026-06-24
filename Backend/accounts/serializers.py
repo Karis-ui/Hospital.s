@@ -10,9 +10,13 @@ User = get_user_model()
 
 class SignUp(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    confirmPassword = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ['username','first_name','last_name','email','gender','phone','address','password']
+        fields = ['username','email','first_name','last_name','email','gender','phone','address','password']
+        extra_kwargs = {
+            'email':{'required':True},
+        }
         def create(self,validated_data):
             user = User.objects.create_user(
                 username = validated_data['username'],

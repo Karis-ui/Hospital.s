@@ -36,7 +36,7 @@ import {
     VisibilityOff,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink, Link } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
     primary: '#D4AF37',
@@ -120,6 +120,7 @@ const steps = [
 
 const RegisterAdmin = () => {
     const navigate = useNavigate();
+    const register = useAuth();
 
     const [activeStep, setActiveStep] = useState(0);
     const [formData, setFormData] = useState({
@@ -202,7 +203,7 @@ const RegisterAdmin = () => {
         setError('');
 
         try {
-            await authService.registerAdmin(formData);
+            await register(formData, 'admin');
             setSuccess('Registration submitted! Pending approval. You will receive an email once approved.');
             setTimeout(() => {
                 navigate('/admin/login');

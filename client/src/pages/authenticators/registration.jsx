@@ -34,7 +34,7 @@ import {
   Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -122,6 +122,7 @@ const steps = [
 
 const PatientRegister = () => {
   const navigate = useNavigate();
+  const register = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
@@ -223,13 +224,13 @@ const PatientRegister = () => {
       address: formData.address,
     };
     try {
-      await authService.registerPatient(submitData, 'patient');
+      await register(submitData, 'patient');
       setSuccess('Registration successful! Redirecting to dashboard...');
       setTimeout(() => {
         navigate('/patient/dashboard');
       }, 2000);
     } catch (err) {
-      setError('Registration failed');
+      setError('Registration failed:', err);
     } finally {
       setLoading(false);
     }

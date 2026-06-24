@@ -36,7 +36,7 @@ import {
   LocalHospital as HospitalIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -131,8 +131,8 @@ const steps = [
 
 const DoctorRegister = () => {
   const navigate = useNavigate();
-  const { registerDoctor } = authService.registerDoctor();
-  
+  const { register } = useAuth();
+
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
@@ -158,7 +158,7 @@ const DoctorRegister = () => {
 
   const validateStep = () => {
     setError('');
-    
+
     if (activeStep === 0) {
       if (!formData.email || !formData.password || !formData.confirm_password) {
         setError('All fields are required');
@@ -177,7 +177,7 @@ const DoctorRegister = () => {
         return false;
       }
     }
-    
+
     if (activeStep === 1) {
       if (!formData.full_name || !formData.phone) {
         setError('All fields are required');
@@ -188,14 +188,14 @@ const DoctorRegister = () => {
         return false;
       }
     }
-    
+
     if (activeStep === 2) {
       if (!formData.specialization || !formData.license_number || !formData.qualifications) {
         setError('All fields are required');
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -212,12 +212,12 @@ const DoctorRegister = () => {
 
   const handleSubmit = async () => {
     if (!validateStep()) return;
-    
+
     setLoading(true);
     setError('');
 
     try {
-      await registerDoctor(formData);
+      await register(formData, 'doctor');
       setSuccess('Registration submitted! Pending admin approval. You will receive an email once approved.');
       setTimeout(() => {
         navigate('/login');
@@ -337,7 +337,7 @@ const DoctorRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="password"
@@ -367,7 +367,7 @@ const DoctorRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="confirm_password"
@@ -408,7 +408,7 @@ const DoctorRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="phone"
@@ -455,7 +455,7 @@ const DoctorRegister = () => {
                         <MenuItem key={spec} value={spec}>{spec}</MenuItem>
                       ))}
                     </GoldTextField>
-                    
+
                     <GoldTextField
                       fullWidth
                       name="license_number"
@@ -473,7 +473,7 @@ const DoctorRegister = () => {
                         ),
                       }}
                     />
-                    
+
                     <GoldTextField
                       fullWidth
                       name="qualifications"
@@ -493,7 +493,7 @@ const DoctorRegister = () => {
                         ),
                       }}
                     />
-                    
+
                   </Box>
                 </Grow>
               )}

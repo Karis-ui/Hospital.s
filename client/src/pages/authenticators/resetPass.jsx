@@ -21,7 +21,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -84,8 +84,9 @@ const GoldButton = styled(Button)({
 
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const resetPass = useAuth();
   const { uid, token } = useParams();
-  
+
   const [formData, setFormData] = useState({
     new_password: '',
     confirm_password: '',
@@ -123,7 +124,7 @@ const ResetPassword = () => {
     }
 
     try {
-      await authService.resetPassword(
+      await resetPass(
         uid,
         token,
         formData.new_password,
