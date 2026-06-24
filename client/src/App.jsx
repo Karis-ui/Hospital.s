@@ -205,17 +205,15 @@ function App() {
 
               <Route path="/" element={<RoleBasedRedirect />} />
 
-              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                <Route element={<AppLayout />}>
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<UserList />} />
-                  <Route path="/admin/users/:id" element={<UserDetails />} />
-                  <Route path="/admin/approvals" element={<SetApproval />} />
-                  <Route path="/admin/reports/generate" element={<GenerateReport />} />
-                  <Route path="/admin/audit-logs" element={<Audits />} />
-                  <Route path="/admin/settings" element={<SystemSettings />} />
-                  <Route path="/admin/search" element={<AdminSearchResults />} />
-                </Route>
+              <Route element={<AppLayout />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<UserList />} />
+                <Route path="/admin/users/:id" element={<UserDetails />} />
+                <Route path="/admin/approvals" element={<SetApproval />} />
+                <Route path="/admin/reports/generate" element={<GenerateReport />} />
+                <Route path="/admin/audit-logs" element={<Audits />} />
+                <Route path="/admin/settings" element={<SystemSettings />} />
+                <Route path="/admin/search" element={<AdminSearchResults />} />
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>

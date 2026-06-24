@@ -140,6 +140,10 @@ const Login = () => {
       }
     } catch (err) {
       setError(`Login failed:${err}`);
+      setFormData((prev) => ({
+        ...prev, password: ''
+      }));
+      document.getElementById('password')?.focus();
     } finally {
       setLoading(false);
     }
