@@ -135,11 +135,11 @@ const Login = () => {
         navigate('/doctor/dashboard');
       } else if (userType === 'operator') {
         navigate('/operator/dashboard');
-      } else if (userType === 'lab_tech') {
+      } else if (userType === 'lab_technician') {
         navigate('/lab/dashboard');
       }
     } catch (err) {
-      setError('Login failed:', err);
+      setError(`Login failed:${err}`);
     } finally {
       setLoading(false);
     }
