@@ -205,15 +205,17 @@ function App() {
 
               <Route path="/" element={<RoleBasedRedirect />} />
 
-              <Route element={<AppLayout />}>
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/users" element={<UserList />} />
-                <Route path="/admin/users/:id" element={<UserDetails />} />
-                <Route path="/admin/approvals" element={<SetApproval />} />
-                <Route path="/admin/reports/generate" element={<GenerateReport />} />
-                <Route path="/admin/audit-logs" element={<Audits />} />
-                <Route path="/admin/settings" element={<SystemSettings />} />
-                <Route path="/admin/search" element={<AdminSearchResults />} />
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/users" element={<UserList />} />
+                  <Route path="/admin/users/:id" element={<UserDetails />} />
+                  <Route path="/admin/approvals" element={<SetApproval />} />
+                  <Route path="/admin/reports/generate" element={<GenerateReport />} />
+                  <Route path="/admin/audit-logs" element={<Audits />} />
+                  <Route path="/admin/settings" element={<SystemSettings />} />
+                  <Route path="/admin/search" element={<AdminSearchResults />} />
+                </Route>
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
@@ -242,18 +244,16 @@ function App() {
                 </Route>
               </Route>
 
-              <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
-                <Route element={<AppLayout />}>
-                  <Route path="/patient/dashboard" element={<PatientDashboard />} />
-                  <Route path="/patient/appointments" element={<AppointmentList />} />
-                  <Route path="/patient/book-appointment" element={<BookAppointment />} />
-                  <Route path="/patient/records" element={<MedicalRecords />} />
-                  <Route path="/patient/payment-history" element={<PaymentHistory />} />
-                  <Route path="/patient/bills" element={<PatientBillDetails />} />
-                  <Route path="/patient/lab-view" element={<Labview />} />
-                  <Route path="/patient/profile" element={<PatientProfile />} />
-                  <Route path="/patient/search" element={<SearchResults />} />
-                </Route>
+              <Route element={<AppLayout />}>
+                <Route path="/patient/dashboard" element={<PatientDashboard />} />
+                <Route path="/patient/appointments" element={<AppointmentList />} />
+                <Route path="/patient/book-appointment" element={<BookAppointment />} />
+                <Route path="/patient/records" element={<MedicalRecords />} />
+                <Route path="/patient/payment-history" element={<PaymentHistory />} />
+                <Route path="/patient/bills" element={<PatientBillDetails />} />
+                <Route path="/patient/lab-view" element={<Labview />} />
+                <Route path="/patient/profile" element={<PatientProfile />} />
+                <Route path="/patient/search" element={<SearchResults />} />
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['operator']} />}>
