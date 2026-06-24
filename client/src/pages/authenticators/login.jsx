@@ -24,7 +24,7 @@ import {
   Diamond as DiamondIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import authService from '../../services/authService';
+import { useAuth } from '../../context/authContext';
 
 const goldTheme = {
   primary: '#D4AF37',
@@ -103,7 +103,7 @@ const GoldButton = styled(Button)({
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = authService.login();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',

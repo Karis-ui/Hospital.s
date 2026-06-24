@@ -68,15 +68,15 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    const register = async (adminData, userData, doctorData, labTechData, operatorData, type) => {
+    const register = async (data, type) => {
         try {
             setError(null);
             let response;
             if (type === 'admin') {
                 try {
                     setError(null);
-                    console.log('📝 Register admin function called with data:', adminData);
-                    const response = await authService.registerAdmin(adminData);
+                    console.log('📝 Register admin function called with data:', data);
+                    const response = await authService.registerAdmin(data);
                     console.log('✅ Admin registration successful:', response);
                     return response;
                 } catch (err) {
@@ -88,8 +88,8 @@ export const AuthProvider = ({ children }) => {
             else if (type === 'patient') {
                 try {
                     setError(null);
-                    console.log('📝 Register patient function called with data:', userData);
-                    const response = await authService.registerPatient(userData);
+                    console.log('📝 Register patient function called with data:', data);
+                    const response = await authService.registerPatient(data);
                     console.log('✅ Patient registration successful:', response);
                     return response;
                 } catch (err) {
@@ -101,8 +101,8 @@ export const AuthProvider = ({ children }) => {
             else if (type === 'doctor') {
                 try {
                     setError(null);
-                    console.log('📝 Register doctor function called with data:', doctorData);
-                    const response = await authService.registerDoctor(doctorData);
+                    console.log('📝 Register doctor function called with data:', data);
+                    const response = await authService.registerDoctor(data);
                     console.log('✅ Doctor registration successful:', response);
                     return response;
                 } catch (err) {
@@ -114,8 +114,8 @@ export const AuthProvider = ({ children }) => {
             else if (type === 'lab_technician') {
                 try {
                     setError(null);
-                    console.log('📝 Register Lab Tech function called with data:', labTechData);
-                    const response = await authService.registerLabTechnician(labTechData);
+                    console.log('📝 Register Lab Tech function called with data:', data);
+                    const response = await authService.registerLabTechnician(data);
                     console.log('✅ Lab Tech registration successful:', response);
                     return response;
                 } catch (err) {
@@ -127,8 +127,8 @@ export const AuthProvider = ({ children }) => {
             else {
                 try {
                     setError(null);
-                    console.log('📝 Register staff function called with data:', operatorData);
-                    const response = await authService.registerOperator(operatorData);
+                    console.log('📝 Register staff function called with data:', data);
+                    const response = await authService.registerOperator(data);
                     console.log('✅ Staff registration successful:', response);
                     return response;
                 } catch (err) {

@@ -122,7 +122,7 @@ const steps = [
 
 const PatientRegister = () => {
   const navigate = useNavigate();
-  const register = useAuth();
+  const { register } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
