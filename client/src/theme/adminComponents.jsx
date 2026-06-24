@@ -1,6 +1,8 @@
-import { Box, Avatar, Card, Button, Paper, Chip, Typography, TableRow,BottomNavigation as Navbar, Icon as IconButton } from '@mui/material';
+import { Box, Avatar, Card, Button, Paper, Chip, Typography, TableRow, BottomNavigation as Navbar, Icon as IconButton } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import { Outlet } from 'react-router-dom';
+import { useAuth } from '../context/authContext';
+import { useNavigate } from 'react-router-dom';
 
 export const platinumTheme = {
   primary: { main: '#1a2639', light: '#2c3e50', dark: '#0f1a2f', contrast: '#ffffff' },
@@ -240,31 +242,117 @@ export const RoleBadge = styled(Chip)(({ theme, role }) => {
   };
 });
 
-export const AuthLayout =()=>{
-  return(
+export const AuthLayout = () => {
+  return (
     <div className='auth-layout'>
       <div className='auth-content'>
-        <Outlet/>
+        <Outlet />
       </div>
     </div>
   );
 }
 
-export  const AppLayout =() =>{
+export const AppLayout = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const getLinksForRole = (role) => {
+    switch (role) {
+      case 'admin':
+        return [
+          { name: 'Dashboard', path: '/admin/dashboard' },
+          { name: 'Users', path: '/admin/users' },
+          { name: 'Approvals', path: '/admin/approvals' },
+          { name: 'Reports', path: '/admin/reports/generate' },
+          { name: 'Audit Logs', path: '/admin/audit-logs' },
+          { name: 'Settings', path: '/admin/settings' },
+        ];
+      case 'doctor':
+        return [
+          { name: 'Dashboard', path: '/doctor/dashboard' },
+          { name: 'Appointments', path: '/doctor/appointments' },
+          { name: 'Prescriptions', path: '/doctor/prescriptions' },
+          { name: 'Profile', path: '/doctor/profile' },
+        ];
+      case 'lab_technician':
+        return [
+          { name: 'Dashboard', path: '/lab/dashboard' },
+          { name: 'Requests', path: '/lab/requests' },
+          { name: 'Profile', path: '/lab/profile' },
+        ];
+      case 'patient':
+        return [
+          { name: 'Dashboard', path: '/patient/dashboard' },
+          { name: 'Appointments', path: '/patient/appointments' },
+          { name: 'Records', path: '/patient/records' },
+          { name: 'Bills', path: '/patient/bills' },
+          { name: 'Profile', path: '/patient/profile' },
+        ];
+      case 'operator':
+        return [
+          { name: 'Dashboard', path: '/operator/dashboard' },
+          { name: 'Bills', path: '/operator/bills' },
+          { name: 'Transactions', path: '/operator/transactions' },
+          { name: 'Patients', path: '/operator/patients' },
+        ];
+      default:
+        return [{ name: 'Home', path: '/home' }];
+    }
+  };
+
+  const links = getLinksForRole(user?.role);
+
   return (
-    <div className="app-layout">
+    <div className="app-layout" style={{ display: 'flex' }}>
+      <Sidebar>
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <AdminAvatar>
+            {user?.first_name?.[0] || 'U'}
+          </AdminAvatar>
+          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold' }}>
+            {user?.first_name} {user?.last_name}
+          </Typography>
+          <RoleBadge role={user?.role} label={user?.role?.replace('_', ' ')} size="small" sx={{ mt: 1 }} />
+        </Box>
+        <Box sx={{ mt: 2 }}>
+          {links.map((link) => (
+            <Button
+              key={link.name}
+              fullWidth
+              onClick={() => navigate(link.path)}
+              sx={{
+                color: '#fff',
+                justifyContent: 'flex-start',
+                px: 4,
+                py: 1.5,
+                textTransform: 'none',
+                '&:hover': { background: 'rgba(255,255,255,0.1)' }
+              }}
+            >
+              {link.name}
+            </Button>
+          ))}
+          <Button
+            fullWidth
+            onClick={logout}
+            sx={{
+              color: '#e74c3c',
+              justifyContent: 'flex-start',
+              px: 4,
+              py: 1.5,
+              mt: 2,
+              textTransform: 'none',
+              '&:hover': { background: 'rgba(231,76,60,0.1)' }
+            }}
+          >
+            Logout
+          </Button>
+        </Box>
+      </Sidebar>
 
-      <Navbar />
-
-      <div className="main-container">
-
-        <Sidebar />
-
-        <main className="content">
-          <Outlet />
-        </main>
-
-      </div>
+      <main className="content" style={{ flexGrow: 1, paddingLeft: 280 }}>
+        <Outlet />
+      </main>
     </div>
   );
-}
+};

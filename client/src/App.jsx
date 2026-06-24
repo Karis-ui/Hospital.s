@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
@@ -143,6 +143,7 @@ const theme = createTheme({
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -153,7 +154,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
@@ -244,16 +245,18 @@ function App() {
                 </Route>
               </Route>
 
-              <Route element={<AppLayout />}>
-                <Route path="/patient/dashboard" element={<PatientDashboard />} />
-                <Route path="/patient/appointments" element={<AppointmentList />} />
-                <Route path="/patient/book-appointment" element={<BookAppointment />} />
-                <Route path="/patient/records" element={<MedicalRecords />} />
-                <Route path="/patient/payment-history" element={<PaymentHistory />} />
-                <Route path="/patient/bills" element={<PatientBillDetails />} />
-                <Route path="/patient/lab-view" element={<Labview />} />
-                <Route path="/patient/profile" element={<PatientProfile />} />
-                <Route path="/patient/search" element={<SearchResults />} />
+              <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/patient/dashboard" element={<PatientDashboard />} />
+                  <Route path="/patient/appointments" element={<AppointmentList />} />
+                  <Route path="/patient/book-appointment" element={<BookAppointment />} />
+                  <Route path="/patient/records" element={<MedicalRecords />} />
+                  <Route path="/patient/payment-history" element={<PaymentHistory />} />
+                  <Route path="/patient/bills" element={<PatientBillDetails />} />
+                  <Route path="/patient/lab-view" element={<Labview />} />
+                  <Route path="/patient/profile" element={<PatientProfile />} />
+                  <Route path="/patient/search" element={<SearchResults />} />
+                </Route>
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['operator']} />}>
