@@ -11,26 +11,14 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const loadUser = () => {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                console.log('No access token found. User is not authenticated.');
-                setLoading(false);
-                return;
+            const storedUser = authService.getCurrentUser();
+            if (storedUser) {
+                console.log('✅ User loaded from storage:', storedUser);
+                setUser(storedUser);
+            } else {
+                console.log('No user found in storage.');
             }
-            try {
-                console.log('🔄 Loading user from storage...');
-                const storedUser = authService.getCurrentUser();
-                if (storedUser) {
-                    console.log('✅ User loaded:', storedUser);
-                    setUser(storedUser);
-                } else {
-                    console.log('No user found.');
-                }
-                setLoading(false);
-            } catch (err) {
-                console.error('Error loading user:', err);
-                setLoading(false);
-            }
+            setLoading(false);
         };
         loadUser();
     }, []);
@@ -39,9 +27,13 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const response = await authService.login(email, password);
+            const userData = response?.data?.data?.user || response?.data?.user || null;
 
-            console.log('✅Logged in successfully setting user state...');
-            setUser(response.data.user);
+            if (userData) {
+                setUser(userData);
+            }
+
+            console.log('✅ Logged in successfully setting user state...');
             return response;
         } catch (err) {
             setError('Login Failed:', err);
@@ -53,8 +45,13 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             const res = await authService.adminLogin(email, password);
-            console.log('✅Logged in successfully setting user state...');
-            setUser(res.data.user);
+            const userData = res?.data?.data?.user || res?.data?.user || null;
+
+            if (userData) {
+                setUser(userData);
+            }
+
+            console.log('✅ Logged in successfully setting user state...');
             return res;
         } catch (err) {
             setError('Login failed:', err);
@@ -82,9 +79,7 @@ export const AuthProvider = ({ children }) => {
                 try {
                     setError(null);
                     console.log('📝 Register admin function called with data:', data);
-                    const response = await authService.registerAdmin(data);
-                    console.log('✅ Admin registration successful:', response);
-                    return response;
+                    response = await authService.registerAdmin(data);
                 } catch (err) {
                     console.error('Registration error in context', err);
                     setError('Registration failed:', err);
@@ -95,9 +90,7 @@ export const AuthProvider = ({ children }) => {
                 try {
                     setError(null);
                     console.log('📝 Register patient function called with data:', data);
-                    const response = await authService.registerPatient(data);
-                    console.log('✅ Patient registration successful:', response);
-                    return response;
+                    response = await authService.registerPatient(data);
                 } catch (err) {
                     console.error('Registration error in context', err);
                     setError('Registration failed:', err);
@@ -108,9 +101,7 @@ export const AuthProvider = ({ children }) => {
                 try {
                     setError(null);
                     console.log('📝 Register doctor function called with data:', data);
-                    const response = await authService.registerDoctor(data);
-                    console.log('✅ Doctor registration successful:', response);
-                    return response;
+                    response = await authService.registerDoctor(data);
                 } catch (err) {
                     console.error('Registration error in context', err);
                     setError('Registration failed:', err);
@@ -121,9 +112,7 @@ export const AuthProvider = ({ children }) => {
                 try {
                     setError(null);
                     console.log('📝 Register Lab Tech function called with data:', data);
-                    const response = await authService.registerLabTechnician(data);
-                    console.log('✅ Lab Tech registration successful:', response);
-                    return response;
+                    response = await authService.registerLabTechnician(data);
                 } catch (err) {
                     console.error('Registration error in context', err);
                     setError('Registration failed:', err);
@@ -134,15 +123,26 @@ export const AuthProvider = ({ children }) => {
                 try {
                     setError(null);
                     console.log('📝 Register staff function called with data:', data);
-                    const response = await authService.registerOperator(data);
-                    console.log('✅ Staff registration successful:', response);
-                    return response;
+                    response = await authService.registerOperator(data);
                 } catch (err) {
                     console.error('Registration error in context', err);
                     setError('Registration failed:', err);
                     throw err;
                 }
             }
+
+            const tokenData = response?.data?.data?.tokens || response?.data?.tokens;
+            const userData = response?.data?.data?.user || response?.data?.user;
+
+            if (tokenData) {
+                localStorage.setItem('access_token', tokenData.access);
+                localStorage.setItem('refresh_token', tokenData.refresh);
+            }
+            if (userData) {
+                localStorage.setItem('user', JSON.stringify(userData));
+                setUser(userData);
+            }
+
             return response;
         } catch (err) {
             setError('Registration failed:', err);
@@ -178,7 +178,18 @@ export const AuthProvider = ({ children }) => {
     };
 
     const value = {
-        user, loading, error, login, adminLogin, adminLogout, logout, register, setError, forgotPass, resetPass
+        user,
+        isLoading: loading,
+        loading,
+        error,
+        login,
+        adminLogin,
+        adminLogout,
+        logout,
+        register,
+        setError,
+        forgotPass,
+        resetPass,
     };
 
     return (

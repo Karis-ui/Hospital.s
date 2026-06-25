@@ -127,8 +127,7 @@ const AdminLogin = () => {
 
         try {
             const response = await adminLogin(formData.email, formData.password);
-
-            const userType = response.data.user.user_type;
+            const userType = response?.data?.data?.user?.user_type || response?.data?.user?.user_type;
             navigate('/admin/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid email or password');

@@ -127,16 +127,18 @@ const Login = () => {
 
     try {
       const response = await login(formData.email, formData.password);
+      const userType = response?.data?.data?.user?.user_type || response?.data?.user?.user_type;
 
-      const userType = response.data.user.user_type;
       if (userType === 'patient') {
         navigate('/patient/dashboard');
       } else if (userType === 'doctor') {
         navigate('/doctor/dashboard');
       } else if (userType === 'operator') {
         navigate('/operator/dashboard');
-      } else if (userType === 'lab_technician') {
+      } else if (userType === 'lab_technician' || userType === 'lab_tech') {
         navigate('/lab/dashboard');
+      } else {
+        navigate('/home');
       }
     } catch (err) {
       setError(`Login failed:${err}`);

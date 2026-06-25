@@ -169,21 +169,16 @@ export const authService = {
         window.location.href = '/admin/login'
     },
 
-    getCurrentUser: async (uId) => {
+    getCurrentUser: () => {
         try {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                throw new Error('No access token available');
+            const user = localStorage.getItem('user');
+            if (!user) {
+                return null;
             }
-            console.log('Getting current user for UID:', uId);
-            const response = await api.get('/accounts/profile/', {
-                uId: uId
-            });
-            console.log('Current user retrieved successfully');
-            return response;
+            return JSON.parse(user);
         } catch (err) {
-            console.error('🔄 Get current user error');
-            throw err;
+            console.error('🔄 Failed to parse stored user', err);
+            return null;
         }
     },
 
