@@ -300,7 +300,7 @@ const Home = () => {
       text: 'From diagnosis to recovery, the orthopedic team was outstanding. The facility is world-class and the staff truly cares about patient outcomes.',
     },
     {
-      name: 'Grace Ochieng',
+      name: 'Grace Muigai',
       role: 'Maternity Patient',
       avatar: 'GO',
       rating: 5,
