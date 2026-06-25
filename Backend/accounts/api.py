@@ -589,7 +589,10 @@ class LoginAPIView(APIView):
                         'is_active': user.is_active,
                     },
                     'profile': profile_data
-                }
+                },
+                'user':UserSerializer(user).data,
+                'access':str(refresh.access_token),
+                'refresh':str(refresh)
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
