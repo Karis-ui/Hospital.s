@@ -251,7 +251,7 @@ function App() {
               </Route>
 
 
-              <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+              <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
                 <Route element={<AppLayout />}>
                   <Route path="/patient/dashboard" element={<PatientDashboard />} />
                   <Route path="/patient/appointments" element={<AppointmentList />} />
@@ -266,7 +266,7 @@ function App() {
               </Route>
 
 
-              <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+              <Route element={<ProtectedRoute allowedRoles={['operator']} />}>
                 <Route element={<AppLayout />}>
                   <Route path="/operator/dashboard" element={<OperatorDashboard />} />
                   <Route path="/operator/history/billing" element={<BillingHistory />} />
