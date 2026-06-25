@@ -208,7 +208,9 @@ function App() {
               </Route>
 
               <Route path="/" element={<RoleBasedRedirect />} />
-              
+
+
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route element={<AdLayout />}>
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   <Route path="/admin/users" element={<UserList />} />
@@ -219,6 +221,7 @@ function App() {
                   <Route path="/admin/settings" element={<SystemSettings />} />
                   <Route path="/admin/search" element={<AdminSearchResults />} />
                 </Route>
+              </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
                 <Route element={<AppLayout />}>
@@ -233,6 +236,8 @@ function App() {
                 </Route>
               </Route>
 
+
+              <Route element={<ProtectedRoute allowedRoles={['lab_technician']} />}>
                 <Route element={<AppLayout />}>
                   <Route path="/lab/dashboard" element={<LabDashboard />} />
                   <Route path="/lab/requests" element={<RequestList />} />
@@ -243,7 +248,10 @@ function App() {
                   <Route path="/lab/results/:id" element={<ResultDetails />} />
                   <Route path="/lab/search" element={<Search />} />
                 </Route>
+              </Route>
 
+
+              <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
                 <Route element={<AppLayout />}>
                   <Route path="/patient/dashboard" element={<PatientDashboard />} />
                   <Route path="/patient/appointments" element={<AppointmentList />} />
@@ -255,7 +263,10 @@ function App() {
                   <Route path="/patient/profile" element={<PatientProfile />} />
                   <Route path="/patient/search" element={<SearchResults />} />
                 </Route>
+              </Route>
 
+
+              <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
                 <Route element={<AppLayout />}>
                   <Route path="/operator/dashboard" element={<OperatorDashboard />} />
                   <Route path="/operator/history/billing" element={<BillingHistory />} />
@@ -268,6 +279,7 @@ function App() {
                   <Route path="/operator/patients" element={<PatientList />} />
                   <Route path="/operator/receipt" element={<ReceiptView />} />
                 </Route>
+              </Route>
 
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
