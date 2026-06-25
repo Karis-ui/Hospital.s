@@ -19,12 +19,12 @@ import { adminService } from "../../../services/users/admin";
 import {
   platinumTheme, PremiumHeader, Statcard, PremiumCard, PremiumTableContainer, GlassCard,
   StatusChip, RoleBadge, GlassSearchBar, SectionTitle, PageTitle, ActionIconButton, PlatinumButton
-} from '../../../theme/adminComponents';
+} from '../../../theme/GenLayout';
 
 export const UserDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, setUser } = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);

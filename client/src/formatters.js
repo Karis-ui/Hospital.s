@@ -16,7 +16,7 @@ export const formatCurrency = (amount) =>{
         currency: 'KES',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-    });
+    }).format(amount);
 };
 
 export const formatNumber = (num) =>{

@@ -35,7 +35,7 @@ import {
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/authContext';
-import { platinumTheme } from '../../theme/adminComponents';
+import { platinumTheme } from '../../theme/GenLayout';
 
 const steps = ['Personal Information', 'Professional Details', 'Account Setup'];
 

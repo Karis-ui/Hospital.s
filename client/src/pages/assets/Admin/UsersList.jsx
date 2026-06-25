@@ -62,7 +62,7 @@ import { toast } from 'react-toastify';
 import {
   platinumTheme, PremiumHeader, StatCard, PremiumCard, PremiumTableContainer,
   StatusChip, RoleBadge, GlassSearchBar, SectionTitle, PageTitle, ActionIconButton, PlatinumButton
-} from '../../../theme/adminComponents';
+} from '../../../theme/GenLayout';
 import { useConfirm } from '../../../theme/useConfirm';
 import { adminService } from '../../../services/users/admin';
 import { AnimatePresence } from 'framer-motion';

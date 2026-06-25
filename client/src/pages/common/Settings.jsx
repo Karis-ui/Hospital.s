@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, Paper, Switch, FormControlLabel, TextField, Button, Stack, Divider, Avatar, alpha, MenuItem } from '@mui/material';
 import { Notifications as NotificationsIcon, DarkMode as DarkModeIcon, Language as LanguageIcon, Security as SecurityIcon, Email as EmailIcon, Backup as BackupIcon } from '@mui/icons-material';
-import { platinumTheme, PremiumHeader } from '../../theme/adminComponents';
+import { platinumTheme, PremiumHeader } from '../../theme/GenLayout';
 
 export const Settings = () => {
   const [settings, setSettings] = useState({

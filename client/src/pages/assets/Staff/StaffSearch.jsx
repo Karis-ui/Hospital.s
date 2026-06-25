@@ -16,18 +16,12 @@ import {
   CircularProgress,
   Avatar,
   Divider,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-  useTheme,
-  alpha,
+  Stack,
+  Tooltip,
   TextField,
   InputAdornment,
   Pagination,
-  Stack,
-  Tooltip
+  Skeleton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -36,28 +30,26 @@ import {
   Visibility as VisibilityIcon,
   Payment as PaymentIcon,
   Close as CloseIcon,
-  FilterList as FilterIcon,
   AttachMoney as MoneyIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
   CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate, getInitials } from '../../../formatters';
-import { toast as useToast } from 'react-toastify';
+import { toast } from 'react-toastify';
 
-const StafffSearch = () => {
-  const [bill, setBill] = useState("");
+const StaffSearch = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const { showToast } = useToast();
-  const [loading, setLoading] = useState(true);
+  
   const query = new URLSearchParams(location.search).get('q') || '';
+  
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [tabValue, setTabValue] = useState(0);
   const [results, setResults] = useState({ patients: [], bills: [] });
-  const [searchTerm, setSearchTerm] = useState(query);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
@@ -68,33 +60,50 @@ const StafffSearch = () => {
     }
   }, [searchTerm]);
 
-  const performSearch = async () => {
+  const performSearch = async (query) => {
+    if (!query) {
+      setResults({ patients: [], bills: [] });
+      return;
+    }
+    
     setLoading(true);
+    setError('');
     try {
-      const response = await OperatorService.searchStaff(searchTerm);
+      const response = await OperatorService.searchStaff(query);
       setResults({
         patients: response.data.results?.patients || [],
         bills: response.data.results?.bills || [],
       });
-      setError('');
     } catch (err) {
       console.error('Search failed:', err);
-      setError('Search failed.Try again.');
+      setError('Search failed. Please try again.');
+      toast.error('Search failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleviewBill = (billId) => {
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if(searchTerm.trim()){
+      performSearch(searchTerm);
+    }
+  };
+
+  const handleViewBill = (billId) => {
     navigate(`/operator/detail-view/${billId}`);
   };
 
-  const handleProcessPayment = () => {
-    navigate(`/operator/process-payment`);
+  const handleProcessPayment = (billId) => {
+    navigate(`/operator/process-payment/${billId}`);
   };
 
-  const handleCreateBill = () => {
-    navigate('/operator/create');
+  const handleCreateBill = (patientId) => {
+    navigate(`/operator/create?patient=${patientId}`);
+  };
+
+  const handleViewPatientBills = (patientId) => {
+    navigate(`/operator/history/billing/${patientId}`);
   };
 
   const paginatedPatients = results.patients.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -105,14 +114,17 @@ const StafffSearch = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} thickness={4} /></Box>
+      <Box sx={{ p: 3 }}>
+        <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 3, mb: 3 }} />
+        <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3 }} />
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh' }}>
       <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
-        <form onSubmit={performSearch}>
+        <form onSubmit={handleSearch}>
           <TextField
             fullWidth
             placeholder="Search by patient name, ID, phone, bill number..."
@@ -134,18 +146,26 @@ const StafffSearch = () => {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
-          Search Results for "{searchTerm}"
+          {searchTerm ? `Search Results for "${searchTerm}"` : 'Search Patients & Bills'}
         </Typography>
-        <Chip
-          label={`${totalResults} result${totalResults !== 1 ? 's' : ''}`}
-          color="primary"
-          variant="outlined"
-        />
+        {searchTerm && (
+          <Chip
+            label={`${totalResults} result${totalResults !== 1 ? 's' : ''}`}
+            color="primary"
+            variant="outlined"
+          />
+        )}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {totalResults === 0 ? (
+      {!searchTerm ? (
+        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
+          <SearchIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h5" gutterBottom>Search for Patients or Bills</Typography>
+          <Typography color="textSecondary">Enter a name, ID, phone number, or bill number</Typography>
+        </Paper>
+      ) : totalResults === 0 ? (
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
           <SearchIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h5" gutterBottom>No results found</Typography>
@@ -176,21 +196,21 @@ const StafffSearch = () => {
                       <Grid container spacing={2} alignItems="center">
                         <Grid item xs={12} md={7}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar sx={{ width: 56, height: 56, bgcolor: theme.palette.primary.main }}>
+                            <Avatar sx={{ width: 56, height: 56, bgcolor: 'primary.main' }}>
                               {getInitials(patient.first_name, patient.last_name)}
                             </Avatar>
                             <Box>
                               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                 {patient.first_name} {patient.last_name}
                               </Typography>
-                              <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
+                              <Stack direction="row" spacing={2} sx={{ mt: 0.5 }} flexWrap="wrap">
                                 <Typography variant="caption" color="textSecondary">
                                   <PhoneIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />
-                                  {patient.phone}
+                                  {patient.phone || 'N/A'}
                                 </Typography>
                                 <Typography variant="caption" color="textSecondary">
                                   <EmailIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />
-                                  {patient.email}
+                                  {patient.email || 'N/A'}
                                 </Typography>
                                 <Typography variant="caption" color="textSecondary">
                                   <CalendarIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />
@@ -201,11 +221,12 @@ const StafffSearch = () => {
                           </Box>
                         </Grid>
                         <Grid item xs={12} md={5} sx={{ textAlign: 'right' }}>
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap">
                             <Button
                               variant="contained"
                               startIcon={<ReceiptIcon />}
-                              onClick={() => handleviewBill(bill.id)}
+                              onClick={() => handleViewPatientBills(patient.id)}
+                              size="small"
                             >
                               View Bills
                             </Button>
@@ -213,6 +234,7 @@ const StafffSearch = () => {
                               variant="outlined"
                               startIcon={<MoneyIcon />}
                               onClick={() => handleCreateBill(patient.id)}
+                              size="small"
                             >
                               Create Bill
                             </Button>
@@ -252,28 +274,28 @@ const StafffSearch = () => {
                         <Grid item xs={12} md={8}>
                           <Box>
                             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                              {bill.billNumber}
+                              {bill.billNumber || `INV-${bill.id}`}
                             </Typography>
                             <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              Patient: {bill.patientName}
+                              Patient: {bill.patientName || 'N/A'}
                             </Typography>
-                            <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
+                            <Stack direction="row" spacing={2} sx={{ mt: 0.5 }} flexWrap="wrap">
                               <Typography variant="caption" color="textSecondary">
-                                Date: {formatDate(bill.date)}
+                                Date: {formatDate(bill.created_at)}
                               </Typography>
                               <Typography variant="caption" color="textSecondary">
-                                Due: {formatDate(bill.dueDate)}
+                                Due: {formatDate(bill.due_date)}
                               </Typography>
                               <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                                {formatCurrency(bill.amount)}
+                                {formatCurrency(bill.amount || 0)}
                               </Typography>
                             </Stack>
                           </Box>
                         </Grid>
                         <Grid item xs={12} md={4} sx={{ textAlign: 'right' }}>
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap">
                             <Tooltip title="View Bill">
-                              <IconButton onClick={() => handleviewBill(bill.id)}>
+                              <IconButton onClick={() => handleViewBill(bill.id)}>
                                 <VisibilityIcon />
                               </IconButton>
                             </Tooltip>
@@ -289,7 +311,7 @@ const StafffSearch = () => {
                               size="small"
                               color={
                                 bill.payment_status === 'Cleared' ? 'success' :
-                                  bill.payment_status === 'Pending' ? 'warning' : 'error'
+                                bill.payment_status === 'Pending' ? 'warning' : 'error'
                               }
                             />
                           </Stack>
@@ -318,4 +340,4 @@ const StafffSearch = () => {
   );
 };
 
-export default StafffSearch;
+export default StaffSearch;

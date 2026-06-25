@@ -48,6 +48,7 @@ import {
   Tab,
   Badge,
   LinearProgress,
+  Skeleton,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -69,7 +70,6 @@ import {
   CreditCardSharp as CreditCardIcon,
   Clear as ClearIcon,
   FileDownload as FileDownloadIcon,
-  PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
   MoreVert as MoreVertIcon,
   CheckCircle as CheckIcon,
@@ -83,8 +83,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { OperatorService } from '../../../services/users/operator';
 import { useAuth } from '../../../context/authContext';
 import { formatCurrency, formatDate, formatTime } from '../../../formatters';
-import { toast as useToast } from 'react-toastify';
+import { toast } from 'react-toastify';
 
+// Styled Components
 const HeroSection = styled(Paper)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.info.main} 100%)`,
   color: 'white',
@@ -161,16 +162,17 @@ const StatusChip = styled(Chip)(({ theme, status }) => ({
   padding: '4px 8px',
   background:
     status === 'Cleared' ? alpha(theme.palette.success.main, 0.12) :
-      status === 'Pending' ? alpha(theme.palette.warning.main, 0.12) :
-        alpha(theme.palette.error.main, 0.12),
+    status === 'Pending' ? alpha(theme.palette.warning.main, 0.12) :
+    alpha(theme.palette.error.main, 0.12),
   color:
     status === 'Cleared' ? theme.palette.success.main :
-      status === 'Pending' ? theme.palette.warning.main :
-        theme.palette.error.main,
-  border: `1px solid ${status === 'Cleared' ? alpha(theme.palette.success.main, 0.3) :
+    status === 'Pending' ? theme.palette.warning.main :
+    theme.palette.error.main,
+  border: `1px solid ${
+    status === 'Cleared' ? alpha(theme.palette.success.main, 0.3) :
     status === 'Pending' ? alpha(theme.palette.warning.main, 0.3) :
-      alpha(theme.palette.error.main, 0.3)
-    }`,
+    alpha(theme.palette.error.main, 0.3)
+  }`,
 }));
 
 const TransactionRow = styled(motion.tr)(({ theme }) => ({
@@ -181,49 +183,88 @@ const TransactionRow = styled(motion.tr)(({ theme }) => ({
   },
 }));
 
-const FilterChip = styled(Chip)(({ theme, active }) => ({
-  borderRadius: 20,
-  fontWeight: 500,
-  backgroundColor: active ? theme.palette.primary.main : 'transparent',
-  color: active ? 'white' : theme.palette.text.primary,
-  border: active ? 'none' : `1px solid ${theme.palette.divider}`,
-  '&:hover': {
-    backgroundColor: active ? theme.palette.primary.dark : alpha(theme.palette.primary.main, 0.05),
-  },
-}));
-
 export const TransactionList = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { showToast } = useToast();
+  
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [exportAnchor, setExportAnchor] = useState(null);
   const [showFilter, setShowFilter] = useState(false);
-  const [detailsLog, setDetailsLog] = useState(false);
-  const [viewMode, setViewMode] = useState('table');
-  const [activeTab, setActiveTab] = useState(0);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, pageSize: 20, totalRecords: 0, has_next: false, has_previous: false });
-  const [summary, setSummary] = useState({ totalAmount: 0, totalTransactions: 0, cleared_amount: 0, pending_amount: 0, overdue_amount: 0, cleared_count: 0, pending_count: 0, overdue_count: 0 });
-  const [filters, setFilters] = useState({ page: 1, page_size: 20, search: '', status: '', from_date: null, to_date: null, payment_method: '', min_amount: '', max_amount: '' });
+  const [activeTab, setActiveTab] = useState(0);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    pageSize: 20,
+    totalRecords: 0,
+    has_next: false,
+    has_previous: false,
+  });
+  const [summary, setSummary] = useState({
+    total_amount: 0,
+    total_transactions: 0,
+    cleared_amount: 0,
+    pending_amount: 0,
+    overdue_amount: 0,
+    cleared_count: 0,
+    pending_count: 0,
+    overdue_count: 0,
+  });
+  const [filters, setFilters] = useState({
+    page: 1,
+    page_size: 20,
+    search: '',
+    status: '',
+    from_date: null,
+    to_date: null,
+    payment_method: '',
+    min_amount: '',
+    max_amount: '',
+  });
 
   useEffect(() => {
-    fetchTransaction();
-  }, [filters]);
+    fetchTransactions();
+  }, [filters, activeTab]);
 
-  const fetchTransaction = async () => {
+  const fetchTransactions = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await OperatorService.getTransactions(user?.token, filters);
-      setTransactions(response.data.transactions);
-      setPagination(response.data.pagination);
-      setSummary(response.data.summary);
-    } catch (error) {
-      setError(error);
-      showToast('Error fetching transactions', 'error');
+      let statusFilter = filters.status;
+      if (activeTab === 1) statusFilter = 'Cleared';
+      else if (activeTab === 2) statusFilter = 'Pending';
+      else if (activeTab === 3) statusFilter = 'Overdue';
+
+      const response = await OperatorService.getTransactions({
+        ...filters,
+        status: statusFilter,
+      });
+      
+      setTransactions(response.data?.transactions || []);
+      setPagination(response.data?.pagination || {
+        currentPage: 1,
+        totalPages: 1,
+        pageSize: 20,
+        totalRecords: 0,
+        has_next: false,
+        has_previous: false,
+      });
+      setSummary(response.data?.summary || {
+        total_amount: 0,
+        total_transactions: 0,
+        cleared_amount: 0,
+        pending_amount: 0,
+        overdue_amount: 0,
+        cleared_count: 0,
+        pending_count: 0,
+        overdue_count: 0,
+      });
+    } catch (err) {
+      setError(err?.response?.data?.message);
     } finally {
       setLoading(false);
     }
@@ -233,38 +274,56 @@ export const TransactionList = () => {
     setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
   };
 
+  const handlePageChange = (event, page) => {
+    setFilters(prev => ({ ...prev, page }));
+  };
+
   const handleClearFilters = () => {
-    setFilters({ page: 1, page_size: 20, search: '', status: '', from_date: null, to_date: null, payment_method: '', min_amount: '', max_amount: '' });
+    setFilters({
+      page: 1,
+      page_size: 20,
+      search: '',
+      status: '',
+      from_date: null,
+      to_date: null,
+      payment_method: '',
+      min_amount: '',
+      max_amount: '',
+    });
     setShowFilter(false);
+    setActiveTab(0);
   };
 
   const handleExport = async (format) => {
+    setExportAnchor(null);
     try {
       const blob = await OperatorService.exportTransactions({
         token: user?.token,
         format,
-        date_from: filters.date_from,
-        date_to: filters.date_to,
+        date_from: filters.from_date,
+        date_to: filters.to_date,
         status: filters.status,
         payment_method: filters.payment_method,
       });
+      
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `transactions.${new Date().toISOString().slice(0, 15)}.${format}`);
+      link.setAttribute('download', `transactions_${new Date().toISOString().slice(0, 10)}.${format}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-    } catch (error) {
-      showToast('Error exporting transactions', 'error');
+      toast.success(`Transactions exported as ${format.toUpperCase()}`);
+    } catch (err) {
+      console.error('Export error:', err);
+      toast.error('Failed to export transactions');
     }
   };
 
   const handleViewDetails = (transaction) => {
-    setTransactions(transaction);
-    setDetailsLog(true);
+    setSelectedTransaction(transaction);
+    setDetailsDialogOpen(true);
   };
 
   const handleViewBill = (billId) => {
@@ -273,13 +332,13 @@ export const TransactionList = () => {
 
   const getPaymentIcon = (method) => {
     switch (method) {
-      case 'Cash': return <MoneyIcon fontSize='small' />;
-      case 'Credit Card': return <CreditCardIcon fontSize='small' />;
-      case 'Debit Card': return <CreditCardIcon fontSize='small' />;
-      case 'M-Pesa': return <MoneyIcon fontSize='small' />;
-      case 'Cheque': return <BankIcon fontSize='small' />;
-      case 'Insurance': return <BankIcon fontSize='small' />;
-      default: return <MoneyIcon fontSize='small' />;
+      case 'Cash': return <MoneyIcon fontSize="small" />;
+      case 'Credit Card': return <CreditCardIcon fontSize="small" />;
+      case 'Debit Card': return <CreditCardIcon fontSize="small" />;
+      case 'M-Pesa': return <MpesaIcon fontSize="small" />;
+      case 'Cheque': return <BankIcon fontSize="small" />;
+      case 'Insurance': return <BankIcon fontSize="small" />;
+      default: return <MoneyIcon fontSize="small" />;
     }
   };
 
@@ -295,23 +354,42 @@ export const TransactionList = () => {
     }
   };
 
-  const filteredTransactions = transactions;
-  const paginatedTransactions = filteredTransactions;
-
-  if (loading) {
+  if (loading && transactions.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={50} thickness={4} /></Box>
+      <Box sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map(i => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 3 }} />
+            </Grid>
+          ))}
+          <Grid item xs={12}>
+            <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3 }} />
+          </Grid>
+        </Grid>
+      </Box>
     );
   }
 
-  if (error) {
+  if (error && transactions.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><Alert severity='error'>Error loading transactions. Please try again later.</Alert></Box>
+      <Box sx={{ p: 3 }}>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={fetchTransactions}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh' }}>
       <Slide direction="down" in={true} timeout={600}>
         <HeroSection>
           <Grid container spacing={3} alignItems="center">
@@ -357,10 +435,10 @@ export const TransactionList = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {[
-          { label: 'Total Revenue', value: summary.total_amount, color: theme.palette.primary.main, icon: <MoneyIcon />, trend: '+12%', count: summary.total_bills },
-          { label: 'Cleared', value: summary.cleared_amount, color: theme.palette.success.main, icon: <CheckIcon />, trend: '+8%', count: summary.cleared_count },
-          { label: 'Pending', value: summary.pending_amount, color: theme.palette.warning.main, icon: <ScheduleIcon />, trend: '-3%', count: summary.pending_count },
-          { label: 'Overdue', value: summary.overdue_amount, color: theme.palette.error.main, icon: <WarningIcon />, trend: '+5%', count: summary.overdue_count },
+          { label: 'Total Revenue', value: summary.total_amount, color: theme.palette.primary.main, icon: <MoneyIcon />, count: summary.total_transactions },
+          { label: 'Cleared', value: summary.cleared_amount, color: theme.palette.success.main, icon: <CheckIcon />, count: summary.cleared_count },
+          { label: 'Pending', value: summary.pending_amount, color: theme.palette.warning.main, icon: <ScheduleIcon />, count: summary.pending_count },
+          { label: 'Overdue', value: summary.overdue_amount, color: theme.palette.error.main, icon: <WarningIcon />, count: summary.overdue_count },
         ].map((stat, idx) => (
           <Grid item xs={12} sm={6} md={3} key={idx}>
             <StatsCard
@@ -375,25 +453,15 @@ export const TransactionList = () => {
                     {stat.label}
                   </Typography>
                   <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5 }}>
-                    {formatCurrency(stat.value)}
+                    {formatCurrency(stat.value || 0)}
                   </Typography>
                   <Typography variant="caption" color="textSecondary">
-                    {stat.count} transactions
+                    {stat.count || 0} transactions
                   </Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: alpha(stat.color, 0.1), color: stat.color, width: 48, height: 48 }}>
                   {stat.icon}
                 </Avatar>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-                {stat.trend.startsWith('+') ? (
-                  <TrendingUpIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                ) : (
-                  <TrendingDownIcon sx={{ fontSize: 14, color: 'error.main' }} />
-                )}
-                <Typography variant="caption" color="textSecondary">
-                  {stat.trend} from last month
-                </Typography>
               </Box>
             </StatsCard>
           </Grid>
@@ -414,7 +482,6 @@ export const TransactionList = () => {
             value={filters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             InputProps={{ disableUnderline: true }}
-            sx={{ fontSize: '1rem' }}
           />
           {filters.search && (
             <IconButton size="small" onClick={() => handleFilterChange('search', '')}>
@@ -425,7 +492,7 @@ export const TransactionList = () => {
           <IconButton onClick={() => setShowFilter(!showFilter)}>
             <FilterIcon />
           </IconButton>
-          <IconButton onClick={fetchTransaction}>
+          <IconButton onClick={fetchTransactions}>
             <RefreshIcon />
           </IconButton>
         </GlassSearchBar>
@@ -470,8 +537,8 @@ export const TransactionList = () => {
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DatePicker
                     label="From Date"
-                    value={filters.date_from}
-                    onChange={(date) => handleFilterChange('date_from', date)}
+                    value={filters.from_date}
+                    onChange={(date) => handleFilterChange('from_date', date)}
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                   />
                 </LocalizationProvider>
@@ -480,8 +547,8 @@ export const TransactionList = () => {
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DatePicker
                     label="To Date"
-                    value={filters.date_to}
-                    onChange={(date) => handleFilterChange('date_to', date)}
+                    value={filters.to_date}
+                    onChange={(date) => handleFilterChange('to_date', date)}
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                   />
                 </LocalizationProvider>
@@ -511,6 +578,9 @@ export const TransactionList = () => {
               <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
                 <Button variant="outlined" onClick={handleClearFilters} startIcon={<ClearIcon />}>
                   Clear All
+                </Button>
+                <Button variant="contained" onClick={fetchTransactions}>
+                  Apply Filters
                 </Button>
               </Grid>
             </Grid>
@@ -556,15 +626,15 @@ export const TransactionList = () => {
                     >
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                          {tx.billNumber}
+                          {tx.billNumber || `INV-${tx.id}`}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette.primary.main, 0.1), fontSize: '0.875rem' }}>
-                            {tx.patientName?.charAt(0)}
+                            {tx.patientName?.charAt(0) || 'P'}
                           </Avatar>
-                          <Typography variant="body2">{tx.patientName}</Typography>
+                          <Typography variant="body2">{tx.patientName || 'N/A'}</Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -575,7 +645,7 @@ export const TransactionList = () => {
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatCurrency(tx.amount)}
+                          {formatCurrency(tx.amount || 0)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -592,8 +662,8 @@ export const TransactionList = () => {
                       </TableCell>
                       <TableCell>
                         <StatusChip
-                          label={tx.payment_status}
-                          status={tx.payment_status}
+                          label={tx.payment_status || 'Pending'}
+                          status={tx.payment_status || 'Pending'}
                           size="small"
                         />
                       </TableCell>
@@ -604,7 +674,7 @@ export const TransactionList = () => {
                               size="small"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleViewBill(tx.id);
+                                handleViewBill(tx.bill_id || tx.id);
                               }}
                             >
                               <VisibilityIcon fontSize="small" />
@@ -627,6 +697,11 @@ export const TransactionList = () => {
                     <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <MoneyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                       <Typography color="textSecondary">No transactions found</Typography>
+                      {filters.search && (
+                        <Typography variant="caption" color="textSecondary">
+                          Try adjusting your search or filter criteria
+                        </Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
@@ -639,7 +714,7 @@ export const TransactionList = () => {
               <Pagination
                 count={pagination.totalPages}
                 page={pagination.currentPage}
-                onChange={handleFilterChange}
+                onChange={handlePageChange}
                 color="primary"
                 size="large"
                 showFirstButton
@@ -660,11 +735,15 @@ export const TransactionList = () => {
           <ListItemIcon><ExcelIcon fontSize="small" /></ListItemIcon>
           <ListItemText primary="Export as CSV" />
         </DropdownItem>
+        <DropdownItem onClick={() => handleExport('pdf')}>
+          <ListItemIcon><FileDownloadIcon fontSize="small" /></ListItemIcon>
+          <ListItemText primary="Export as PDF" />
+        </DropdownItem>
       </Menu>
 
       <Dialog
-        open={detailsLog}
-        onClose={() => setDetailsLog(false)}
+        open={detailsDialogOpen}
+        onClose={() => setDetailsDialogOpen(false)}
         maxWidth="md"
         fullWidth
         TransitionComponent={Zoom}
@@ -674,7 +753,7 @@ export const TransactionList = () => {
             <DialogTitle sx={{ bgcolor: theme.palette.primary.main, color: 'white' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Transaction Details</Typography>
-                <IconButton onClick={() => setDetailsLog(false)} sx={{ color: 'white' }}>
+                <IconButton onClick={() => setDetailsDialogOpen(false)} sx={{ color: 'white' }}>
                   <CloseIcon />
                 </IconButton>
               </Box>
@@ -683,29 +762,31 @@ export const TransactionList = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">Bill Number</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{setTransactions.billNumber}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    {selectedTransaction.billNumber || `INV-${selectedTransaction.id}`}
+                  </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">Patient Name</Typography>
-                  <Typography variant="body1">{setTransactions.patientName}</Typography>
+                  <Typography variant="body1">{selectedTransaction.patientName || 'N/A'}</Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">Date & Time</Typography>
                   <Typography variant="body1">
-                    {formatDate(setTransactions.created_at)} at {formatTime(setTransactions.created_at)}
+                    {formatDate(selectedTransaction.created_at)} at {formatTime(selectedTransaction.created_at)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">Amount</Typography>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                    {formatCurrency(setTransactions.amount)}
+                    {formatCurrency(selectedTransaction.amount || 0)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">Payment Method</Typography>
                   <Chip
-                    icon={getPaymentIcon(setTransactions.payment_method)}
-                    label={setTransactions.payment_method || 'Not specified'}
+                    icon={getPaymentIcon(selectedTransaction.payment_method)}
+                    label={selectedTransaction.payment_method || 'Not specified'}
                     size="small"
                     sx={{ mt: 0.5 }}
                   />
@@ -713,37 +794,37 @@ export const TransactionList = () => {
                 <Grid item xs={12} md={6}>
                   <Typography variant="caption" color="textSecondary">Status</Typography>
                   <StatusChip
-                    label={setTransactions.payment_status}
-                    status={setTransactions.payment_status}
+                    label={selectedTransaction.payment_status || 'Pending'}
+                    status={selectedTransaction.payment_status || 'Pending'}
                     size="small"
                     sx={{ mt: 0.5 }}
                   />
                 </Grid>
-                {setTransactions.clearance_date && (
+                {selectedTransaction.clearance_date && (
                   <Grid item xs={12}>
                     <Typography variant="caption" color="textSecondary">Cleared Date</Typography>
                     <Typography variant="body2">
-                      {formatDate(setTransactions.clearance_date)} at {formatTime(setTransactions.clearance_date)}
+                      {formatDate(selectedTransaction.clearance_date)} at {formatTime(selectedTransaction.clearance_date)}
                     </Typography>
                   </Grid>
                 )}
-                {setTransactions.notes && (
+                {selectedTransaction.notes && (
                   <Grid item xs={12}>
                     <Typography variant="caption" color="textSecondary">Notes</Typography>
                     <Typography variant="body2" sx={{ bgcolor: alpha(theme.palette.info.main, 0.05), p: 1, borderRadius: 1 }}>
-                      {setTransactions.notes}
+                      {selectedTransaction.notes}
                     </Typography>
                   </Grid>
                 )}
               </Grid>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setDetailsLog(false)}>Close</Button>
+              <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
               <Button
                 variant="contained"
                 onClick={() => {
-                  setDetailsLog(false);
-                  handleViewBill(selectedTransaction.id);
+                  setDetailsDialogOpen(false);
+                  handleViewBill(selectedTransaction.bill_id || selectedTransaction.id);
                 }}
               >
                 View Full Bill
@@ -755,3 +836,5 @@ export const TransactionList = () => {
     </Box>
   );
 };
+
+export default TransactionList;

@@ -56,7 +56,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate, getInitials } from '../../../formatters';
-import { GlassSearchBar, PremiumCard } from '../../../theme/adminComponents';
+import { GlassSearchBar, PremiumCard } from '../../../theme/GenLayout';
 import PatientService from '../../../services/users/patient';
 
 export const PatientList = () => {

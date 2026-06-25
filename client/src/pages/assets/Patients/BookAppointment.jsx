@@ -27,13 +27,13 @@ import {
   Divider,
   Rating,
   InputAdornment,
-  Autocomplete,StepIcon as steps,
   List,
   ListItem,
   ListItemText,
   ListItemAvatar,
   ListItemButton,
   styled,
+  Skeleton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -43,10 +43,7 @@ import {
   CheckCircle as CheckIcon,
   LocalHospital as LocalHospital,
   MedicalServices as ServiceIcon,
-  Star as StarIcon,
   LocationOn as LocationIcon,
-  School as ExperienceIcon,
-  Science as LabIcon,
   HeartBroken as HeartIcon,
   PsychologyAlt as BrainIcon,
   Tooth as DentalIcon,
@@ -62,41 +59,20 @@ import { toast } from 'react-toastify';
 import PatientService from '../../../services/users/patient';
 import { formatDate } from '../../../formatters';
 
-const Privacy = styled(Paper)(({theme}) =>({
-    background: '#e3f2fd',
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(3),
-    borderRadius: theme.spacing(1),
-    border: '1px solid #90caf9',
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(2),
-}));
+// Fixed: STEP_LABELS constant instead of undefined 'steps'
+const STEP_LABELS = ['Describe Your Issue', 'Choose Specialization', 'Select Doctor', 'Pick Date & Time', 'Confirm'];
 
-const ModeCard = styled(Card)(({ theme, selected }) => ({
-  cursor: 'pointer',
-  border: selected ? `3px solid ${theme.palette.primary.main}` : '1px solid #e0e0e0',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: theme.shadows[10],
-  },
-  height: '100%',
-}));
-
+// Symptoms to Specialization mapping
 const symptomToSpecialization = {
   'chest pain': 'Cardiology',
   'heart palpitations': 'Cardiology',
   'shortness of breath': 'Cardiology',
   'high blood pressure': 'Cardiology',
-  
   'headache': 'Neurology',
   'migraine': 'Neurology',
   'dizziness': 'Neurology',
-  
   'pregnancy': 'Obstetrics',
   'menstrual issues': 'Gynecology',
-  
   'accident': 'Emergency',
   'bleeding': 'Emergency',
 };
@@ -113,20 +89,9 @@ const specializations = [
   { id: 'emergency', name: 'Emergency', icon: <EmergencyIcon />, description: 'Urgent care' },
 ];
 
-const BOOKING_MODE_TYPES = {
-  DETAILED: 'DETAILED',
-  QUICK: 'QUICK',
-};
-
-const BOOKING_MODE = {
-    [BOOKING_MODE_TYPES.DETAILED]: ['Describe Your Issue', 'Choose Specialization', 'Select Doctor', 'Pick Date & Time', 'Confirm'],
-    [BOOKING_MODE_TYPES.QUICK]: ['Select Department','Select Doctor','Choose date & Time','Confirm']
-};
-
 const BookAppointment = () => {
   const navigate = useNavigate();
-
-  const [bookingMode,setBookingMode] = useState(BOOKING_MODE_TYPES.QUICK)
+  
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [symptoms, setSymptoms] = useState('');
@@ -179,31 +144,40 @@ const BookAppointment = () => {
   };
 
   const fetchDoctorsBySpecialization = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await PatientService.getDoctors(selectedSpecialization);
-      setDoctors(response.data);
+      setDoctors(response.data || []);
     } catch (err) {
+      console.error('Failed to fetch doctors:', err);
       toast.error('Failed to load doctors');
+      setDoctors([]);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchAvailableSlots = async () => {
+    if (!selectedDoctor || !selectedDate) return;
+    
+    setLoading(true);
     try {
       const response = await PatientService.getAvailableSlots({
         doctorId: selectedDoctor.id,
         date: selectedDate.toISOString().split('T')[0],
       });
-      setAvailableSlots(response.data);
+      setAvailableSlots(response.data || []);
     } catch (err) {
+      console.error('Failed to fetch slots:', err);
       toast.error('Failed to load available slots');
+      setAvailableSlots([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleNext = () => {
-    if (activeStep === 0 && symptoms.length < 5) {
+    if (activeStep === 0 && symptoms.length < 3) {
       toast.error('Please describe your symptoms');
       return;
     }
@@ -222,13 +196,18 @@ const BookAppointment = () => {
     setActiveStep((prev) => prev + 1);
   };
 
-  const handleBack = () =>{
-    setActiveStep((prev) => prev -1);
+  const handleBack = () => {
+    setActiveStep((prev) => prev - 1);
   };
 
   const handleSubmit = async () => {
+    if (!selectedDoctor || !selectedDate || !selectedTime) {
+      toast.error('Please complete all required fields');
+      return;
+    }
+    
+    setLoading(true);
     try {
-      setLoading(true);
       await PatientService.bookAppointment({
         doctor_id: selectedDoctor.id,
         appointment_date: selectedDate.toISOString().split('T')[0],
@@ -236,9 +215,10 @@ const BookAppointment = () => {
         purpose: reason || symptoms,
         specialization: selectedSpecialization,
       });
-      toast.success('Appointment booked successfully');
+      toast.success('Appointment booked successfully!');
       navigate('/patient/appointments');
     } catch (err) {
+      console.error('Booking failed:', err);
       toast.error(err.response?.data?.message || 'Failed to book appointment');
     } finally {
       setLoading(false);
@@ -251,17 +231,17 @@ const BookAppointment = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Hello our valued patient, What brings you to the hospital today?
+              Hello valued patient, What brings you to the hospital today?
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-              Kindly describe your symptoms or the reason for your visit. We'll match you with the right specialist.
+              Describe your symptoms or the reason for your visit. We'll match you with the right specialist.
             </Typography>
             
             <TextField
               fullWidth
               multiline
               rows={4}
-              placeholder="e.g., I've been having chest pain for 2 days, or I need a regular checkup..."
+              placeholder="e.g., I've been having chest pain for 2 days..."
               value={symptoms}
               onChange={(e) => setSymptoms(e.target.value)}
               InputProps={{
@@ -375,6 +355,8 @@ const BookAppointment = () => {
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                 <CircularProgress />
               </Box>
+            ) : doctors.length === 0 ? (
+              <Alert severity="info">No doctors available for this specialization</Alert>
             ) : (
               <List>
                 {doctors.map((doctor) => (
@@ -414,7 +396,7 @@ const BookAppointment = () => {
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                       <ServiceIcon fontSize="small" color="action" />
                                       <Typography variant="body2">
-                                        {doctor.specialization} • {doctor.experience} years experience
+                                        {doctor.specialization} • {doctor.experience || 5} years experience
                                       </Typography>
                                     </Box>
                                   </Grid>
@@ -434,7 +416,7 @@ const BookAppointment = () => {
                                         variant="outlined"
                                       />
                                       <Chip
-                                        label={`${doctor.languages?.join(', ') || 'English'}`}
+                                        label={doctor.languages?.join(', ') || 'English'}
                                         size="small"
                                         variant="outlined"
                                       />
@@ -480,7 +462,9 @@ const BookAppointment = () => {
               <Grid item xs={12} md={6}>
                 <FormControl component="fieldset" fullWidth>
                   <FormLabel component="legend">Available Time Slots</FormLabel>
-                  {availableSlots.length > 0 ? (
+                  {loading ? (
+                    <CircularProgress size={24} sx={{ mt: 2 }} />
+                  ) : availableSlots.length > 0 ? (
                     <RadioGroup
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
@@ -510,8 +494,8 @@ const BookAppointment = () => {
                       </Grid>
                     </RadioGroup>
                   ) : (
-                    <Typography color="textSecondary">
-                      {selectedDate ? 'No slots available for this date' : 'Select a date first or later'}
+                    <Typography color="textSecondary" sx={{ mt: 2 }}>
+                      {selectedDate ? 'No slots available for this date' : 'Select a date first'}
                     </Typography>
                   )}
                 </FormControl>
@@ -626,19 +610,19 @@ const BookAppointment = () => {
         );
 
       default:
-        return 'Unknown step';
+        return null;
     }
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 900, mx: 'auto' }}>
+    <Box sx={{ p: 3, maxWidth: 900, mx: 'auto', minHeight: '100vh' }}>
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom align="center">
+        <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: 700 }}>
           Book Appointment
         </Typography>
 
         <Stepper activeStep={activeStep} sx={{ my: 4 }}>
-          {steps.map((label) => (
+          {STEP_LABELS.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
@@ -652,21 +636,25 @@ const BookAppointment = () => {
             variant="outlined"
             onClick={handleBack}
             disabled={activeStep === 0}
+            sx={{ borderRadius: 2 }}
           >
             Back
           </Button>
-          {activeStep === steps.length - 1 ? (
+          {activeStep === STEP_LABELS.length - 1 ? (
             <Button
               variant="contained"
               onClick={handleSubmit}
               disabled={loading}
+              size="large"
+              sx={{ borderRadius: 2, px: 4 }}
             >
-              {loading ? 'Booking...' : 'Confirm Booking'}
+              {loading ? <CircularProgress size={24} /> : 'Confirm Booking'}
             </Button>
           ) : (
             <Button
               variant="contained"
               onClick={handleNext}
+              sx={{ borderRadius: 2, px: 4 }}
             >
               Next
             </Button>

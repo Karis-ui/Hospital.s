@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {adminService} from '../../../services/users/admin';
 import authService from '../../../services/authService';
-import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/adminComponents';
+import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/GenLayout';
 
 export const AdminProfile = ()=>{
     const navigate = useNavigate();

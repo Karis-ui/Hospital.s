@@ -5,7 +5,7 @@ const API_BASE_URL = 'https://hospitals-production.up.railway.app/api/';
 export const api = axios.create({
     baseURL: API_BASE_URL,
     headers: { 'Content-Type': 'application/json' },
-    timeout: 2000, 
+    timeout: 10000,
 });
 
 api.interceptors.request.use(
@@ -13,7 +13,7 @@ api.interceptors.request.use(
         console.log(`🚀 Making ${config.method.toUpperCase()} request to: ${config.baseURL}${config.url}`);
         console.log('Request data: ', config.data);
 
-        const token = localStorage.getItem('access');
+        const token = localStorage.getItem('access_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -29,23 +29,23 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             
-            const refreshToken = localStorage.getItem('refresh');
+            const refreshToken = localStorage.getItem('refresh_token');
             if (refreshToken) {
                 try {
                     const response = await axios.post(
-                        `${API_BASE_URL}auth/token/refresh/`,
+                        `${API_BASE_URL}accounts/refresh_token/`,
                         { refresh: refreshToken }
                     );
                     
-                    const newAccessToken = response.data.access;
-                    localStorage.setItem('access', newAccessToken);
+                    const newAccessToken = response.data.data.access;
+                    localStorage.setItem('access_token', newAccessToken);
                     
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     
                     return api(originalRequest);
                 } catch (refreshError) {
-                    localStorage.removeItem('access');
-                    localStorage.removeItem('refresh');
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
                     window.location.href = "/login";
                     return Promise.reject(refreshError);
                 }

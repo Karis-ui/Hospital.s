@@ -28,7 +28,6 @@ import {
   Zoom,
   alpha,
   useTheme,
-  Badge,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -36,22 +35,16 @@ import {
   Divider,
   Tabs,
   Tab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Skeleton,
+  Slide,
   FormControl,
   InputLabel,
   Select,
-  FormHelperText,
-  Skeleton,
-  Slide,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
   Receipt as ReceiptIcon,
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Refresh as RefreshIcon,
   Download as DownloadIcon,
   Print as PrintIcon,
@@ -66,12 +59,9 @@ import {
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
   Email as EmailIcon,
-  Share as ShareIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  AttachMoney as AttachMoneyIcon,
   ReceiptLong as ReceiptLongIcon,
-  Print as PrintReceiptIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/authContext';
@@ -154,33 +144,15 @@ const BillCard = styled(motion.div)(({ theme, status }) => ({
   borderRadius: theme.spacing(2),
   marginBottom: theme.spacing(2),
   padding: theme.spacing(2),
-  borderLeft: `6px solid ${status === 'paid' ? theme.palette.success.main :
+  borderLeft: `6px solid ${
+    status === 'paid' ? theme.palette.success.main :
     status === 'pending' ? theme.palette.warning.main :
-      theme.palette.error.main
-    }`,
+    theme.palette.error.main
+  }`,
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
     transform: 'translateX(8px)',
     boxShadow: theme.shadows[8],
-  },
-}));
-
-const AnimatedTableRow = styled(motion.tr)({
-  transition: 'all 0.2s ease',
-});
-
-const PremiumButton = styled(Button)(({ theme }) => ({
-  borderRadius: 50,
-  padding: '10px 28px',
-  fontWeight: 700,
-  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.info.main})`,
-  color: 'white',
-  boxShadow: `0 4px 15px ${alpha(theme.palette.primary.main, 0.3)}`,
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.4)}`,
-    background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.info.dark})`,
   },
 }));
 
@@ -202,19 +174,45 @@ const StatusBadge = styled(Chip)(({ theme, status }) => ({
   },
 }));
 
-const QuickActionChip = styled(Chip)(({ theme }) => ({
-  borderRadius: 20,
-  fontWeight: 600,
-  transition: 'all 0.2s ease',
+const PremiumButton = styled(Button)(({ theme }) => ({
+  borderRadius: 50,
+  padding: '10px 28px',
+  fontWeight: 700,
+  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.info.main})`,
+  color: 'white',
+  boxShadow: `0 4px 15px ${alpha(theme.palette.primary.main, 0.3)}`,
+  transition: 'all 0.3s ease',
   '&:hover': {
-    transform: 'scale(1.05)',
-    boxShadow: theme.shadows[2],
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.4)}`,
   },
 }));
+
+const GridIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
+const ViewListIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="8" y1="6" x2="21" y2="6" />
+    <line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" />
+    <line x1="3" y1="6" x2="3.01" y2="6" />
+    <line x1="3" y1="12" x2="3.01" y2="12" />
+    <line x1="3" y1="18" x2="3.01" y2="18" />
+  </svg>
+);
 
 const BillList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [bills, setBills] = useState([]);
   const [filteredBills, setFilteredBills] = useState([]);
@@ -224,9 +222,16 @@ const BillList = () => {
   const [rowsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState('table');
   const [selectedBill, setSelectedBill] = useState(null);
-  const [anchorE1, setAnchorE1] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
   const [stats, setStats] = useState({
-    total: 0, totalAmount: 0, paid: 0, paidAmount: 0, pending: 0, pendingAmount: 0, overdue: 0, overdueAmount: 0,
+    total: 0,
+    totalAmount: 0,
+    paid: 0,
+    paidAmount: 0,
+    pending: 0,
+    pendingAmount: 0,
+    overdue: 0,
+    overdueAmount: 0,
   });
 
   useEffect(() => {
@@ -242,7 +247,11 @@ const BillList = () => {
     setLoading(true);
     try {
       const response = await OperatorService.getBills();
-      setBills(response.data);
+      setBills(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch bills:', err);
+      toast.error('Failed to load bills');
+      setBills([]);
     } finally {
       setLoading(false);
     }
@@ -252,8 +261,8 @@ const BillList = () => {
     let filtered = [...bills];
     if (searchTerm) {
       filtered = filtered.filter(b =>
-        b.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.patientName.toLowerCase().includes(searchTerm.toLowerCase())
+        (b.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (b.patientName || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     if (statusFilter !== 'all') {
@@ -265,50 +274,59 @@ const BillList = () => {
 
   const calculateStats = () => {
     const total = filteredBills.length;
-    const totalAmount = filteredBills.reduce((s, b) => s + b.amount, 0);
+    const totalAmount = filteredBills.reduce((s, b) => s + (b.amount || 0), 0);
     const paid = filteredBills.filter(b => b.status === 'paid').length;
-    const paidAmount = filteredBills.filter(b => b.status === 'paid').reduce((s, b) => s + b.amount, 0);
+    const paidAmount = filteredBills.filter(b => b.status === 'paid').reduce((s, b) => s + (b.amount || 0), 0);
     const pending = filteredBills.filter(b => b.status === 'pending').length;
-    const pendingAmount = filteredBills.filter(b => b.status === 'pending').reduce((s, b) => s + b.amount, 0);
+    const pendingAmount = filteredBills.filter(b => b.status === 'pending').reduce((s, b) => s + (b.amount || 0), 0);
     const overdue = filteredBills.filter(b => b.status === 'overdue').length;
-    const overdueAmount = filteredBills.filter(b => b.status === 'overdue').reduce((s, b) => s + b.amount, 0);
+    const overdueAmount = filteredBills.filter(b => b.status === 'overdue').reduce((s, b) => s + (b.amount || 0), 0);
     setStats({ total, totalAmount, paid, paidAmount, pending, pendingAmount, overdue, overdueAmount });
   };
 
-  const handleViewBill = (billId) => navigate(`/operator/detail-view/${billId}`);
-  const handleSendReminder = async (billId) => {
-    const confirmed = ({
-      title: 'Send Reminder',
-      message: 'Are you sure you want to send the same.',
-      type: 'success',
-      confirmText: 'Send',
-    });
-    if (confirmed) {
-      try {
-        await OperatorService.sendReminder(billId);
-        toast.success(`Reminder sent to patient`);
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to send reminder');
-      } finally {
-        setLoading(false);
-      }
-    }
+  const handleViewBill = (billId) => {
+    navigate(`/operator/detail-view/${billId}`);
   };
-  const handleProcessPayment = (billId) => navigate(`/operator/process-payment`);
-  const handlePrintReceipt = async (billId) => {
+
+  const handleProcessPayment = (billId) => {
+    navigate(`/operator/process-payment/${billId}`);
+  };
+
+  const handlePrintReceipt = async (bill) => {
     try {
-      const response = await OperatorService.printReceipt(billId)
+      const response = await OperatorService.printReceipt(bill.id);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `receipt_${billId}.pdf`);
+      link.setAttribute('download', `receipt_${bill.id}.pdf`);
       document.body.appendChild(link);
       link.click();
       window.URL.revokeObjectURL(url);
-      console.log('Receipt ready for printing');
+      toast.success('Receipt downloaded successfully');
     } catch (err) {
-      console.error('Failed to print receipt');
+      console.error('Failed to print receipt:', err);
+      toast.error('Failed to print receipt');
     }
+  };
+
+  const handleSendReminder = async (billId) => {
+    try {
+      await OperatorService.sendReminder(billId);
+      toast.success('Reminder sent successfully');
+    } catch (err) {
+      console.error('Failed to send reminder:', err);
+      toast.error('Failed to send reminder');
+    }
+  };
+
+  const handleMenuOpen = (event, bill) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedBill(bill);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedBill(null);
   };
 
   const paginatedBills = filteredBills.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -318,19 +336,20 @@ const BillList = () => {
       <Box sx={{ p: 3 }}>
         <Grid container spacing={3}>
           {[1, 2, 3, 4].map(i => (
-            <Grid item xs={12} sm={6} md={3} key={1}>
-              <Skeleton variant='rectangular' height={120} sx={{ borderRadius: 3 }} />
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 3 }} />
             </Grid>
           ))}
           <Grid item xs={12}>
-            <Skeleton variant='rectangular' height={400} sx={{ borderRadius: 3 }} />
+            <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3 }} />
           </Grid>
         </Grid>
       </Box>
     );
   }
+
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
+    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh' }}>
       <Slide direction="down" in={true} timeout={600}>
         <HeroSection>
           <Grid container spacing={3} alignItems="center">
@@ -369,10 +388,10 @@ const BillList = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {[
-          { label: 'Total Bills', value: stats.total, amount: stats.totalAmount, icon: <ReceiptIcon />, color: theme.palette.info.main, trend: '+12%' },
-          { label: 'Paid', value: stats.paid, amount: stats.paidAmount, icon: <CheckIcon />, color: theme.palette.success.main, trend: '+8%' },
-          { label: 'Pending', value: stats.pending, amount: stats.pendingAmount, icon: <ScheduleIcon />, color: theme.palette.warning.main, trend: '-3%' },
-          { label: 'Overdue', value: stats.overdue, amount: stats.overdueAmount, icon: <WarningIcon />, color: theme.palette.error.main, trend: '+5%' },
+          { label: 'Total Bills', value: stats.total, amount: stats.totalAmount, icon: <ReceiptIcon />, color: theme.palette.info.main },
+          { label: 'Paid', value: stats.paid, amount: stats.paidAmount, icon: <CheckIcon />, color: theme.palette.success.main },
+          { label: 'Pending', value: stats.pending, amount: stats.pendingAmount, icon: <ScheduleIcon />, color: theme.palette.warning.main },
+          { label: 'Overdue', value: stats.overdue, amount: stats.overdueAmount, icon: <WarningIcon />, color: theme.palette.error.main },
         ].map((stat, idx) => (
           <Grid item xs={12} sm={6} md={3} key={idx}>
             <StatsCard
@@ -397,16 +416,6 @@ const BillList = () => {
                   {stat.icon}
                 </Avatar>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-                {stat.trend.startsWith('+') ? (
-                  <TrendingUpIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                ) : (
-                  <TrendingDownIcon sx={{ fontSize: 14, color: 'error.main' }} />
-                )}
-                <Typography variant="caption" color="textSecondary">
-                  {stat.trend} from last month
-                </Typography>
-              </Box>
             </StatsCard>
           </Grid>
         ))}
@@ -420,13 +429,12 @@ const BillList = () => {
         <GlassSearchBar elevation={0} sx={{ mb: 3 }}>
           <SearchIcon sx={{ color: 'text.secondary', mr: 1.5 }} />
           <TextField
-            placeholder="Search by bill number, patient name, or amount..."
+            placeholder="Search by bill number, patient name..."
             variant="standard"
             fullWidth
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{ disableUnderline: true }}
-            sx={{ fontSize: '1rem' }}
           />
           {searchTerm && (
             <IconButton size="small" onClick={() => setSearchTerm('')}>
@@ -441,7 +449,6 @@ const BillList = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               label="Status"
               disableUnderline
-              sx={{ fontSize: '0.9rem' }}
             >
               <MenuItem value="all">All Bills</MenuItem>
               <MenuItem value="paid">Paid</MenuItem>
@@ -483,24 +490,25 @@ const BillList = () => {
                   </TableHead>
                   <TableBody>
                     {paginatedBills.map((bill, idx) => (
-                      <AnimatedTableRow
+                      <motion.tr
                         key={bill.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        hover
-                        sx={{ '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}
+                        style={{ transition: 'all 0.2s ease' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = alpha(theme.palette.primary.main, 0.02)}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                            {bill.billNumber}
+                            {bill.billNumber || `INV-${bill.id}`}
                           </Typography>
                         </TableCell>
-                        <TableCell>{bill.patientName}</TableCell>
+                        <TableCell>{bill.patientName || 'N/A'}</TableCell>
                         <TableCell>{formatDate(bill.date)}</TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {formatCurrency(bill.amount)}
+                            {formatCurrency(bill.amount || 0)}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -510,8 +518,8 @@ const BillList = () => {
                         </TableCell>
                         <TableCell>
                           <StatusBadge
-                            label={bill.status.toUpperCase()}
-                            status={bill.status}
+                            label={bill.status ? bill.status.toUpperCase() : 'PENDING'}
+                            status={bill.status || 'pending'}
                             size="small"
                             icon={bill.status === 'paid' ? <CheckIcon /> : bill.status === 'pending' ? <ScheduleIcon /> : <WarningIcon />}
                           />
@@ -535,15 +543,12 @@ const BillList = () => {
                                 <PrintIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => { setAnchorE1(e.currentTarget); setSelectedBill(bill); }}
-                            >
+                            <IconButton size="small" onClick={(e) => handleMenuOpen(e, bill)}>
                               <MoreVertIcon fontSize="small" />
                             </IconButton>
                           </Box>
                         </TableCell>
-                      </AnimatedTableRow>
+                      </motion.tr>
                     ))}
                   </TableBody>
                 </Table>
@@ -562,22 +567,26 @@ const BillList = () => {
               {paginatedBills.map((bill, idx) => (
                 <Grid item xs={12} sm={6} md={4} key={bill.id}>
                   <BillCard
-                    status={bill.status}
+                    status={bill.status || 'pending'}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                        {bill.billNumber}
+                        {bill.billNumber || `INV-${bill.id}`}
                       </Typography>
-                      <StatusBadge label={bill.status.toUpperCase()} status={bill.status} size="small" />
+                      <StatusBadge
+                        label={bill.status ? bill.status.toUpperCase() : 'PENDING'}
+                        status={bill.status || 'pending'}
+                        size="small"
+                      />
                     </Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                      {bill.patientName}
+                      {bill.patientName || 'N/A'}
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', mb: 2 }}>
-                      {formatCurrency(bill.amount)}
+                      {formatCurrency(bill.amount || 0)}
                     </Typography>
                     <Divider sx={{ my: 1.5 }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -636,27 +645,27 @@ const BillList = () => {
       )}
 
       <Menu
-        anchorEl={anchorE1}
-        open={Boolean(anchorE1)}
-        onClose={() => setAnchorE1(null)}
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
         PaperProps={{ sx: { borderRadius: 2, minWidth: 180 } }}
       >
-        <MenuItem onClick={() => { handleViewBill(selectedBill?.id); setAnchorE1(null); }}>
+        <MenuItem onClick={() => { handleViewBill(selectedBill?.id); handleMenuClose(); }}>
           <ListItemIcon><VisibilityIcon fontSize="small" /></ListItemIcon>
           <ListItemText>View Details</ListItemText>
         </MenuItem>
         {selectedBill?.status !== 'paid' && (
-          <MenuItem onClick={() => { handleProcessPayment(selectedBill?.id); setAnchorE1(null); }}>
+          <MenuItem onClick={() => { handleProcessPayment(selectedBill?.id); handleMenuClose(); }}>
             <ListItemIcon><MoneyIcon fontSize="small" /></ListItemIcon>
             <ListItemText>Process Payment</ListItemText>
           </MenuItem>
         )}
-        <MenuItem onClick={() => { handlePrintReceipt(selectedBill); setAnchorE1(null); }}>
+        <MenuItem onClick={() => { handlePrintReceipt(selectedBill); handleMenuClose(); }}>
           <ListItemIcon><PrintIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Print Bill</ListItemText>
         </MenuItem>
         <Divider />
-        <MenuItem onClick={() => { handleSendReminder(selectedBill?.id); setAnchorE1(null); }}>
+        <MenuItem onClick={() => { handleSendReminder(selectedBill?.id); handleMenuClose(); }}>
           <ListItemIcon><EmailIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Send Reminder</ListItemText>
         </MenuItem>
@@ -664,25 +673,5 @@ const BillList = () => {
     </Box>
   );
 };
-
-const GridIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-);
-
-const ViewListIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="8" y1="6" x2="21" y2="6" />
-    <line x1="8" y1="12" x2="21" y2="12" />
-    <line x1="8" y1="18" x2="21" y2="18" />
-    <line x1="3" y1="6" x2="3.01" y2="6" />
-    <line x1="3" y1="12" x2="3.01" y2="12" />
-    <line x1="3" y1="18" x2="3.01" y2="18" />
-  </svg>
-);
 
 export default BillList;

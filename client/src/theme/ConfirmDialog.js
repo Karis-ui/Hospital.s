@@ -15,7 +15,7 @@ import {
   Info as InfoIcon,
   CheckCircle as SuccessIcon,
 } from '@mui/icons-material';
-import { platinumTheme } from '../theme/adminComponents';
+import { platinumTheme } from './GenLayout';
 
 export const ConfirmDialog = ({
   open,

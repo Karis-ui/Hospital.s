@@ -26,14 +26,15 @@ import {
   Warning as WarningIcon,
   Radio,
 } from '@mui/icons-material';
-import { alpha, animate, AnimatePresence, color, motion } from 'framer-motion';
+import { animate, AnimatePresence, motion } from 'framer-motion';
+import { alpha } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 import { adminService } from '../../../services/users/admin';
 import {
   platinumTheme, PremiumHeader, PremiumCard, PremiumTableContainer,
   StatusChip, GlassSearchBar, SectionTitle, StatCard,GlassCard,RoleBadge,
   PlatinumButton
-} from '../../../theme/adminComponents';
+} from '../../../theme/GenLayout';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const AnimatedStatCard = motion(StatCard);
@@ -80,7 +81,7 @@ export const SetApproval = ()=>{
     const [action,setAction] = useState('approve');
     const [rejectReason,setRejectReason] = useState('');
     const [openReviewDialog,setOpenreviewDialog] = useState(false);
-    const [submitting,setSubmittiing] = useState(true);
+    const [submitting,setSubmitting] = useState(true);
 
     useEffect(()=>{
         fetchApprovals();
@@ -92,7 +93,7 @@ export const SetApproval = ()=>{
             const response = await adminService.pendingApprovals();
             if(response.data.status === 'success'){
                 setApprovals(response.data.data);
-                filteredApprovals(response.data.data,searchTerm);
+                filterApprovals(response.data.data, searchTerm);
                 calculateStats(response.data.data);
             }
         }catch(err){
@@ -137,10 +138,10 @@ export const SetApproval = ()=>{
         toast.warning('Please provide a valid reason');
         return;
       }
-      setSubmittiing(true);
+      setSubmitting(true);
       try{
-        const data = action == 'approve'?{staus: 'approve'}:{status:'rejected',reject_reason:rejectReason};
-        await adminService.setApproval(selectedApproval.id,data);
+        const data = action === 'approve' ? { status: 'approved' } : { status: 'rejected', reject_reason: rejectReason };
+        await adminService.setApproval(selectedApproval.id, data);
         toast.success(`User ${action}d successfully`);
         setOpenreviewDialog(false);
         fetchApprovals();

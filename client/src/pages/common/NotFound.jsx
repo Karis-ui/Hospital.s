@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, Button, Avatar, alpha } from '@mui/material';
 import { SearchOff as SearchOffIcon, Home as HomeIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { platinumTheme } from '../../theme/adminComponents';
+import { platinumTheme } from '../../theme/GenLayout';
 
 export const NotFound = ()=>{
   const navigate = useNavigate();

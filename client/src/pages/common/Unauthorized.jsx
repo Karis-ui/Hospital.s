@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, Button, Avatar, alpha } from '@mui/material';
 import { Error as ErrorIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { platinumTheme } from '../../theme/adminComponents';
+import { platinumTheme } from '../../theme/GenLayout';
 
 export const Unauthorized = ()=>{
     const navigate = useNavigate();

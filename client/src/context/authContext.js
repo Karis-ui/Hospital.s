@@ -68,6 +68,12 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const adminLogout = ()=>{
+        console.log('Admin logged out successfull......');
+        authService.adminLogout();
+        setUser(null);
+    };
+
     const register = async (data, type) => {
         try {
             setError(null);
@@ -172,7 +178,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const value = {
-        user, loading, error, login, adminLogin, logout, register, setError, forgotPass, resetPass
+        user, loading, error, login, adminLogin, adminLogout, logout, register, setError, forgotPass, resetPass
     };
 
     return (

@@ -18,7 +18,7 @@ import { toast } from 'react-toastify';
 import {
   platinumTheme, PremiumHeader, PremiumCard, PlatinumButton,
   SectionTitle, GlassCard,
-} from '../../../theme/adminComponents';
+} from '../../../theme/GenLayout';
 import { adminService } from '../../../services/users/admin';
 
 const TabPanel = ({children,value,index}) =>{

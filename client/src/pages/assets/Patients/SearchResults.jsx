@@ -180,12 +180,6 @@ export const SearchResults = () =>{
         }
     };
 
-    const handleClearSearch = () =>{
-        searchTerm('');
-        setResults(null);
-        setFilteredResults(null);
-    };
-
     const handleSaveResult = (result) =>{
         const isSaved = savedResults.some(r => r.id === result.id);
         if(isSaved){
@@ -225,7 +219,7 @@ export const SearchResults = () =>{
               ),
               endAdornment: searchTerm && (
                 <InputAdornment position="end">
-                  <IconButton onClick={handleClearSearch}>
+                  <IconButton onClick={() => setSearchTerm('')}>
                     <ClearIcon />
                   </IconButton>
                 </InputAdornment>

@@ -160,7 +160,13 @@ export const authService = {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        window.location.href = '/accounts/login';
+        window.location.href = '/login';
+    },
+
+    adminLogout:()=>{
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/admin/login'
     },
 
     getCurrentUser: async (uId) => {

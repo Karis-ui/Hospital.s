@@ -6,7 +6,7 @@ import {
   Alert, CircularProgress, Grid, Card, CardContent, Typography, FormControl, InputLabel, Select, MenuItem, Button, LinearProgress, Pagination,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { alpha } from "framer-motion";
+import { alpha } from '@mui/material/styles';
 import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
@@ -35,7 +35,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
   platinumTheme, PremiumHeader, PremiumCard, PremiumTableContainer,
   StatusChip, GlassSearchBar, SectionTitle, StatCard, GlassCard, RoleBadge
-} from '../../../theme/adminComponents';
+} from '../../../theme/GenLayout';
 import { act } from "react";
 
 const ActionChip = ({ action }) => {

@@ -1,8 +1,38 @@
-import { Box, Avatar, Card, Button, Paper, Chip, Typography, TableRow, BottomNavigation as Navbar, Icon as IconButton } from '@mui/material';
+import { Box, Avatar, Card, Button, Paper, Chip, Typography, TableRow, BottomNavigation as Navbar, Icon as IconButton, Divider, Tooltip } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';
+import {
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  CheckCircle as ApproveIcon,
+  Assessment as ReportsIcon,
+  Security as AuditIcon,
+  Settings as SettingsIcon,
+  Search as SearchIcon,
+  Logout as LogoutIcon,
+  LocalHospital as HospitalIcon,
+  CalendarToday as CalendarIcon,
+  MedicalServices as PrescriptionIcon,
+  Person as ProfileIcon,
+  Science as LabIcon,
+  Assignment as RequestIcon,
+  CloudUpload as UploadIcon,
+  EventNote as AppointmentIcon,
+  FolderShared as RecordsIcon,
+  Receipt as BillsIcon,
+  AccountBalanceWallet as PaymentIcon,
+  Biotech as LabViewIcon,
+  PointOfSale as CreateBillIcon,
+  SwapHoriz as TransactionIcon,
+  History as HistoryIcon,
+  PersonSearch as PatientListIcon,
+  CreditCard as ProcessPaymentIcon,
+  ReceiptLong as ReceiptIcon,
+  Bookmark as BookAppointmentIcon,
+  PersonAdd as PatientDetailsIcon,
+} from '@mui/icons-material';
 
 export const platinumTheme = {
   primary: { main: '#1a2639', light: '#2c3e50', dark: '#0f1a2f', contrast: '#ffffff' },
@@ -252,97 +282,198 @@ export const AuthLayout = () => {
   );
 }
 
-export const AppLayout = () => {
-  const { user, logout } = useAuth();
+export const AdLayout = () => {
+  const { user,adminLogout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const getLinksForRole = (role) => {
-    switch (role) {
-      case 'admin':
         return [
-          { name: 'Dashboard', path: '/admin/dashboard' },
-          { name: 'Users', path: '/admin/users' },
-          { name: 'Approvals', path: '/admin/approvals' },
-          { name: 'Reports', path: '/admin/reports/generate' },
-          { name: 'Audit Logs', path: '/admin/audit-logs' },
-          { name: 'Settings', path: '/admin/settings' },
+          { section: 'Main' },
+          { name: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon /> },
+          { name: 'Users', path: '/admin/users', icon: <PeopleIcon /> },
+          { section: 'Management' },
+          { name: 'Approvals', path: '/admin/approvals', icon: <ApproveIcon /> },
+          { name: 'Generate Reports', path: '/admin/reports/generate', icon: <ReportsIcon /> },
+          { name: 'Audit Logs', path: '/admin/audit-logs', icon: <AuditIcon /> },
+          { section: 'System' },
+          { name: 'System Settings', path: '/admin/settings', icon: <SettingsIcon /> },
+          { name: 'Search', path: '/admin/search', icon: <SearchIcon /> },
         ];
-      case 'doctor':
-        return [
-          { name: 'Dashboard', path: '/doctor/dashboard' },
-          { name: 'Appointments', path: '/doctor/appointments' },
-          { name: 'Prescriptions', path: '/doctor/prescriptions' },
-          { name: 'Profile', path: '/doctor/profile' },
-        ];
-      case 'lab_technician':
-        return [
-          { name: 'Dashboard', path: '/lab/dashboard' },
-          { name: 'Requests', path: '/lab/requests' },
-          { name: 'Profile', path: '/lab/profile' },
-        ];
-      case 'patient':
-        return [
-          { name: 'Dashboard', path: '/patient/dashboard' },
-          { name: 'Appointments', path: '/patient/appointments' },
-          { name: 'Records', path: '/patient/records' },
-          { name: 'Bills', path: '/patient/bills' },
-          { name: 'Profile', path: '/patient/profile' },
-        ];
-      case 'operator':
-        return [
-          { name: 'Dashboard', path: '/operator/dashboard' },
-          { name: 'Bills', path: '/operator/bills' },
-          { name: 'Transactions', path: '/operator/transactions' },
-          { name: 'Patients', path: '/operator/patients' },
-        ];
-      default:
-        return [{ name: 'Home', path: '/home' }];
-    }
+    };
+
+  const userRole = user?.user_type || user?.role;
+  const inferRoleFromPath = () => {
+    location.pathname.startsWith('/admin');
+    return 'admin';
   };
 
-  const links = getLinksForRole(user?.role);
+  const effectiveRole = userRole || inferRoleFromPath();
+  const links = getLinksForRole(effectiveRole);
+
+  const roleConfig = {
+    admin: { title: 'Admin Portal', accent: platinumTheme.accent.purple },
+  };
+  const currentRoleConfig = roleConfig[userRole] || { title: 'SmartCare', accent: platinumTheme.accent.blue };
+
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <div className="app-layout" style={{ display: 'flex' }}>
       <Sidebar>
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <AdminAvatar>
-            {user?.first_name?.[0] || 'U'}
-          </AdminAvatar>
-          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold' }}>
+        {/* ─── Branding ─── */}
+        <Box sx={{
+          p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5,
+          borderBottom: `1px solid ${alpha('#fff', 0.08)}`,
+        }}>
+          <Box sx={{
+            width: 40, height: 40, borderRadius: '12px',
+            background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 4px 15px ${alpha(currentRoleConfig.accent, 0.4)}`,
+          }}>
+            <HospitalIcon sx={{ color: '#fff', fontSize: 22 }} />
+          </Box>
+          <Box>
+            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2, letterSpacing: '0.02em' }}>
+              SmartCare
+            </Typography>
+            <Typography sx={{ color: alpha('#fff', 0.5), fontSize: '0.7rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {currentRoleConfig.title}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* ─── User Profile ─── */}
+        <Box sx={{ px: 2.5, py: 2.5, textAlign: 'center', borderBottom: `1px solid ${alpha('#fff', 0.08)}` }}>
+          <Avatar sx={{
+            width: 64, height: 64, mx: 'auto', mb: 1.5,
+            background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
+            border: `3px solid ${alpha('#fff', 0.2)}`,
+            boxShadow: `0 8px 24px ${alpha(currentRoleConfig.accent, 0.3)}`,
+            fontSize: '1.5rem', fontWeight: 700, color: '#fff',
+            transition: 'all 0.3s ease',
+            '&:hover': { transform: 'scale(1.08)', boxShadow: `0 12px 32px ${alpha(currentRoleConfig.accent, 0.5)}` },
+          }}>
+            {user?.first_name?.[0]?.toUpperCase() || 'U'}
+          </Avatar>
+          <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>
             {user?.first_name} {user?.last_name}
           </Typography>
-          <RoleBadge role={user?.role} label={user?.role?.replace('_', ' ')} size="small" sx={{ mt: 1 }} />
+          <Chip
+            label={userRole?.replace('_', ' ')}
+            size="small"
+            sx={{
+              mt: 0.8,
+              bgcolor: alpha(currentRoleConfig.accent, 0.15),
+              color: currentRoleConfig.accent,
+              border: `1px solid ${alpha(currentRoleConfig.accent, 0.3)}`,
+              fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}
+          />
         </Box>
-        <Box sx={{ mt: 2 }}>
-          {links.map((link) => (
-            <Button
-              key={link.name}
-              fullWidth
-              onClick={() => navigate(link.path)}
-              sx={{
-                color: '#fff',
-                justifyContent: 'flex-start',
-                px: 4,
-                py: 1.5,
-                textTransform: 'none',
-                '&:hover': { background: 'rgba(255,255,255,0.1)' }
-              }}
-            >
-              {link.name}
-            </Button>
-          ))}
+
+        {/* ─── Navigation Links ─── */}
+        <Box sx={{
+          flex: 1, overflowY: 'auto', py: 1.5, px: 1.5,
+          '&::-webkit-scrollbar': { width: '4px' },
+          '&::-webkit-scrollbar-thumb': { background: alpha('#fff', 0.15), borderRadius: '4px' },
+        }}>
+          {links.map((item, index) => {
+            // Section headers
+            if (item.section) {
+              return (
+                <Typography key={`section-${index}`} sx={{
+                  color: alpha('#fff', 0.35), fontSize: '0.65rem', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.12em',
+                  px: 1.5, pt: index === 0 ? 0.5 : 2, pb: 0.8,
+                }}>
+                  {item.section}
+                </Typography>
+              );
+            }
+
+            const active = isActive(item.path);
+
+            return (
+              <Tooltip title={item.name} placement="right" arrow key={item.name}
+                slotProps={{ tooltip: { sx: { display: { md: 'none' } } } }}
+              >
+                <Button
+                  fullWidth
+                  onClick={() => navigate(item.path)}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    gap: 1.5,
+                    px: 1.5, py: 1,
+                    mb: 0.3,
+                    borderRadius: '10px',
+                    textTransform: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: active ? 600 : 400,
+                    color: active ? '#fff' : alpha('#fff', 0.65),
+                    position: 'relative',
+                    overflow: 'hidden',
+                    background: active
+                      ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.2)}, ${alpha(currentRoleConfig.accent, 0.05)})`
+                      : 'transparent',
+                    // Gold left accent bar on active item
+                    '&::before': active ? {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0, top: '20%', bottom: '20%',
+                      width: '3px',
+                      borderRadius: '0 3px 3px 0',
+                      background: platinumTheme.secondary.main,
+                      boxShadow: `0 0 8px ${alpha(platinumTheme.secondary.main, 0.6)}`,
+                    } : {},
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      color: '#fff',
+                      background: active
+                        ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.25)}, ${alpha(currentRoleConfig.accent, 0.08)})`
+                        : alpha('#fff', 0.06),
+                      transform: 'translateX(3px)',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      fontSize: '1.2rem',
+                      color: active ? currentRoleConfig.accent : alpha('#fff', 0.45),
+                      transition: 'color 0.2s ease',
+                    },
+                    '&:hover .MuiSvgIcon-root': {
+                      color: active ? currentRoleConfig.accent : alpha('#fff', 0.8),
+                    },
+                  }}
+                >
+                  {item.icon}
+                  {item.name}
+                </Button>
+              </Tooltip>
+            );
+          })}
+        </Box>
+
+        {/* ─── Logout Footer ─── */}
+        <Box sx={{ p: 1.5, borderTop: `1px solid ${alpha('#fff', 0.08)}` }}>
           <Button
             fullWidth
-            onClick={logout}
+            onClick={adminLogout}
+            startIcon={<LogoutIcon />}
             sx={{
-              color: '#e74c3c',
               justifyContent: 'flex-start',
-              px: 4,
-              py: 1.5,
-              mt: 2,
+              gap: 1,
+              px: 1.5, py: 1,
+              borderRadius: '10px',
               textTransform: 'none',
-              '&:hover': { background: 'rgba(231,76,60,0.1)' }
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              color: alpha(platinumTheme.accent.red, 0.8),
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                background: alpha(platinumTheme.accent.red, 0.1),
+                color: platinumTheme.accent.red,
+                transform: 'translateX(3px)',
+              },
             }}
           >
             Logout

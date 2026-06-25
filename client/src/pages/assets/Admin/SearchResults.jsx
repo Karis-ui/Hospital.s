@@ -26,7 +26,7 @@ import { adminService } from '../../../services/users/admin';
 import {
   platinumTheme, PremiumHeader, GlassSearchBar,
   SectionTitle,
-} from '../../../theme/adminComponents';
+} from '../../../theme/GenLayout';
 
 
 const ResultItem = ({ result, type, onNaviage }) => {

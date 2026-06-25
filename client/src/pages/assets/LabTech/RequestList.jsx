@@ -29,14 +29,11 @@ import {
   Zoom,
   Badge,
   Avatar,
-  Rating,
   LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   alpha,
-  useTheme, Stack,
+  useTheme,
+  Stack,
+  Skeleton,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useAuth } from '../../../context/authContext';
@@ -56,17 +53,10 @@ import {
   Verified as VerifiedIcon,
   Warning as WarningIcon,
   MoreVert as MoreVertIcon,
-  PictureAsPdf as PdfIcon,
-  Image as ImageIcon,
-  Description as DocIcon,
-  Send as SendIcon,
-  ThumbUp as ThumbUpIcon,
-  ThumbDown as ThumbDownIcon,
-  Assessment as AssessmentIcon,
-  Assignment as AssignmentIcon,
   Biotech as BiotechIcon,
   Check as CheckIcon,
   FileDownload as ReadyIcon,
+  Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -97,12 +87,14 @@ const StatsCard = styled(Card)(({ theme, color }) => ({
 }));
 
 const StatusChip = styled(Chip)(({ theme, status }) => {
-  const colors = {
-    approved: { bg: '#e8f5e9', color: '#2e7d32', icon: <ApprovedIcon /> },
-    pending: { bg: '#fff3e0', color: '#ed6c02', icon: <PendingIcon /> },
-    rejected: { bg: '#ffebee', color: '#c62828', icon: <CancelIcon /> },
+  const statusMap = {
+    requested: { bg: '#fff3e0', color: '#ed6c02', icon: <PendingIcon /> },
+    processing: { bg: '#e3f2fd', color: '#0288d1', icon: <BiotechIcon /> },
+    sample_taken: { bg: '#e8f5e9', color: '#2e7d32', icon: <CheckIcon /> },
+    ready: { bg: '#e8f5e9', color: '#1b5e20', icon: <ReadyIcon /> },
+    cancelled: { bg: '#ffebee', color: '#c62828', icon: <CancelIcon /> },
   };
-  const config = colors[status] || colors.pending;
+  const config = statusMap[status] || statusMap.requested;
   return {
     backgroundColor: config.bg,
     color: config.color,
@@ -132,70 +124,111 @@ const GlassSearchBar = styled(Paper)(({ theme }) => ({
 export const RequestList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const theme = useTheme();
+  
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage] = useState(10);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [anchorE1, setAnchorE1] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [stats, setStats] = useState({
     total: 0,
     requested: 0,
+    processing: 0,
     sample_taken: 0,
     ready: 0,
     cancelled: 0,
   });
-  const [opensendingDialog, setOpenSendingDialog] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRequests();
   }, []);
 
   useEffect(() => {
-    filteredRequests = requests.filter(req => {
-      const matchesSearch = req.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) || req.test_name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
-      const matchesTab = tabValue === 0 || (tabValue === 1 && req.status === 'requested') || (tabValue === 2 && req.status === 'sample_taken') || (tabValue === 3 && req.status === 'ready') || (tabValue === 4 && req.status === 'cancelled');
-      return matchesSearch && matchesStatus && matchesTab;
-    });
-    setFilteredRequests(filteredRequests);
-    setPage(1);
-    calculateStats();
-  }, [requests, searchTerm, statusFilter]);
+    if (requests.length > 0) {
+      const filtered = requests.filter(req => {
+        const patientName = req.patient?.first_name || '';
+        const patientLastName = req.patient?.last_name || '';
+        const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          patientLastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          req.test_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          req.id?.toString().includes(searchTerm);
+        
+        const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
+        const matchesTab = tabValue === 0 || 
+          (tabValue === 1 && req.status === 'requested') || 
+          (tabValue === 2 && req.status === 'processing') ||
+          (tabValue === 3 && req.status === 'sample_taken') || 
+          (tabValue === 4 && req.status === 'ready') || 
+          (tabValue === 5 && req.status === 'cancelled');
+        
+        return matchesSearch && matchesStatus && matchesTab;
+      });
+      setFilteredRequests(filtered);
+      calculateStats(filtered);
+    }
+  }, [requests, searchTerm, statusFilter, tabValue]);
 
   const fetchRequests = async () => {
+    setLoading(true);
     try {
       const response = await labServices.getLabRequestList({ ordering: '-created_at' });
-      if (response.data.status !== 'success') throw new Error('Failed to fetch requests');
-      setRequests(response.data.requests);
-      setStats(response.data.stats);
-      setLoading(true);
+      if (response.data.status !== 'success') {
+        throw new Error('Failed to fetch requests');
+      }
+      setRequests(response.data.requests || []);
+      setStats(response.data.stats || {
+        total: 0,
+        requested: 0,
+        processing: 0,
+        sample_taken: 0,
+        ready: 0,
+        cancelled: 0,
+      });
+      setError(null);
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to load requests. Please try again later.', severity: 'error' });
-      setRequests([]);
+      console.error('Error fetching requests:', err);
       setError('Failed to load requests. Please try again later.');
+      toast.error('Failed to load requests');
+      setRequests([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getTabCount = (type) => {
-    if (type === 'all') return stats.total;
-    if (type === 'requested') return stats.requested;
-    if (type === 'sample_taken') return stats.sample_taken;
-    if (type === 'ready') return stats.ready;
-    if (type === 'cancelled') return stats.cancelled;
-    return 0;
+  const calculateStats = (filtered) => {
+    if (!filtered) return;
+    const total = filtered.length;
+    const requested = filtered.filter(req => req.status === 'requested').length;
+    const processing = filtered.filter(req => req.status === 'processing').length;
+    const sample_taken = filtered.filter(req => req.status === 'sample_taken').length;
+    const ready = filtered.filter(req => req.status === 'ready').length;
+    const cancelled = filtered.filter(req => req.status === 'cancelled').length;
+    setStats({ total, requested, processing, sample_taken, ready, cancelled });
   };
 
   const handleProcessTest = (requestId) => {
-    navigate(`/labTechnician/detail_view/${requestId}/request`);
+    navigate(`/lab/process/${requestId}`);
+  };
+
+  const handleViewRequest = (requestId) => {
+    navigate(`/lab/request/${requestId}`);
+  };
+
+  const handleStatusChange = async (requestId, newStatus) => {
+    try {
+      await labServices.updateRequestStatus(requestId, newStatus);
+      toast.success(`Request status updated to ${newStatus}`);
+      fetchRequests();
+    } catch (err) {
+      console.error('Status update error:', err);
+      toast.error('Failed to update request status');
+    }
   };
 
   const paginatedRequests = filteredRequests.slice(
@@ -203,37 +236,42 @@ export const RequestList = () => {
     page * rowsPerPage
   );
 
-  const calculateStats = () => {
-    const total = filteredRequests.length;
-    const requested = filteredRequests.reduce((count, req) => count + (req.status === 'requested' ? 1 : 0), 0);
-    const sample_taken = filteredRequests.reduce((count, req) => count + (req.status === 'sample_taken' ? 1 : 0), 0);
-    const ready = filteredRequests.reduce((count, req) => count + (req.status === 'ready' ? 1 : 0), 0);
-    const cancelled = filteredRequests.reduce((count, req) => count + (req.status === 'cancelled' ? 1 : 0), 0);
-    setStats({ total, requested, sample_taken, ready, cancelled });
-  };
-
-  const handleViewRequest = (requestId) => navigate(`/labTechnician/detail_view/${requestId}/request`);
-  const handleStatusChange = async (requestId, newStatus) => {
-    try {
-      const res = await labServices.updateRequestStatus(requestId, newStatus);
-      toast.success(`Request ${requestId} status changed to ${newStatus}`);
-      fetchRequests();
-      setLoading(true);
-    } catch (err) {
-      toast.error('Failed to update request status. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading && requests.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}><CircularProgress /></Box>
+      <Box sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 3 }} />
+            </Grid>
+          ))}
+          <Grid item xs={12}>
+            <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3 }} />
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={fetchRequests}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
           Lab Test Requests
@@ -256,7 +294,6 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#ed6c02" onClick={() => setTabValue(1)}>
             <CardContent>
@@ -269,7 +306,6 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#0288d1" onClick={() => setTabValue(2)}>
             <CardContent>
@@ -282,7 +318,6 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#2e7d32" onClick={() => setTabValue(3)}>
             <CardContent>
@@ -295,7 +330,6 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#1b5e20" onClick={() => setTabValue(4)}>
             <CardContent>
@@ -308,7 +342,6 @@ export const RequestList = () => {
             </CardContent>
           </StatsCard>
         </Grid>
-
         <Grid item xs={6} sm={4} md={2}>
           <StatsCard color="#c62828" onClick={() => setTabValue(5)}>
             <CardContent>
@@ -388,9 +421,9 @@ export const RequestList = () => {
         </Grid>
       </Paper>
 
-      {loading ? (
-        <LinearProgress />
-      ) : filteredRequests.length === 0 ? (
+      {loading && <LinearProgress />}
+
+      {filteredRequests.length === 0 ? (
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
           <AssignmentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
           <Typography variant="h6" color="textSecondary">
@@ -431,7 +464,7 @@ export const RequestList = () => {
                               #{request.id}
                             </Typography>
                             <Typography variant="caption" color="textSecondary">
-                              {format(new Date(request.requested_date), 'MMM dd, yyyy')}
+                              {format(new Date(request.created_at), 'MMM dd, yyyy')}
                             </Typography>
                           </Box>
                         </Box>
@@ -458,16 +491,19 @@ export const RequestList = () => {
                           Doctor:
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Dr. {request.doctor?.user?.full_name || 'N/A'}
+                          Dr. {request.doctor?.user?.first_name || 'N/A'}
                         </Typography>
                       </Grid>
 
                       <Grid item xs={12} md={2}>
                         <StatusChip
-                          icon={request.status === 'requested' ? <PendingIcon /> :
+                          icon={
+                            request.status === 'requested' ? <PendingIcon /> :
                             request.status === 'processing' ? <BiotechIcon /> :
-                              request.status === 'sample_taken' ? <CheckIcon /> :
-                                <ReadyIcon />}
+                            request.status === 'sample_taken' ? <CheckIcon /> :
+                            request.status === 'ready' ? <ReadyIcon /> :
+                            <CancelIcon />
+                          }
                           label={request.status}
                           status={request.status}
                           size="small"
@@ -526,3 +562,5 @@ export const RequestList = () => {
     </Box>
   );
 };
+
+export default RequestList;

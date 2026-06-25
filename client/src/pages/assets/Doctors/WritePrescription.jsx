@@ -93,7 +93,7 @@ import { useAuth } from '../../../context/authContext';
 import { doctorSevice } from '../../../services/users/doctor';
 import { formatDate, getInitials } from '../../../formatters';
 import { el } from 'date-fns/locale';
-import { platinumTheme as theme } from '../../../theme/adminComponents';
+import { platinumTheme as theme } from '../../../theme/GenLayout';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',

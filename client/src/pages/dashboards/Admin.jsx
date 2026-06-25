@@ -360,7 +360,7 @@ export const AdminDashboard = () => {
 
   const fetchStaff = async () => {
     try {
-      const response = await adminService.getAllStaff();
+      const response = await adminService.getAllBillStaff();
       setStaff(response.data);
     } catch (err) {
       console.error('Failed to fetch staff:', err);
@@ -413,7 +413,7 @@ export const AdminDashboard = () => {
     if (confirmed) {
       try {
         setProcessingId(userId);
-        await adminService.approveuser(userId);
+        await adminService.setApproval(userId);
         toast.success(`${userName} has been approved.`);
         fetchPendingApprovals();
         fetchDoctors();
@@ -435,7 +435,7 @@ export const AdminDashboard = () => {
     if (confirmed) {
       try {
         setProcessingId(userId);
-        await adminService.rejectUser(userId);
+        await adminService.deactivateUser(userId);
         toast.success(`${userName} has been rejected.`);
         fetchPendingApprovals();
       } catch (err) {
@@ -479,7 +479,7 @@ export const AdminDashboard = () => {
     if (confirmed) {
       try {
         setProcessingId(userId);
-        await adminService.deletePatient(userId);
+        await adminService.deleteUser(userId);
         toast.success(`${userName} has been deleted.`);
         fetchPatients();
       } catch (err) {
@@ -558,7 +558,6 @@ export const AdminDashboard = () => {
         break;
       case 'approvals':
         navigate('/admin/approvals');
-        break;
         break;
       case 'search':
         navigate('/admin/search');
