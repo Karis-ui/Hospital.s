@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import authService from "../services/authService";
-import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -9,7 +8,6 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         const loadUser = () => {
@@ -37,30 +35,14 @@ export const AuthProvider = ({ children }) => {
         loadUser();
     }, []);
 
-    const redirectToDashboard = (role) => {
-        const rolePaths = {
-            admin: '/admin/dashboard',
-            doctor: '/doctor/dashboard',
-            lab_technician: '/lab/dashboard',
-            patient: '/patient/dashboard',
-            operator: '/operator/dashboard',
-        };
-        const path = rolePaths[role] || '/patient/dashboard';
-        navigate(path);
-    }
-
-    const login = async (email, password) => {
+    const login = async (email, password, type) => {
         try {
             setError(null);
             const response = await authService.login(email, password);
-            const userData = response.data.user;
 
             console.log('✅Logged in successfully setting user state...');
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
-            const role = userData?.user_type || userData?.role || 'patient';
-            redirectToDashboard(role);
-            return { status: true, data: response.data };
+            setUser(response.data.user);
+            return response;
         } catch (err) {
             setError('Login Failed:', err);
             throw err;
@@ -70,15 +52,10 @@ export const AuthProvider = ({ children }) => {
     const adminLogin = async (email, password) => {
         try {
             setError(null);
-            const response = await authService.adminLogin(email, password);
-            const userData = response.data.user;
-
+            const res = await authService.adminLogin(email, password);
             console.log('✅Logged in successfully setting user state...');
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
-            const role = 'admin';
-            redirectToDashboard(role);
-            return { status: true, data: response.data };
+            setUser(res.data.user);
+            return res;
         } catch (err) {
             setError('Login failed:', err);
             throw err;
@@ -89,10 +66,9 @@ export const AuthProvider = ({ children }) => {
         console.log('Logout successful');
         authService.logout();
         setUser(null);
-        localStorage.removeItem('user');
     };
 
-    const adminLogout = () => {
+    const adminLogout = ()=>{
         console.log('Admin logged out successfull......');
         authService.adminLogout();
         setUser(null);
@@ -107,8 +83,7 @@ export const AuthProvider = ({ children }) => {
                     setError(null);
                     console.log('📝 Register admin function called with data:', data);
                     const response = await authService.registerAdmin(data);
-                    console.log('✅ Admin registration successful...Proceed to login', response);
-                    navigate('/admin/login');
+                    console.log('✅ Admin registration successful:', response);
                     return response;
                 } catch (err) {
                     console.error('Registration error in context', err);
@@ -121,8 +96,7 @@ export const AuthProvider = ({ children }) => {
                     setError(null);
                     console.log('📝 Register patient function called with data:', data);
                     const response = await authService.registerPatient(data);
-                    console.log('✅ Patient registration successful...Proceed to login', response);
-                    navigate('/login');
+                    console.log('✅ Patient registration successful:', response);
                     return response;
                 } catch (err) {
                     console.error('Registration error in context', err);
@@ -135,8 +109,7 @@ export const AuthProvider = ({ children }) => {
                     setError(null);
                     console.log('📝 Register doctor function called with data:', data);
                     const response = await authService.registerDoctor(data);
-                    console.log('✅ Doctor registration successful...Proceed to login', response);
-                    navigate('/login');
+                    console.log('✅ Doctor registration successful:', response);
                     return response;
                 } catch (err) {
                     console.error('Registration error in context', err);
@@ -149,8 +122,7 @@ export const AuthProvider = ({ children }) => {
                     setError(null);
                     console.log('📝 Register Lab Tech function called with data:', data);
                     const response = await authService.registerLabTechnician(data);
-                    console.log('✅ Lab Tech registration successful...Proceed to login', response);
-                    navigate('/login');
+                    console.log('✅ Lab Tech registration successful:', response);
                     return response;
                 } catch (err) {
                     console.error('Registration error in context', err);
@@ -163,8 +135,7 @@ export const AuthProvider = ({ children }) => {
                     setError(null);
                     console.log('📝 Register staff function called with data:', data);
                     const response = await authService.registerOperator(data);
-                    console.log('✅ Staff registration successful...Proceed to login', response);
-                    navigate('/login');
+                    console.log('✅ Staff registration successful:', response);
                     return response;
                 } catch (err) {
                     console.error('Registration error in context', err);
@@ -184,7 +155,6 @@ export const AuthProvider = ({ children }) => {
             setError(null);
             console.log('Forgot Password for email:', email);
             const response = await authService.forgotPassword(email);
-            navigate('/forgot-password')
             return response;
         } catch (err) {
             console.error('An error occurred. Try again later', err)
@@ -198,7 +168,6 @@ export const AuthProvider = ({ children }) => {
             setError(null);
             console.log('Reset Password for UID:', uId);
             const response = await authService.resetPassword(uId, token, newPassword, confirmPassword);
-            navigate('/resetPass')
             console.log('Reset Password successful.');
             return response;
         }

@@ -3,12 +3,6 @@ import api from "./api";
 import { useEffect } from "react";
 
 export const authService = {
-
-    isAdmin: () => {
-        const user = localStorage.getItem('user');
-        return user ? JSON.parse(user) : null;
-    },
-
     registerAdmin: async (adminData) => {
         try {
             const response = await api.post('/accounts/admin/register/', {
@@ -34,7 +28,6 @@ export const authService = {
                 localStorage.setItem('access_token', response.data.data.tokens.access);
                 localStorage.setItem('refresh_token', response.data.data.tokens.refresh);
                 localStorage.setItem('user', JSON.stringify(response.data.data.user));
-                localStorage.setItem('isAdmin', 'true');
             }
             return response.data
         } catch (err) {
@@ -170,11 +163,9 @@ export const authService = {
         window.location.href = '/login';
     },
 
-    adminLogout: () => {
+    adminLogout:()=>{
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('isAdmin');
         window.location.href = '/admin/login'
     },
 
@@ -214,11 +205,6 @@ export const authService = {
             this.logout();
             throw err;
         }
-    },
-
-    getUserRole: () => {
-        const user = authService.getCurrentUser();
-        return user?.userType || user?.userRole || 'patient';
     },
 };
 

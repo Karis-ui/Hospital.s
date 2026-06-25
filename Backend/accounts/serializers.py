@@ -1,5 +1,3 @@
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
@@ -37,16 +35,6 @@ class SignUp(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email_or_username = serializers.CharField(required=True)
     password = serializers.CharField(required=True,write_only=True)
-    def validate(self,data):
-        user = authenticate(username=data['email'],password=data['password'])
-        if not user:
-            raise serializers.ValidationError('Invalid credentials')
-
-        return{
-            'user':user,
-            'access':str(RefreshToken.for_user(user).access_token),
-            'refresh':str(RefreshToken.for_user(user))
-        }
 
 class ChangePasswordSerializer(serializers.Serializer):
     old = serializers.CharField(required=True,write_only=True)

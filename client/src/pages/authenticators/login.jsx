@@ -127,13 +127,8 @@ const Login = () => {
 
     try {
       const response = await login(formData.email, formData.password);
-      const userData = response.data.user;
-      console.log('Login result:', response);
-      if (response.success) {
-        console.log('User data:', userData);
-        console.log('User role:', userData.user_type || userData.role);
-      }
-      const userType = userData.user_type || userData || 'patient';
+
+      const userType = response.data.user.user_type;
       if (userType === 'patient') {
         navigate('/patient/dashboard');
       } else if (userType === 'doctor') {
@@ -142,9 +137,6 @@ const Login = () => {
         navigate('/operator/dashboard');
       } else if (userType === 'lab_technician') {
         navigate('/lab/dashboard');
-      }
-      else if (userType === 'admin' || userData.is_staff) {
-        navigate('/admin/dashboard');
       }
     } catch (err) {
       setError(`Login failed:${err}`);
