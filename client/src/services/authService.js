@@ -163,7 +163,7 @@ export const authService = {
         window.location.href = '/login';
     },
 
-    adminLogout:()=>{
+    adminLogout: () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         window.location.href = '/admin/login'
@@ -191,7 +191,7 @@ export const authService = {
 
             console.log('🔄 Refreshing access token');
             const response = await api.post('/accounts/refresh_token/', { refresh: refresh });
-            localStorage.setItem('access_token', response.data.data.access);
+            localStorage.setItem('access_token', response.data.access);
             console.log('Token refreshed successfully.');
             return response;
         }

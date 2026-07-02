@@ -33,6 +33,8 @@ import {
   Bookmark as BookAppointmentIcon,
   PersonAdd as PatientDetailsIcon,
 } from '@mui/icons-material';
+import { useEffect, useState } from 'react';
+import { useSessionTimeout } from '../context/timeout';
 
 export const platinumTheme = {
   primary: { main: '#1a2639', light: '#2c3e50', dark: '#0f1a2f', contrast: '#ffffff' },
@@ -283,207 +285,233 @@ export const AuthLayout = () => {
 }
 
 export const AdLayout = () => {
-  const { user,adminLogout } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [timeLeft, setTimeLeft] = useState(120);
 
-  const getLinksForRole = (role) => {
-        return [
-          { section: 'Main' },
-          { name: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon /> },
-          { name: 'Users', path: '/admin/users', icon: <PeopleIcon /> },
-          { section: 'Management' },
-          { name: 'Approvals', path: '/admin/approvals', icon: <ApproveIcon /> },
-          { name: 'Generate Reports', path: '/admin/reports/generate', icon: <ReportsIcon /> },
-          { name: 'Audit Logs', path: '/admin/audit-logs', icon: <AuditIcon /> },
-          { section: 'System' },
-          { name: 'System Settings', path: '/admin/settings', icon: <SettingsIcon /> },
-          { name: 'Search', path: '/admin/search', icon: <SearchIcon /> },
-        ];
-    };
+  const { showWarning, extendSession, logout } = useSessionTimeout(15);
 
-  const userRole = user?.user_type || user?.role;
-  const inferRoleFromPath = () => {
-    location.pathname.startsWith('/admin');
-    return 'admin';
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/admin/login');
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (showWarning) {
+      setTimeLeft(120);
+      const interval = setInterval(() => {
+        setTimeLeft(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [showWarning]);
+
+  const handleExtend = async () => {
+    const success = await extendSession();
+    if (success) {
+      setTimeLeft(120);
+    }
   };
 
-  const effectiveRole = userRole || inferRoleFromPath();
+  const handleLogout = () => {
+    logout();
+  };
+
+  const getLinksForRole = (role) => {
+    return [
+      { section: 'Main' },
+      { name: 'Dashboard', path: '/admin/dashboard', icon: <DashboardIcon /> },
+      { name: 'Users', path: '/admin/users', icon: <PeopleIcon /> },
+      { section: 'Management' },
+      { name: 'Approvals', path: '/admin/approvals', icon: <ApproveIcon /> },
+      { name: 'Generate Reports', path: '/admin/reports/generate', icon: <ReportsIcon /> },
+      { name: 'Audit Logs', path: '/admin/audit-logs', icon: <AuditIcon /> },
+      { section: 'System' },
+      { name: 'System Settings', path: '/admin/settings', icon: <SettingsIcon /> },
+      { name: 'Search', path: '/admin/search', icon: <SearchIcon /> },
+    ];
+  };
+
+  const userRole = user?.user_type || user?.role;
+  const effectiveRole = userRole || 'admin';
   const links = getLinksForRole(effectiveRole);
 
   const roleConfig = {
-    admin: { title: 'Admin Portal', accent: platinumTheme.accent.purple },
+    admin: { title: 'Admin Portal', accent: '#9b59b6' },
   };
-  const currentRoleConfig = roleConfig[userRole] || { title: 'SmartCare', accent: platinumTheme.accent.blue };
+  const currentRoleConfig = roleConfig.admin;
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <div className="app-layout" style={{ display: 'flex' }}>
-      <Sidebar>
-        {/* ─── Branding ─── */}
-        <Box sx={{
-          p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5,
-          borderBottom: `1px solid ${alpha('#fff', 0.08)}`,
-        }}>
+    <>
+      <div className="app-layout" style={{ display: 'flex' }}>
+        <Sidebar>
           <Box sx={{
-            width: 40, height: 40, borderRadius: '12px',
-            background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 15px ${alpha(currentRoleConfig.accent, 0.4)}`,
+            p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5,
+            borderBottom: `1px solid ${alpha('#fff', 0.08)}`,
           }}>
-            <HospitalIcon sx={{ color: '#fff', fontSize: 22 }} />
+            <Box sx={{
+              width: 40, height: 40, borderRadius: '12px',
+              background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 4px 15px ${alpha(currentRoleConfig.accent, 0.4)}`,
+            }}>
+              <HospitalIcon sx={{ color: '#fff', fontSize: 22 }} />
+            </Box>
+            <Box>
+              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2, letterSpacing: '0.02em' }}>
+                SmartCare
+              </Typography>
+              <Typography sx={{ color: alpha('#fff', 0.5), fontSize: '0.7rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {currentRoleConfig.title}
+              </Typography>
+            </Box>
           </Box>
-          <Box>
-            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2, letterSpacing: '0.02em' }}>
-              SmartCare
-            </Typography>
-            <Typography sx={{ color: alpha('#fff', 0.5), fontSize: '0.7rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              {currentRoleConfig.title}
-            </Typography>
-          </Box>
-        </Box>
 
-        {/* ─── User Profile ─── */}
-        <Box sx={{ px: 2.5, py: 2.5, textAlign: 'center', borderBottom: `1px solid ${alpha('#fff', 0.08)}` }}>
-          <Avatar sx={{
-            width: 64, height: 64, mx: 'auto', mb: 1.5,
-            background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
-            border: `3px solid ${alpha('#fff', 0.2)}`,
-            boxShadow: `0 8px 24px ${alpha(currentRoleConfig.accent, 0.3)}`,
-            fontSize: '1.5rem', fontWeight: 700, color: '#fff',
-            transition: 'all 0.3s ease',
-            '&:hover': { transform: 'scale(1.08)', boxShadow: `0 12px 32px ${alpha(currentRoleConfig.accent, 0.5)}` },
+          <Box sx={{ px: 2.5, py: 2.5, textAlign: 'center', borderBottom: `1px solid ${alpha('#fff', 0.08)}` }}>
+            <Avatar sx={{
+              width: 64, height: 64, mx: 'auto', mb: 1.5,
+              background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
+              border: `3px solid ${alpha('#fff', 0.2)}`,
+              boxShadow: `0 8px 24px ${alpha(currentRoleConfig.accent, 0.3)}`,
+              fontSize: '1.5rem', fontWeight: 700, color: '#fff',
+              transition: 'all 0.3s ease',
+              '&:hover': { transform: 'scale(1.08)', boxShadow: `0 12px 32px ${alpha(currentRoleConfig.accent, 0.5)}` },
+            }}>
+              {user?.first_name?.[0]?.toUpperCase() || 'U'}
+            </Avatar>
+            <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>
+              {user?.first_name} {user?.last_name}
+            </Typography>
+            <Chip
+              label="Admin"
+              size="small"
+              sx={{
+                mt: 0.8,
+                bgcolor: alpha(currentRoleConfig.accent, 0.15),
+                color: currentRoleConfig.accent,
+                border: `1px solid ${alpha(currentRoleConfig.accent, 0.3)}`,
+                fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}
+            />
+          </Box>
+
+          <Box sx={{
+            flex: 1, overflowY: 'auto', py: 1.5, px: 1.5,
+            '&::-webkit-scrollbar': { width: '4px' },
+            '&::-webkit-scrollbar-thumb': { background: alpha('#fff', 0.15), borderRadius: '4px' },
           }}>
-            {user?.first_name?.[0]?.toUpperCase() || 'U'}
-          </Avatar>
-          <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>
-            {user?.first_name} {user?.last_name}
-          </Typography>
-          <Chip
-            label={userRole?.replace('_', ' ')}
-            size="small"
-            sx={{
-              mt: 0.8,
-              bgcolor: alpha(currentRoleConfig.accent, 0.15),
-              color: currentRoleConfig.accent,
-              border: `1px solid ${alpha(currentRoleConfig.accent, 0.3)}`,
-              fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em',
-            }}
-          />
-        </Box>
+            {links.map((item, index) => {
+              if (item.section) {
+                return (
+                  <Typography key={`section-${index}`} sx={{
+                    color: alpha('#fff', 0.35), fontSize: '0.65rem', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.12em',
+                    px: 1.5, pt: index === 0 ? 0.5 : 2, pb: 0.8,
+                  }}>
+                    {item.section}
+                  </Typography>
+                );
+              }
 
-        {/* ─── Navigation Links ─── */}
-        <Box sx={{
-          flex: 1, overflowY: 'auto', py: 1.5, px: 1.5,
-          '&::-webkit-scrollbar': { width: '4px' },
-          '&::-webkit-scrollbar-thumb': { background: alpha('#fff', 0.15), borderRadius: '4px' },
-        }}>
-          {links.map((item, index) => {
-            // Section headers
-            if (item.section) {
+              const active = isActive(item.path);
+
               return (
-                <Typography key={`section-${index}`} sx={{
-                  color: alpha('#fff', 0.35), fontSize: '0.65rem', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.12em',
-                  px: 1.5, pt: index === 0 ? 0.5 : 2, pb: 0.8,
-                }}>
-                  {item.section}
-                </Typography>
-              );
-            }
-
-            const active = isActive(item.path);
-
-            return (
-              <Tooltip title={item.name} placement="right" arrow key={item.name}
-                slotProps={{ tooltip: { sx: { display: { md: 'none' } } } }}
-              >
-                <Button
-                  fullWidth
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    justifyContent: 'flex-start',
-                    gap: 1.5,
-                    px: 1.5, py: 1,
-                    mb: 0.3,
-                    borderRadius: '10px',
-                    textTransform: 'none',
-                    fontSize: '0.85rem',
-                    fontWeight: active ? 600 : 400,
-                    color: active ? '#fff' : alpha('#fff', 0.65),
-                    position: 'relative',
-                    overflow: 'hidden',
-                    background: active
-                      ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.2)}, ${alpha(currentRoleConfig.accent, 0.05)})`
-                      : 'transparent',
-                    // Gold left accent bar on active item
-                    '&::before': active ? {
-                      content: '""',
-                      position: 'absolute',
-                      left: 0, top: '20%', bottom: '20%',
-                      width: '3px',
-                      borderRadius: '0 3px 3px 0',
-                      background: platinumTheme.secondary.main,
-                      boxShadow: `0 0 8px ${alpha(platinumTheme.secondary.main, 0.6)}`,
-                    } : {},
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      color: '#fff',
+                <Tooltip title={item.name} placement="right" arrow key={item.name}>
+                  <Button
+                    fullWidth
+                    onClick={() => navigate(item.path)}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      gap: 1.5,
+                      px: 1.5, py: 1,
+                      mb: 0.3,
+                      borderRadius: '10px',
+                      textTransform: 'none',
+                      fontSize: '0.85rem',
+                      fontWeight: active ? 600 : 400,
+                      color: active ? '#fff' : alpha('#fff', 0.65),
+                      position: 'relative',
+                      overflow: 'hidden',
                       background: active
-                        ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.25)}, ${alpha(currentRoleConfig.accent, 0.08)})`
-                        : alpha('#fff', 0.06),
-                      transform: 'translateX(3px)',
-                    },
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1.2rem',
-                      color: active ? currentRoleConfig.accent : alpha('#fff', 0.45),
-                      transition: 'color 0.2s ease',
-                    },
-                    '&:hover .MuiSvgIcon-root': {
-                      color: active ? currentRoleConfig.accent : alpha('#fff', 0.8),
-                    },
-                  }}
-                >
-                  {item.icon}
-                  {item.name}
-                </Button>
-              </Tooltip>
-            );
-          })}
-        </Box>
+                        ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.2)}, ${alpha(currentRoleConfig.accent, 0.05)})`
+                        : 'transparent',
+                      '&::before': active ? {
+                        content: '""',
+                        position: 'absolute',
+                        left: 0, top: '20%', bottom: '20%',
+                        width: '3px',
+                        borderRadius: '0 3px 3px 0',
+                        background: platinumTheme.secondary.main,
+                        boxShadow: `0 0 8px ${alpha(platinumTheme.secondary.main, 0.6)}`,
+                      } : {},
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        color: '#fff',
+                        background: active
+                          ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.25)}, ${alpha(currentRoleConfig.accent, 0.08)})`
+                          : alpha('#fff', 0.06),
+                        transform: 'translateX(3px)',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        fontSize: '1.2rem',
+                        color: active ? currentRoleConfig.accent : alpha('#fff', 0.45),
+                        transition: 'color 0.2s ease',
+                      },
+                      '&:hover .MuiSvgIcon-root': {
+                        color: active ? currentRoleConfig.accent : alpha('#fff', 0.8),
+                      },
+                    }}
+                  >
+                    {item.icon}
+                    {item.name}
+                  </Button>
+                </Tooltip>
+              );
+            })}
+          </Box>
 
-        {/* ─── Logout Footer ─── */}
-        <Box sx={{ p: 1.5, borderTop: `1px solid ${alpha('#fff', 0.08)}` }}>
-          <Button
-            fullWidth
-            onClick={adminLogout}
-            startIcon={<LogoutIcon />}
-            sx={{
-              justifyContent: 'flex-start',
-              gap: 1,
-              px: 1.5, py: 1,
-              borderRadius: '10px',
-              textTransform: 'none',
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              color: alpha(platinumTheme.accent.red, 0.8),
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                background: alpha(platinumTheme.accent.red, 0.1),
-                color: platinumTheme.accent.red,
-                transform: 'translateX(3px)',
-              },
-            }}
-          >
-            Logout
-          </Button>
-        </Box>
-      </Sidebar>
+          <Box sx={{ p: 1.5, borderTop: `1px solid ${alpha('#fff', 0.08)}` }}>
+            <Button
+              fullWidth
+              onClick={handleLogout}
+              startIcon={<LogoutIcon />}
+              sx={{
+                justifyContent: 'flex-start',
+                gap: 1,
+                px: 1.5, py: 1,
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: alpha(platinumTheme.accent.red, 0.8),
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  background: alpha(platinumTheme.accent.red, 0.1),
+                  color: platinumTheme.accent.red,
+                  transform: 'translateX(3px)',
+                },
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
+        </Sidebar>
 
-      <main className="content" style={{ flexGrow: 1, paddingLeft: 280 }}>
-        <Outlet />
-      </main>
-    </div>
+        <main className="content" style={{ flexGrow: 1, paddingLeft: 280 }}>
+          <Outlet />
+        </main>
+      </div>
+
+      <SessionTimeoutDialog
+        open={showWarning}
+        onExtend={handleExtend}
+        onLogout={handleLogout}
+        timeLeft={timeLeft}
+      />
+    </>
   );
 };
