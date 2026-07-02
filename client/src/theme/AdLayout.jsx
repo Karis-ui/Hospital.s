@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useEffect, useState } from 'react';
 import { useSessionTimeout } from '../context/timeout';
+import { SessionTimeoutDialog } from '../context/sessionTimeout';
 
 export const platinumTheme = {
   primary: { main: '#1a2639', light: '#2c3e50', dark: '#0f1a2f', contrast: '#ffffff' },
