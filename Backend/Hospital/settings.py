@@ -170,31 +170,16 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 
 REDIS_URL = os.environ.get('REDIS_URL')
 
-if REDIS_URL:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'SSL': True,  # Upstash uses SSL
-                'MAX_CONNECTIONS': 10,
-            },
-            'KEY_PREFIX': 'smartcare',
-        }
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'smartcare',
     }
-    RATELIMIT_ENABLE = True
-    print("✅ Redis cache configured with Upstash")
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake',
-        }
-    }
-    RATELIMIT_ENABLE = False
-    import warnings
-    warnings.filterwarnings('ignore', module='django_ratelimit')
+}
 
 TEMPLATES = [
     {
