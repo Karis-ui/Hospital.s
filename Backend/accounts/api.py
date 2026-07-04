@@ -662,9 +662,9 @@ class CurrentProfileApi(APIView):
         return []
     def get(self,request):
         user = request.user
-        profie_data = CurrentProfileApi.get_user_profile_data(user)
-        dashboard_url = CurrentProfileApi.get_dashboard_url(user)
-        serializer = UserSerializer(user)
+        profie_data = self.get_user_profile_data(user)
+        dashboard_url = self.get_dashboard_url(user)
+        serializer = self(user)
         
         return Response({
             'user': serializer.data,
@@ -674,7 +674,7 @@ class CurrentProfileApi(APIView):
             'permissions': self.get_user_permissions(user),
             'session': {
                 'last_login': user.last_login,
-                'ip_address': CurrentProfileApi.get_client_ip(request)
+                'ip_address': self.get_client_ip(request)
             }
         },status=status.HTTP_200_OK)
     def patch(self,request):
