@@ -97,17 +97,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES':[
         'rest_framework.permissions.IsAuthenticated',
     ],
-     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',        
-        'user': '1000/day',      
-        'login': '10/hour',      
-        'register': '5/hour',    
-        'password_reset': '3/hour', 
-    },
+     'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_THROTTLE_RATES': [],
 }
 
 MIDDLEWARE = [

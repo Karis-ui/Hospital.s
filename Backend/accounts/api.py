@@ -1,3 +1,5 @@
+from core.throttles import PasswordResetRateThrottle
+from core.throttles import AdminLoginRateThrottle
 from re import match
 import secrets
 import string
@@ -27,6 +29,7 @@ from django.db import transaction
 from django.contrib.sites.shortcuts import get_current_site
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes,force_str
+from core.throttles import LoginRateThrottle,RegistrationRateThrottle
 
 User = get_user_model()
 
@@ -114,6 +117,7 @@ class RegisterHospitalAdmin(APIView):
 
 class HospitalAdminLogin(APIView):
     permission_classes=[AllowAny]
+    throttle_classes = [AdminLoginRateThrottle]
     def post(self,request):
         email = request.data.get('email')
         password = request.data.get('password')
@@ -159,6 +163,7 @@ class HospitalAdminLogin(APIView):
 
 class SignUp(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegistrationRateThrottle]
     
     def post(self, request):
         try:
@@ -292,6 +297,7 @@ class SignUp(APIView):
 
 class DoctorRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegistrationRateThrottle]
     
     def post(self, request):
         try:
@@ -377,6 +383,7 @@ class DoctorRegistrationAPIView(APIView):
 
 class LabTechnRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegistrationRateThrottle]
     
     def post(self, request):
         try:
@@ -441,6 +448,7 @@ class LabTechnRegistrationAPIView(APIView):
 
 class OperatorRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [RegistrationRateThrottle]
     
     def post(self, request):
         try:
@@ -503,6 +511,7 @@ class OperatorRegistrationAPIView(APIView):
 
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
     
     def post(self, request):
         try:
@@ -830,6 +839,7 @@ class ChangePassword(APIView):
 
 class ForgotPassword(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
     def post(self,request):
         serializer = ForgotPassword(data=request.data)
         
