@@ -97,8 +97,13 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES':[
         'rest_framework.permissions.IsAuthenticated',
     ],
-     'DEFAULT_THROTTLE_CLASSES': [],
-    'DEFAULT_THROTTLE_RATES': [],
+    'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '10/hour',
+        'register': '7/hour',
+        'admin_login': '10/hour',
+        'password_reset': '5/hour',
+    },
 }
 
 MIDDLEWARE = [
