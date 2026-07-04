@@ -664,7 +664,7 @@ class CurrentProfileApi(APIView):
         user = request.user
         profie_data = self.get_user_profile_data(user)
         dashboard_url = self.get_dashboard_url(user)
-        serializer = self(user)
+        serializer = UserSerializer(user)
         
         return Response({
             'user': serializer.data,
