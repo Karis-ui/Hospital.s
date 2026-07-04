@@ -29,7 +29,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes,force_str
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
-from core.decorators import ratelimit
+from core.decorators import rate_limit
 
 User = get_user_model()
 
