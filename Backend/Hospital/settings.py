@@ -84,9 +84,9 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
-RATELIMIT_ENABLE = True
-RATELIMIT_USE_CACHE = 'default'
-RATELIMIT_VIEW = 'core.views.rate_limit_exceeded'
+#RATELIMIT_ENABLE = True
+#RATELIMIT_USE_CACHE = 'default'
+#RATELIMIT_VIEW = 'core.views.rate_limit_exceeded'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES':[
@@ -160,31 +160,16 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 
 REDIS_URL = os.environ.get('REDIS_URL')
 
-if REDIS_URL:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': REDIS_URL,
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'SSL': True,  # Upstash requires SSL
-            },
-            'KEY_PREFIX': 'smartcare',
-        }
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'smartcare',
     }
-    RATELIMIT_ENABLE = True
-    print("✅ Redis cache configured")
-else:
-    # Fallback
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake',
-        }
-    }
-    RATELIMIT_ENABLE = False
-    import warnings
-    warnings.filterwarnings('ignore', module='django_ratelimit')
+}
 
 TEMPLATES = [
     {

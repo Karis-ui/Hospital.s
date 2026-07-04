@@ -27,9 +27,6 @@ from django.db import transaction
 from django.contrib.sites.shortcuts import get_current_site
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes,force_str
-from django_ratelimit.decorators import ratelimit
-from django.utils.decorators import method_decorator
-from core.decorators import rate_limit
 
 User = get_user_model()
 
@@ -58,7 +55,6 @@ def is_valid_email(email):
 
 class RegisterHospitalAdmin(APIView):
     permission_classes = [IsAuthenticated]
-    @method_decorator(ratelimit(key='ip',rate='5/m',method='POST',block=True))
     def post(self,request):
         if not request.user.is_superuser:
             return Response({'status':'error','message':'Unauthorized for this auction'},status=403)
@@ -118,7 +114,6 @@ class RegisterHospitalAdmin(APIView):
 
 class HospitalAdminLogin(APIView):
     permission_classes=[AllowAny]
-    @method_decorator(ratelimit(key='ip',rate='5/m',method='POST',block=True))
     def post(self,request):
         email = request.data.get('email')
         password = request.data.get('password')
@@ -164,7 +159,6 @@ class HospitalAdminLogin(APIView):
 
 class SignUp(APIView):
     permission_classes = [AllowAny]
-    @method_decorator(ratelimit(key='ip',rate='5/m',method='POST',block=True))
     
     def post(self, request):
         try:
@@ -298,7 +292,6 @@ class SignUp(APIView):
 
 class DoctorRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
-    @method_decorator(ratelimit(key='ip',rate='5/m',method='POST',block=True))
     
     def post(self, request):
         try:
@@ -384,7 +377,6 @@ class DoctorRegistrationAPIView(APIView):
 
 class LabTechnRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
-    @method_decorator(ratelimit(key='ip',rate='5/m',method='POST',block=True))
     
     def post(self, request):
         try:
@@ -449,7 +441,6 @@ class LabTechnRegistrationAPIView(APIView):
 
 class OperatorRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
-    @method_decorator(ratelimit(key='ip',rate='5/m',method='POST',block=True))
     
     def post(self, request):
         try:
@@ -512,7 +503,6 @@ class OperatorRegistrationAPIView(APIView):
 
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
-    @method_decorator(ratelimit(key='ip',rate='10/m',method='POST',block=True))
     
     def post(self, request):
         try:
