@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     'system',
     'Lab',
     'rest_framework',
-    'django_ratelimit',
+    #'django_ratelimit',
 ]
 
 from datetime import timedelta
