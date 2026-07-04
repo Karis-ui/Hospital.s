@@ -648,6 +648,15 @@ class CurrentProfileApi(APIView):
                 }
             except OperatorField.DoesNotExist:
                 return None
+        elif user.user_type == 'lab_tech':
+            try:
+                profile = LabTech.objects.get(user=user)
+                return {
+                    'id': profile.id,
+                    'is_available': profile.is_available,
+                }
+            except OperatorField.DoesNotExist:
+                return None
         return None
 
     def get_dashboard_url(self, user):
