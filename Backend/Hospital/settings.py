@@ -15,6 +15,7 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+import warnings
 
 
 
@@ -167,24 +168,33 @@ CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
-            'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
-            'CONNECTION_POOL_CLASS_KWARGS': {
-                'max_connections': 50,
-                'timeout': 20,
+REDIS_URL = os.environ.get('REDIS_URL')
+
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SSL': True,  # Upstash uses SSL
+                'MAX_CONNECTIONS': 10,
             },
-            'MAX_CONNECTIONS': 1000,
-            'PICKLE_VERSION': -1,
-        },
-        'KEY_PREFIX': 'smartcare',
+            'KEY_PREFIX': 'smartcare',
+        }
     }
-}
+    RATELIMIT_ENABLE = True
+    print("✅ Redis cache configured with Upstash")
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
+    RATELIMIT_ENABLE = False
+    import warnings
+    warnings.filterwarnings('ignore', module='django_ratelimit')
 
 TEMPLATES = [
     {
