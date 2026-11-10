@@ -13,3 +13,4 @@ openpyxl==3.1.5
 psycopg2-binary==2.9.11
 django-ratelimit==4.1.0
 django-redis==5.4.0
+gunicorn==21.2.0 

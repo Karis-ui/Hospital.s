@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: smartcare_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: smartcare
+      POSTGRES_USER: smartcare_user
+      POSTGRES_PASSWORD: smartcare_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcare_user -d smartcare"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartcare_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./Backend
+    container_name: smartcare_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://smartcare_user:smartcare_password@postgres:5432/smartcare
+      - REDIS_URL=redis://redis:6379/1
+      - SECRET_KEY=your-super-secret-key-change-this
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+
+  frontend:
+    build: ./client
+    container_name: smartcare_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:

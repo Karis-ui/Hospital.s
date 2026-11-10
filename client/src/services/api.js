@@ -1,7 +1,7 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 
-const API_BASE_URL = 'https://hospitals-production.up.railway.app/api/';
+const API_BASE_URL = 'http://localhost:8000/api/';
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
