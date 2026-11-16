@@ -280,10 +280,9 @@ export const PatientDashboard = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          ml: '250px',
           p: 3,
           transition: 'all 0.3s ease',
-          width: '100%'
+          width: '100%',
         }}
       >
         <Paper
@@ -436,6 +435,7 @@ export const PatientDashboard = () => {
           </Grid>
         </Grid>
 
+        {/* Upcoming Appointments Table */}
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
