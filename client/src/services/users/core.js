@@ -12,7 +12,6 @@ export const coreService = {
     announcements: () => api.get(`announcement/`),
     bookAppointment: () => api.post(`random/book/appointment/`),
     emergency: () => api.get(`emergency/`),
-    appointmentList: () => api.get(`appointment/list/`),
     rescheduleAppointment: () => api.put(`reschedule/appointment/`),
 };
 

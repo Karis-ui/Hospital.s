@@ -17,7 +17,7 @@ export const PatientService = {
     viewNotification: () => api.get(`patient/notification/`),
     cancelAppointment: (id) => api.delete(`patient/appointment/${id}/cancel/`),
     confirmAppointment: (id) => api.post(`patient/appointment/${id}/confirm/`),
-    getAllAppointments: () => api.get(`patient/appointment/list/`),
+    getAllAppointments: () => api.get(`appointment/list/`),
     rescheduleAppointments: (id) => api.get(`patient/appointments/${id}/reschedule/`),
     detailAppointmentView: (id) => api.get(`patient/${id}/appointment/`),
 

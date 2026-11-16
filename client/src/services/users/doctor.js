@@ -19,7 +19,7 @@ export const doctorSevice = {
     getDoctorProfile: () => api.get(`doctor/get/profile/`),
     prescriptions: () => api.get(`doctor/prescriptions/`),
     searchItems: () => api.get(`doctor/search/`),
-    getAllAppointments: () => api.get(`doctor/appointment/list/`),
+    getAllAppointments: () => api.get(`appointment/list/`),
     rescheduleAppointments: (id) => api.get(`doctor/appointments/${id}/reschedule/`),
 
     getPatientMedicalRecords: (id) => api.get(`doctor/get/${id}/medical-records/`),
