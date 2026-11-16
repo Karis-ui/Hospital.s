@@ -29,32 +29,29 @@ from Hospital import settings
 User = CustomUser
 
 class Patientdashboard(APIView):
-    permission_classes = [IsAuthenticated,IsPatient]
-    def get(self,request):
+    permission_classes = [IsAuthenticated, IsPatient]
+    def get(self, request):
         try:
-            patient = Patient.objects.select_related('user').get(user=request.user)
-            patient_profile = get_object_or_404(Patient,user=request.user)
-            completed= Appointment.objects.filter(patient=patient_profile,status='Completed')
-            upcoming = Appointment.objects.filter(patient=patient_profile,status='Requested')
-            bills = Bill.objects.filter(patient=patient_profile)
-            lab_reports = LabReport.objects.filter(patient=patient_profile)
+            patient = Patient.objects.get(user=request.user)
+            completed = Appointment.objects.filter(patient=patient, status='Completed')
+            upcoming = Appointment.objects.filter(patient=patient, status='Requested')
+            bills = Bill.objects.filter(patient=patient)
+            lab_reports = LabReport.objects.filter(lab_request__patient=patient) 
+            
             return Response({
-                'patient':PatientSerializer(patient_profile).data,
-                'completed_appointments':AppointmentSerializer(completed,many=True).data,
-                'upcoming_appointments':AppointmentSerializer(upcoming,many=True).data,
-                'bills':BillSerializer(bills,many=True).data,
-                'lab_reports':LabReportSerializer(lab_reports,many=True).data
-            },status=status.HTTP_200_OK)
+                'patient': PatientSerializer(patient).data,
+                'completed_appointments': AppointmentSerializer(completed, many=True).data,
+                'upcoming_appointments': AppointmentSerializer(upcoming, many=True).data,
+                'bills': BillSerializer(bills, many=True).data,
+                'lab_reports': LabReportSerializer(lab_reports, many=True).data
+            }, status=status.HTTP_200_OK)
+            
         except Patient.DoesNotExist:
-            return Response({
-                'status': 'error',
-                'Message': 'Patient profile missing'
-            },status=status.HTTP_404_NOT_FOUND)
+            return Response({'status': 'error', 'Message': 'Patient profile missing'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({
-                'status': 'error',
-                'Message': str(e)
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback
+            traceback.print_exc()
+            return Response({'status': 'error', 'Message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
              
 
 class BookAppointment(APIView):
