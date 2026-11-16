@@ -50,7 +50,7 @@ class PatientSerializer(serializers.ModelSerializer):
         model = Patient
         fields = '__all__'
         
-    def getFullName(self,obj):
+    def get_full_name(self,obj):
         return f"{obj.first_name} {obj.last_name}".strip()
         
 class DoctorSerializer(serializers.ModelSerializer):
