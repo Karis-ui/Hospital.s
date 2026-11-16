@@ -283,6 +283,7 @@ export const PatientDashboard = () => {
           ml: '250px',
           p: 3,
           transition: 'all 0.3s ease',
+          width: '100%'
         }}
       >
         <Paper
