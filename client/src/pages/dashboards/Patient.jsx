@@ -44,7 +44,6 @@ import {
   CalendarMonth as CalendarMonthIcon,
   AccessTime as TimeIcon,
   FileDownload as DownloadIcon,
-  Payment as PaymentIcon,
   Message as MessageIcon,
   CreditCard as CreditCardIcon,
   ArrowUpward as ArrowUpIcon,
@@ -81,7 +80,7 @@ export const PatientDashboard = () => {
       setError('');
     } catch (err) {
       console.error('Failed to fetch dashboard:', err);
-      setError(err.response?.data?.message || 'Failed to load dashboard data. Please try again.');
+      setError(err.response?.data?.Message || 'Failed to load dashboard data. Please try again.');
       toast.error('Failed to load dashboard');
     } finally {
       setLoading(false);
@@ -91,7 +90,7 @@ export const PatientDashboard = () => {
   const fetchNotifications = async () => {
     try {
       const response = await coreService.notifications();
-      setNotifications(response.data);
+      setNotifications(Array.isArray(response.data) ? response.data : response.data.data || []);
     } catch (err) {
       console.log('Using fallback notifications');
       setNotifications([
@@ -147,7 +146,7 @@ export const PatientDashboard = () => {
         await fetchDashboardData();
         await fetchNotifications();
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to cancel appointment');
+        toast.error(err.response?.data?.Message || 'Failed to cancel appointment');
       } finally {
         setCancellingId(null);
       }
@@ -162,7 +161,7 @@ export const PatientDashboard = () => {
       toast.success('Appointment confirmed successfully');
       await fetchDashboardData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to confirm appointment');
+      toast.error(err.response?.data?.Message || 'Failed to confirm appointment');
     } finally {
       setConfirmingId(null);
     }
@@ -257,17 +256,22 @@ export const PatientDashboard = () => {
   }
 
   const patient = dashboardData?.patient || {};
-  const stats = dashboardData?.statistics || {
-    total_appointments: 0,
-    upcoming_appointments_count: 0,
+  const upcomingAppointments = dashboardData?.upcoming_appointments || [];
+  const recentBills = dashboardData?.bills || [];
+  const labReports = dashboardData?.lab_reports || [];
+  const completedAppointments = dashboardData?.completed_appointments || [];
+
+  const stats = {
+    total_appointments: upcomingAppointments.length + completedAppointments.length,
+    upcoming_appointments_count: upcomingAppointments.length,
     active_prescriptions: 0,
-    total_reports: 0
+    total_reports: labReports.length,
+    appointment_increase: 0,
+    prescriptions_expiring: 0,
+    new_reports: 0
   };
 
-  const upcomingAppointments = dashboardData?.appointments?.upcoming || [];
-  const recentBills = dashboardData?.billing?.recent || [];
-  const reminders = dashboardData?.reminders || [];
-
+  const reminders = [];
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -573,7 +577,7 @@ export const PatientDashboard = () => {
                     <TableRow key={apt.id} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {apt.appointment_date ? formatDate(apt.appointment_date, 'short') : 'TBD'}, {apt.time || '--:--'}
+                          {apt.appointment_date ? formatDate(apt.appointment_date, 'short') : 'TBD'}, {apt.appointment_time || '--:--'}
                         </Typography>
                       </TableCell>
                       <TableCell>

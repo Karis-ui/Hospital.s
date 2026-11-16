@@ -1,3 +1,5 @@
+from core.utils import slot_available
+from accounts.api import User
 import datetime
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -59,7 +61,7 @@ class BookAppointment(APIView):
                             
                         patient = Patient.objects.create(
                             user=user,
-                            first_name = patiet_data.get('first_name',''),
+                            first_name = patient_data.get('first_name',''),
                             last_name=patient_data.get('last_name',''),
                             email=patient_data['email'],
                             phone=patient_data.get('phone',''),
@@ -81,7 +83,7 @@ class BookAppointment(APIView):
                     'Message': 'Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time'
                 },status=status.HTTP_400_BAD_REQUEST)
                     
-            if not is_valid:
+            if not slot_available:
                 return Response({
                     'status': 'error',
                     'Message': 'Selected time slot is not available'
@@ -139,7 +141,7 @@ class BookAppointment(APIView):
         
         while current_time < end_time:
             if current_time not in booked_slots:
-                availabe_slots.append(current_time.strptime("%H:%M"))
+                availabe_slots.append(current_time.strftime("%H:%M"))
                 
             current_time = (datetime.combine(date,current_time)) + timezone.timedelta(minutes=slot_duration).time()
         return availabe_slots
@@ -215,7 +217,7 @@ class EmergencyAppointment(APIView):
             duration=get_system_settings().appointment_duration,
             status='Emergency',
             priority='Critical',
-            created_by=qrequest.user
+            created_by=request.user
         )
         
         return Response({
@@ -300,7 +302,7 @@ class RescheduleAppointment(APIView):
             new_time = serializer.validated_data['new_time']
             reason = serializer.validated_data.get('reason','Rescheduling')
             
-            is_availabe,error = slot_is_available(appointment.doctor, new_date, new_time, appointment.patient)
+            is_availabe,error = slot_available(appointment.doctor, new_date, new_time, appointment.patient)
             if not is_availabe:
                 return Response({
                     'status': 'error',
@@ -312,7 +314,7 @@ class RescheduleAppointment(APIView):
             appointment.reschedule_count += 1
             appointment.save()
             
-            self.log_reschedule(appointment,request.user,old_date)
+            self.log_reschedule(appointment,request.user.old_date)
             return Response({
                 'status': 'success',
                 'Message': 'Appointment rescheduled successfully',

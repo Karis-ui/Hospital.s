@@ -9,7 +9,7 @@ from system.utils import get_system_settings
 from django.db import transaction
 from accounts.models import CustomUser
 from datetime import datetime
-from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription
+from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription,Notification
 from core.util.pdf_generator import generate_pdf
 from Lab.models import labRequest,LabReport
 from django.shortcuts import get_object_or_404
@@ -178,7 +178,7 @@ class BookAppointment(APIView):
         
         while current_time < end_time:
             if current_time not in booked_slots:
-                availabe_slots.append(current_time.strptime("%H:%M"))
+                availabe_slots.append(current_time.strftime("%H:%M"))
                 
             current_time = (datetime.combine(date,current_time)) + timezone.timedelta(minutes=slot_duration).time()
         return availabe_slots
@@ -228,7 +228,7 @@ class  CancelAppointment(APIView):
         appointment = get_object_or_404(Appointment,id=pk)
         if request.user not in [appointment.doctor.user,appointment.patient.user] and not request.user.is_staff:
             return Response({
-                {'error': 'You are not authorized to view this page!'}
+                'error': 'You are not authorized to view this page!'
             },status=status.HTTP_403_FORBIDDEN)
         
         if appointment.status == "Cancelled":
@@ -248,9 +248,9 @@ class  ConfirmAppointment(APIView):
     def post(self,request,pk):
         appointment = get_object_or_404(Appointment,id=pk)
         if request.user not in [appointment.patient.user] and not request.user.is_staff:
-            return Response({
+            return Response(
                 {'error': 'You are not authorized to view this page!'}
-            },status=status.HTTP_403_FORBIDDEN)
+            ,status=status.HTTP_403_FORBIDDEN)
         
         if appointment.status == "Confirmed":
             return Response({
@@ -261,16 +261,6 @@ class  ConfirmAppointment(APIView):
         appointment.save()
         return Response({
             'messages': 'Appointment cancelled succefully','status': appointment.status
-        },status=status.HTTP_200_OK)
-
-class AppointmentList(APIView):
-    permission_classes = [IsAuthenticated, IsPatient]
-    def get(self,request):
-        patient = request.user.patient
-        appointments = Appointment.object.filter(patient=patient).order_by('-appointment_date')
-        serializer = AppointmentSerializer(appointments,many=True)
-        return Response({
-            'data': serializer.data
         },status=status.HTTP_200_OK)
         
 class DetailAppointmentView(APIView):
@@ -468,7 +458,7 @@ class LabResult(APIView):
                 'error':str(e)
             },status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
 
-class Notification(APIView):
+class NotificationView(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
     def get(self,request):
         notification = Notification.objects.filter(user=request.user).order_by('-created_at')
@@ -829,6 +819,6 @@ class PaymentHistory(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
     def get(self, request):
         patient = request.user.patient
-        payments = Bill.objects.filter(patient=patient,payment_status="Cleared").order_by("-date")
+        payments = Bill.objects.filter(patient=patient,payment_status="Cleared").order_by("-created_at")
         serializer = BillSerializer(payments,many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

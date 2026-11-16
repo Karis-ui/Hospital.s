@@ -9,7 +9,7 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.views import AuthenticationForm
 from django.contrib.auth.models import User
-from core.models import Patient, Report, ReportAccessLog, Doctor, Appointment,AdminAnnouncement,Notification,Activity
+from core.models import Patient, Report, ReportAccessLog, Doctor, Appointment,AdminAnnouncement,Notification,AuditLog
 from Hospital.Api.serializers import AppointmentSerializer,ReportSerializer,PatientSerializer,DoctorSerializer,AuditLogSerializer,NotificationSerializer
 from Hospital.Api.permissions import IsAdmin,IsDoctor,IsPatient
 from rest_framework.response import Response
@@ -38,7 +38,7 @@ class Home(APIView):
             
             upcoming_appointments = Appointment.objects.filter(appointment_date__gte=today).order_by('appointment_date')[:4]
             announcements = AdminAnnouncement.objects.filter(created_at__date=today)
-            doctor_serializer = DoctorSerializer(featured_doctors,many=True,context={'request',request})
+            doctor_serializer = DoctorSerializer(featured_doctors,many=True,context={'request':request})
             home_data = {
                 'hospital_info':{
                     'name': settings.hospital_name if settings else 'SmartCare Hospital',
@@ -111,7 +111,7 @@ class PatientList(APIView):
             current_page = paginator.get_page(page)
             
             serializer = PatientSerializer(
-                current_page,many=True,context={'request',request}
+                current_page,many=True,context={'request':request}
             )
             return Response({
                 'status': 'error',
@@ -176,11 +176,13 @@ class SecureReportDownload(APIView):
             },status=status.HTTP_404_NOT_FOUND)
 
 
-class Notification(APIView):
+class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self,request):
-        notification = Notification.objects.filter(user=request.user).order_by('-created_at')
-        serializer = NotificationSerializer(notification,many=True,context={'request',request})
+    def get(self, request):
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        
+        serializer = NotificationSerializer(notifications, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class Annnouncements(APIView):
     permission_classes = [AllowAny]
@@ -188,7 +190,7 @@ class Annnouncements(APIView):
         title = request.data.get('title')
         message = request.data.get('message')
         announcement = AdminAnnouncement.objects.create(title=title,message=message)
-        log_activity = Activity.objects.create(
+        log_activity = AuditLog.objects.create(
             request=request,
             action='CREATE',
             module='Announcement',
@@ -227,9 +229,9 @@ class MarkNotification(APIView):
 class MarkNotifications(APIView):
     permission_classes = [IsAuthenticated]
     def patch(self,request):
-        notification = Notification.objects.get(user=request.user,is_read=False).update(is_read=True)
+        notification = Notification.objects.filter(user=request.user,is_read=False).update(is_read=True)
         return Response({'message': 'All unread notifications marked as read'},status=status.HTTP_200_OK)
         
     def delete(self,request):
-        notification = Notification.objects.get(user=request.user)
+        notification = Notification.objects.delete(user=request.user)
         return Response({'message': 'All notifications deleted'})
