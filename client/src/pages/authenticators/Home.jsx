@@ -85,6 +85,8 @@ import {
   QrCodeScanner as ScanIcon,
   CloudUpload as CloudIcon,
   DataUsage as DataIcon,
+  Receipt as BillingIcon, // Added for Billing
+  Badge as StaffIcon      // Added for Staff
 } from '@mui/icons-material';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/authContext';
@@ -324,6 +326,33 @@ const Home = () => {
     { name: 'Radiology', doctors: 10, icon: <ScanIcon /> },
     { name: 'Oncology', doctors: 8, icon: <HealthIcon /> },
     { name: 'Psychiatry', doctors: 9, icon: <PsychologyIcon /> },
+  ];
+
+  const staffRoles = [
+    {
+      title: 'Doctors & Physicians',
+      desc: 'Join our world-class team of specialists and general practitioners.',
+      icon: <MedicalIcon sx={{ fontSize: 40 }} />,
+      color: '#3498db',
+      bg: 'linear-gradient(135deg, #e3f2fd, #bbdefb)',
+      route: '/register/doctor'
+    },
+    {
+      title: 'Lab Technicians',
+      desc: 'Operate state-of-the-art diagnostic and pathology equipment.',
+      icon: <LabIcon sx={{ fontSize: 40 }} />,
+      color: '#9b59b6',
+      bg: 'linear-gradient(135deg, #f3e5f5, #e1bee7)',
+      route: '/register/lab'
+    },
+    {
+      title: 'Billing & Admin',
+      desc: 'Manage patient finances, invoices, and hospital operations.',
+      icon: <BillingIcon sx={{ fontSize: 40 }} />,
+      color: '#e67e22',
+      bg: 'linear-gradient(135deg, #fff3e0, #ffe0b2)',
+      route: '/register/operator'
+    },
   ];
 
   useEffect(() => {
@@ -582,7 +611,7 @@ const Home = () => {
                     lineHeight: 1.6,
                   }}
                 >
-                  Experience world-class healthcare with cutting-edge technology, 
+                  Experience world-class healthcare with cutting-edge technology,
                   expert physicians, and compassionate care tailored to you.
                 </Typography>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -947,6 +976,7 @@ const Home = () => {
           </Grid>
         </Container>
       </Box>
+
       <Container maxWidth="xl" sx={{ py: 8 }} id="testimonials">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -1006,6 +1036,60 @@ const Home = () => {
           ))}
         </Grid>
       </Container>
+
+      {/* =========================================
+          NEW SECTION: JOIN OUR TEAM (STAFF REGISTRATION)
+          ========================================= */}
+      <Box sx={{ bgcolor: '#f8faff', py: 10 }} id="staff">
+        <Container maxWidth="lg">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} style={{ textAlign: 'center', marginBottom: 48 }}>
+            <SectionBadge label="Careers" icon={<StaffIcon sx={{ fontSize: 16 }} />} sx={{ mb: 2, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main }} />
+            <Typography variant="h2" sx={{ fontWeight: 800, mb: 2 }}>Join Our Team of Experts</Typography>
+            <Typography variant="h6" sx={{ color: theme.palette.text.secondary, maxWidth: 680, mx: 'auto', fontWeight: 400 }}>
+              Are you a healthcare professional looking to make a difference? Register today to join the SmartCare network.
+            </Typography>
+          </motion.div>
+
+          <Grid container spacing={4} justifyContent="center">
+            {staffRoles.map((role, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                  viewport={{ once: true }}
+                  whileHover={{ y: -10 }}
+                >
+                  <Paper sx={{
+                    p: 4, textAlign: 'center', borderRadius: 4, cursor: 'pointer',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0',
+                    transition: 'all 0.3s ease', '&:hover': { boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }
+                  }} onClick={() => navigate(role.route)}>
+                    <Box sx={{
+                      width: 80, height: 80, mx: 'auto', mb: 3, borderRadius: '50%',
+                      background: role.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: role.color
+                    }}>
+                      {role.icon}
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1.5, color: '#1e293b' }}>{role.title}</Typography>
+                    <Typography variant="body1" sx={{ color: '#64748b', mb: 4, lineHeight: 1.6 }}>{role.desc}</Typography>
+                    <Button
+                      variant="outlined"
+                      endIcon={<ArrowForwardIcon />}
+                      sx={{
+                        borderColor: role.color, color: role.color, borderRadius: 3, px: 3, fontWeight: 600,
+                        '&:hover': { bgcolor: alpha(role.color, 0.05), borderColor: role.color }
+                      }}
+                    >
+                      Register Now
+                    </Button>
+                  </Paper>
+                </motion.div>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </Box>
 
       <Box
         sx={{
