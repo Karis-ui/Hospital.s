@@ -1,5 +1,5 @@
-from Backend.core.models import Notification
-from Hospital.settings import settings
+from core.models import Notification
+from Hospital import settings
 from decimal import Decimal
 from django.db.models import Q
 from Admin.API import logger

@@ -1,6 +1,7 @@
 from rest_framework.decorators import throttle_classes
 from re import match
 import secrets
+from rest_framework.parsers import MultiPartParser, FormParser
 import string
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
