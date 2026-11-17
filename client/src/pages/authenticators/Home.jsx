@@ -1046,7 +1046,7 @@ const Home = () => {
             <SectionBadge label="Careers" icon={<StaffIcon sx={{ fontSize: 16 }} />} sx={{ mb: 2, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main }} />
             <Typography variant="h2" sx={{ fontWeight: 800, mb: 2 }}>Join Our Team of Experts</Typography>
             <Typography variant="h6" sx={{ color: theme.palette.text.secondary, maxWidth: 680, mx: 'auto', fontWeight: 400 }}>
-              Are you a healthcare professional looking to make a difference? Register today to join the SmartCare network.
+              Are you a healthcare professional looking to make a difference? Register today and wait for Admin approval to join the SmartCare network.
             </Typography>
           </motion.div>
 
