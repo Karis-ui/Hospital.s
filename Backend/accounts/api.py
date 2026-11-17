@@ -296,6 +296,7 @@ class SignUp(APIView):
 
 class DoctorRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
     @throttle_classes([RegistrationRateThrottle])
     
     def post(self, request):
@@ -382,6 +383,7 @@ class DoctorRegistrationAPIView(APIView):
 
 class LabTechnRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
     @throttle_classes([RegistrationRateThrottle])
     
     def post(self, request):
@@ -447,6 +449,7 @@ class LabTechnRegistrationAPIView(APIView):
 
 class OperatorRegistrationAPIView(APIView):
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
     @throttle_classes([RegistrationRateThrottle])
     
     def post(self, request):

@@ -58,6 +58,7 @@ class Doctor(models.Model):
     is_available = models.BooleanField(default=True)
     qualifications = models.TextField()
     license_number = models.CharField(max_length=100)
+    resume = models.FileField(upload_to='resumes/doctors/',null=True,blank=True)
     doctor_photo = models.ImageField(upload_to='doctor_photos/',null=True,blank=True)
 
     def __str__(self):
@@ -223,6 +224,8 @@ class OperatorField(models.Model):
     phone_number = models.CharField(max_length=100)
     qualification = models.CharField(max_length=100)
     staff_photo = models.ImageField(upload_to='operator_photos/',null=True,blank=True  )
+    license_number = models.CharField(max_length=50,blank=True)
+    resume = models.FileField(upload_to='resumes/operators/',null=True,blank=True)
 
     def __str__(self):
         return f"Operator {self.user.username}-{self.department}"

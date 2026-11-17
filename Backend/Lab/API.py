@@ -29,8 +29,8 @@ class DashboardAnalytics(APIView):
     
     def get(self, request):
         today = timezone.now().date()
-        week_ago = today - timezone.timedelta(days=7)
-        month_ago = today - timezone.timedelta(days=30)
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
         
         total_requests = labRequest.objects.count()
         pending_requests = labRequest.objects.filter(status='requested').count()
@@ -128,7 +128,7 @@ class UpdateLabRequestStatus(APIView):
                     'status':'error',
                     'message': "Invalid status provided"
                 },status=status.HTTP_400_BAD_REQUEST)
-        except lab_request.DoesNotExist:
+        except labRequest.DoesNotExist:
             return Response({
                 'status': 'error',
                 'message': "Lab request not found"
@@ -504,7 +504,7 @@ class LabStats(APIView):
                 'completed': monthly_completed
             })
             Q = None
-            technician_stats = LabReport.valuews('by__username').annotate(
+            technician_stats = LabReport.values('by__username').annotate(
                 total_reports=Count('id'),
                 approved_reports=Count('id',filter=Q(is_approved=True)),
                 pending_reports=Count('id',filter=Q(is_approved=False))

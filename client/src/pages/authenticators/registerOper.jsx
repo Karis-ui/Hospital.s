@@ -1,216 +1,110 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
-  Box,
-  Paper,
-  TextField,
-  Typography,
-  Button,
-  Alert,
-  InputAdornment,
-  IconButton,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  MenuItem,
-  Fade,
-  Grow,
-  Zoom,
+  Box, Paper, Typography, TextField, Button, Grid, Avatar, Stepper, Step, StepLabel,
+  Alert, CircularProgress, InputAdornment, IconButton, Divider, Chip, alpha, MenuItem
 } from '@mui/material';
-import { styled, alpha } from '@mui/material/styles';
 import {
-  Email as EmailIcon,
-  Lock as LockIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Badge as LicenseIcon,
-  School as QualificationIcon,
-  MedicalServices as SpecializationIcon,
-  Work as ExperienceIcon,
-  ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon,
-  CheckCircle as CheckIcon,
-  Diamond as DiamondIcon,
-  LocalHospital as HospitalIcon,
-  Visibility,
-  VisibilityOff,
+  Science as LabIcon, Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon,
+  Badge as BadgeIcon, Lock as LockIcon, Visibility, VisibilityOff,
+  CheckCircle as CheckIcon, ArrowForward as ArrowForwardIcon,
+  CloudUpload as CloudUploadIcon, // Added for file upload
 } from '@mui/icons-material';
-import { useNavigate, Link as RouterLink, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
 import { useAuth } from '../../context/authContext';
+import { platinumTheme } from '../../theme/GenLayout';
 
-const goldTheme = {
-  primary: '#D4AF37',
-  primaryDark: '#AA8C2F',
-  primaryLight: '#F1E5C9',
-  background: '#1A1A1A',
-  surface: '#2A2A2A',
-  textPrimary: '#FFFFFF',
-  textSecondary: '#C0C0C0',
-};
+const steps = ['Personal Information', 'Professional Details', 'Account Setup'];
 
-const GlassCard = styled(Paper)(({ theme }) => ({
-  background: 'rgba(42, 42, 42, 0.95)',
-  backdropFilter: 'blur(10px)',
-  borderRadius: 24,
-  border: `2px solid ${alpha(goldTheme.primary, 0.3)}`,
-  boxShadow: `0 20px 60px ${alpha(goldTheme.primary, 0.2)}`,
-  padding: '40px',
-  position: 'relative',
-  overflow: 'hidden',
-}));
-
-const GoldTextField = styled(TextField)({
-  '& .MuiOutlinedInput-root': {
-    color: goldTheme.textPrimary,
-    '& fieldset': {
-      borderColor: alpha(goldTheme.primary, 0.3),
-    },
-    '&:hover fieldset': {
-      borderColor: goldTheme.primary,
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: goldTheme.primary,
-      borderWidth: 2,
-    },
-  },
-  '& .MuiInputLabel-root': {
-    color: goldTheme.textSecondary,
-    '&.Mui-focused': {
-      color: goldTheme.primary,
-    },
-  },
-  '& .MuiInputAdornment-root': {
-    color: goldTheme.primary,
-  },
-});
-
-const GoldButton = styled(Button)({
-  background: `linear-gradient(45deg, ${goldTheme.primary}, ${goldTheme.primaryLight})`,
-  color: '#1A1A1A',
-  fontWeight: 700,
-  padding: '12px 24px',
-  borderRadius: 50,
-  textTransform: 'none',
-  fontSize: '1.1rem',
-  boxShadow: `0 5px 20px ${alpha(goldTheme.primary, 0.3)}`,
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: `0 8px 30px ${alpha(goldTheme.primary, 0.4)}`,
-  },
-});
-
-const steps = [
-  {
-    label: 'Account Setup',
-    description: 'Create your login credentials',
-    icon: <LockIcon />,
-  },
-  {
-    label: 'Personal Details',
-    description: 'Tell us about yourself',
-    icon: <PersonIcon />,
-  },
-  {
-    label: 'Professional Information',
-    description: 'Your medical credentials',
-    icon: <HospitalIcon />,
-  },
-];
-
-const RegisterStaff = () => {
+export const LabTechRegister = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
-
   const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
+    full_name: '',
+    date_of_birth: '',
+    gender: '',
+    phone_number: '',
     email: '',
+    qualifications: '',
+    license_number: 'KMLTTB-',
+    shift_time: '',
+    username: '',
     password: '',
     confirm_password: '',
-    full_name: '',
-    phone: '',
-    qualifications: '',
+    resume: null,
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const [errors, setErrors] = useState({});
+  const register = useAuth();
 
   const validateStep = () => {
-    setError('');
+    const newErrors = {};
 
     if (activeStep === 0) {
-      if (!formData.email || !formData.password || !formData.confirm_password) {
-        setError('All fields are required');
-        return false;
-      }
-      if (formData.password !== formData.confirm_password) {
-        setError('Passwords do not match');
-        return false;
-      }
-      if (formData.password.length < 8) {
-        setError('Password must be at least 8 characters');
-        return false;
-      }
-      if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        setError('Please enter a valid email address');
-        return false;
-      }
+      if (!formData.full_name) newErrors.full_name = 'Full name required';
+      if (!formData.email) newErrors.email = 'Email required';
+      if (!formData.phone_number) newErrors.phone_number = 'Phone number required';
+      if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = 'Valid email required';
     }
 
     if (activeStep === 1) {
-      if (!formData.full_name || !formData.phone) {
-        setError('All fields are required');
-        return false;
-      }
-      if (!/^\+?[\d\s-]{10,}$/.test(formData.phone)) {
-        setError('Please enter a valid phone number');
-        return false;
+      if (!formData.resume) newErrors.resume = 'CV/Resume required';
+      if (!formData.license_number || formData.license_number === 'KMLTTB-') {
+        newErrors.license_number = 'License number required';
       }
     }
 
     if (activeStep === 2) {
-      if (!formData.specialization || !formData.license_number || !formData.qualifications) {
-        setError('All fields are required');
-        return false;
+      if (!formData.username) newErrors.username = 'Username required';
+      if (!formData.password) newErrors.password = 'Password required';
+      if (formData.password !== formData.confirm_password) {
+        newErrors.confirm_password = 'Passwords do not match';
+      }
+      if (formData.password && formData.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters';
       }
     }
 
-    return true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = () => {
-    if (validateStep()) {
-      setActiveStep((prev) => prev + 1);
-    }
+    if (validateStep()) setActiveStep((prev) => prev + 1);
   };
 
   const handleBack = () => {
     setActiveStep((prev) => prev - 1);
-    setError('');
   };
 
   const handleSubmit = async () => {
     if (!validateStep()) return;
 
     setLoading(true);
-    setError('');
-
     try {
-      await register(formData, 'operator');
-      setSuccess('Registration submitted! Pending admin approval. You will receive an email once approved.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      const submitData = {
+        ...formData,
+        role: 'lab_technician',
+      };
+      delete submitData.confirm_password;
+
+      const data = new FormData();
+      Object.keys(submitData).forEach(key => {
+        if (submitData[key] !== null && submitData[key] !== '') {
+          data.append(key, submitData[key]);
+        }
+      });
+
+      const response = await register(data, 'lab_technician');
+      if (response.data.status === 'success') {
+        toast.success('Registration successful! Awaiting admin approval.');
+        setTimeout(() => navigate('/login'), 3000);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Registration failed');
       setFormData((prev) => ({
         ...prev, password: '', confirm_password: ''
       }));
@@ -220,294 +114,171 @@ const RegisterStaff = () => {
     }
   };
 
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    if (errors[field]) setErrors({ ...errors, [field]: '' });
+  };
+
+  const handleLicenseChange = (e) => {
+    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    if (!val.startsWith('KMLTTB-')) {
+      val = 'KMLTTB-' + val.replace('KMLTTB-', '');
+    }
+    handleChange('license_number', val);
+  };
+
+  const handleFileChange = (e) => {
+    handleChange('resume', e.target.files[0]);
+  };
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: `linear-gradient(135deg, #1A1A1A 0%, #2A2A2A 100%)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        position: 'relative',
-        overflow: 'auto',
-      }}
-    >
-      <Zoom in timeout={1000}>
-        <Box sx={{ maxWidth: 600, width: '100%', position: 'relative', zIndex: 1, py: 4 }}>
-          <GlassCard>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: 800,
-                  background: `linear-gradient(135deg, ${goldTheme.primary}, ${goldTheme.primaryLight})`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  mb: 1,
-                }}
-              >
-                Staff Registration
-              </Typography>
-              <Typography sx={{ color: goldTheme.textSecondary }}>
-                Join Our Elite Staff Team
-              </Typography>
-              <Typography variant="caption" sx={{ color: goldTheme.primary, display: 'block', mt: 1 }}>
-                * Your registration will be reviewed by hospital administration
-              </Typography>
-            </Box>
+    <Box sx={{ minHeight: '100vh', bgcolor: platinumTheme.background.default, py: 4 }}>
+      <Grid container justifyContent="center" alignItems="center">
+        <Grid item xs={12} md={8} lg={6}>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <Paper sx={{ borderRadius: 4, overflow: 'hidden' }}>
+              <Box sx={{ p: 4, textAlign: 'center', bgcolor: platinumTheme.primary.main, color: 'white' }}>
+                <LabIcon sx={{ fontSize: 50, mb: 2 }} />
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>Lab Technician Registration</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, mt: 1 }}>Join our laboratory team</Typography>
+              </Box>
 
-            <Stepper activeStep={activeStep} orientation="vertical" sx={{ mb: 3 }}>
-              {steps.map((step, index) => (
-                <Step key={step.label}>
-                  <StepLabel
-                    StepIconComponent={() => (
-                      <Box
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          bgcolor: activeStep >= index ? goldTheme.primary : alpha(goldTheme.primary, 0.2),
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: activeStep >= index ? '#1A1A1A' : goldTheme.textSecondary,
-                        }}
-                      >
-                        {activeStep > index ? <CheckIcon fontSize="small" /> : step.icon}
-                      </Box>
-                    )}
-                  >
-                    <Box>
-                      <Typography sx={{ fontWeight: 600, color: goldTheme.textPrimary }}>
-                        {step.label}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: goldTheme.textSecondary }}>
-                        {step.description}
-                      </Typography>
-                    </Box>
-                  </StepLabel>
-                </Step>
-              ))}
-            </Stepper>
+              <Box sx={{ px: 4, pt: 4 }}>
+                <Stepper activeStep={activeStep} alternativeLabel>
+                  {steps.map((label) => (
+                    <Step key={label}><StepLabel>{label}</StepLabel></Step>
+                  ))}
+                </Stepper>
+              </Box>
 
-            {error && (
-              <Fade in>
-                <Alert severity="error" sx={{ mb: 3, bgcolor: alpha('#f44336', 0.1), color: '#f44336' }}>
-                  {error}
+              <Box sx={{ p: 4 }}>
+                {activeStep === 0 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                          <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Personal Information
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField fullWidth label="Full Name" value={formData.full_name} onChange={(e) => handleChange('full_name', e.target.value)} error={!!errors.full_name} helperText={errors.full_name} InputProps={{ startAdornment: <InputAdornment position="start"><PersonIcon /></InputAdornment> }} />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth type="date" label="Date of Birth" value={formData.date_of_birth} onChange={(e) => handleChange('date_of_birth', e.target.value)} InputLabelProps={{ shrink: true }} />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth select label="Gender" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}>
+                          <MenuItem value="Male">Male</MenuItem>
+                          <MenuItem value="Female">Female</MenuItem>
+                        </TextField>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} error={!!errors.email} helperText={errors.email} InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon /></InputAdornment> }} />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth label="Phone Number" value={formData.phone_number} onChange={(e) => handleChange('phone_number', e.target.value)} error={!!errors.phone_number} helperText={errors.phone_number} InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIcon /></InputAdornment> }} />
+                      </Grid>
+                    </Grid>
+                  </motion.div>
+                )}
+
+                {activeStep === 1 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                          <LabIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Professional Details
+                        </Typography>
+                      </Grid>
+
+                      {/* UPDATED: Replaced TextField with File Upload */}
+                      <Grid item xs={12}>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, color: 'text.secondary' }}>
+                          Upload CV / Resume (PDF, DOCX) *
+                        </Typography>
+                        <Paper variant="outlined" sx={{
+                          p: 3, textAlign: 'center', borderStyle: 'dashed', borderWidth: 2,
+                          borderColor: formData.resume ? 'success.main' : platinumTheme.primary.light,
+                          bgcolor: formData.resume ? '#f0fdf4' : 'transparent',
+                          cursor: 'pointer', transition: 'all 0.2s', '&:hover': { borderColor: platinumTheme.primary.main }
+                        }} component="label">
+                          <input type="file" hidden accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+                          <CloudUploadIcon sx={{ fontSize: 40, color: formData.resume ? 'success.main' : platinumTheme.primary.main, mb: 1 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: formData.resume ? 'success.main' : 'text.primary' }}>
+                            {formData.resume ? formData.resume.name : 'Click to upload your CV'}
+                          </Typography>
+                        </Paper>
+                        {errors.resume && <Typography color="error" variant="caption">{errors.resume}</Typography>}
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth label="License Number" value={formData.license_number} onChange={handleLicenseChange} error={!!errors.license_number} helperText={errors.license_number || "Official KMLTTB number"} InputProps={{ startAdornment: <InputAdornment position="start"><BadgeIcon /></InputAdornment> }} />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth label="Department" value={formData.department} onChange={(e) => handleChange('department', e.target.value)} helperText="e.g., Hematology, Microbiology, Clinical Chemistry" />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth select label="Shift Preference" value={formData.shift_time} onChange={(e) => handleChange('shift_time', e.target.value)}>
+                          <MenuItem value="Morning">Morning (7:00 AM - 3:00 PM)</MenuItem>
+                          <MenuItem value="Evening">Evening (3:00 PM - 11:00 PM)</MenuItem>
+                          <MenuItem value="Night">Night (11:00 PM - 7:00 AM)</MenuItem>
+                          <MenuItem value="Rotating">Rotating</MenuItem>
+                        </TextField>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth type="number" label="Years of Experience" value={formData.experience_years} onChange={(e) => handleChange('experience_years', e.target.value)} />
+                      </Grid>
+                    </Grid>
+                  </motion.div>
+                )}
+
+                {activeStep === 2 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                          <LockIcon sx={{ mr: 1, verticalAlign: 'middle' }} /> Account Setup
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField fullWidth label="Username" value={formData.username} onChange={(e) => handleChange('username', e.target.value)} error={!!errors.username} helperText={errors.username} InputProps={{ startAdornment: <InputAdornment position="start">@</InputAdornment> }} />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth type={showPassword ? 'text' : 'password'} label="Password" id="password" value={formData.password} onChange={(e) => handleChange('password', e.target.value)} error={!!errors.password} helperText={errors.password || 'Minimum 8 characters'} InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField fullWidth type={showConfirmPassword ? 'text' : 'password'} label="Confirm Password" value={formData.confirm_password} onChange={(e) => handleChange('confirm_password', e.target.value)} error={!!errors.confirm_password} helperText={errors.confirm_password} InputProps={{ endAdornment: (<InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">{showConfirmPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>) }} />
+                      </Grid>
+                    </Grid>
+                  </motion.div>
+                )}
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+                  <Button variant="outlined" onClick={handleBack} disabled={activeStep === 0}>Back</Button>
+                  {activeStep === steps.length - 1 ? (
+                    <Button variant="contained" onClick={handleSubmit} disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : <CheckIcon />}>
+                      {loading ? 'Registering...' : 'Submit Registration'}
+                    </Button>
+                  ) : (
+                    <Button variant="contained" onClick={handleNext} endIcon={<ArrowForwardIcon />}>Next</Button>
+                  )}
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+                <Typography variant="body2" align="center" sx={{ color: platinumTheme.text.secondary }}>
+                  Already have an account? <Link to="/login" style={{ color: platinumTheme.secondary.main, textDecoration: 'none' }}>Sign in</Link>
+                </Typography>
+                <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+                  <Typography variant="caption">After registration, your account will be reviewed by an administrator. You will receive an email once approved.</Typography>
                 </Alert>
-              </Fade>
-            )}
-
-            {success && (
-              <Fade in>
-                <Alert severity="success" sx={{ mb: 3, bgcolor: alpha('#4caf50', 0.1), color: '#4caf50' }}>
-                  {success}
-                </Alert>
-              </Fade>
-            )}
-
-            <Box sx={{ mt: 2 }}>
-              {activeStep === 0 && (
-                <Grow in timeout={500}>
-                  <Box>
-                    <GoldTextField
-                      fullWidth
-                      name="email"
-                      label="Email Address"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <EmailIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    <GoldTextField
-                      fullWidth
-                      name="password"
-                      label="Password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      helperText="Minimum 8 characters"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LockIcon />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                              sx={{ color: goldTheme.primary }}
-                            >
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    <GoldTextField
-                      fullWidth
-                      name="confirm_password"
-                      label="Confirm Password"
-                      type="password"
-                      value={formData.confirm_password}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LockIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Box>
-                </Grow>
-              )}
-
-              {activeStep === 1 && (
-                <Grow in timeout={500}>
-                  <Box>
-                    <GoldTextField
-                      fullWidth
-                      name="full_name"
-                      label="First Name"
-                      value={formData.full_name}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PersonIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    <GoldTextField
-                      fullWidth
-                      name="phone"
-                      label="Phone Number"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      helperText="Include country code (e.g., +1234567890)"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PhoneIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Box>
-                </Grow>
-              )}
-
-              {activeStep === 2 && (
-                <Grow in timeout={500}>
-                  <Box>
-                    <GoldTextField
-                      fullWidth
-                      name="qualifications"
-                      label="Qualifications"
-                      multiline
-                      rows={3}
-                      value={formData.qualifications}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      helperText="List your degrees and certifications (e.g., MD, MBBS, Board Certifications)"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <QualificationIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Box>
-                </Grow>
-              )}
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button
-                onClick={handleBack}
-                disabled={activeStep === 0 || loading}
-                startIcon={<ArrowBackIcon />}
-                sx={{
-                  color: goldTheme.primary,
-                  '&:hover': {
-                    bgcolor: alpha(goldTheme.primary, 0.1),
-                  },
-                }}
-              >
-                Back
-              </Button>
-
-              {activeStep === steps.length - 1 ? (
-                <GoldButton
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  endIcon={<CheckIcon />}
-                >
-                  {loading ? 'Submitting...' : 'Submit for Approval'}
-                </GoldButton>
-              ) : (
-                <GoldButton
-                  onClick={handleNext}
-                  endIcon={<ArrowForwardIcon />}
-                >
-                  Next Step
-                </GoldButton>
-              )}
-            </Box>
-
-            <Box sx={{ textAlign: 'center', mt: 3 }}>
-              <Typography variant="body2" sx={{ color: goldTheme.textSecondary }}>
-                Already have an account?{' '}
-                <Link
-                  component={RouterLink}
-                  to="/login"
-                  sx={{
-                    color: goldTheme.primary,
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
-                >
-                  Login Here
-                </Link>
-              </Typography>
-            </Box>
-
-            <Box sx={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <DiamondIcon sx={{ color: goldTheme.primary, fontSize: 20 }} />
-              <Typography variant="caption" sx={{ color: goldTheme.primary }}>PREMIUM</Typography>
-            </Box>
-          </GlassCard>
-        </Box>
-      </Zoom>
+              </Box>
+            </Paper>
+          </motion.div>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
 
-export default RegisterStaff;
+export default LabTechRegister;

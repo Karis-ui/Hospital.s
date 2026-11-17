@@ -11,14 +11,13 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent,
   MenuItem,
   Fade,
   Grow,
   Zoom,
   Link,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import {
   Email as EmailIcon,
@@ -26,9 +25,7 @@ import {
   Person as PersonIcon,
   Phone as PhoneIcon,
   Badge as LicenseIcon,
-  School as QualificationIcon,
   MedicalServices as SpecializationIcon,
-  Work as ExperienceIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
   CheckCircle as CheckIcon,
@@ -81,6 +78,9 @@ const GoldTextField = styled(TextField)({
   },
   '& .MuiInputAdornment-root': {
     color: goldTheme.primary,
+  },
+  '& .MuiFormHelperText-root': {
+    color: goldTheme.textSecondary,
   },
 });
 
@@ -141,8 +141,8 @@ const DoctorRegister = () => {
     full_name: '',
     phone: '',
     specialization: '',
-    license_number: '',
-    qualifications: '',
+    license_number: 'KMPDC-', // Default prefix
+    resume: null,              // Changed from qualifications to resume
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -154,6 +154,18 @@ const DoctorRegister = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleLicenseChange = (e) => {
+    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    if (!val.startsWith('KMPDC-')) {
+      val = 'KMPDC-' + val.replace('KMPDC-', '');
+    }
+    setFormData({ ...formData, license_number: val });
+  };
+
+  const handleFileChange = (e) => {
+    setFormData({ ...formData, resume: e.target.files[0] });
   };
 
   const validateStep = () => {
@@ -190,8 +202,17 @@ const DoctorRegister = () => {
     }
 
     if (activeStep === 2) {
-      if (!formData.specialization || !formData.license_number || !formData.qualifications) {
+      if (!formData.specialization || !formData.license_number) {
         setError('All fields are required');
+        return false;
+      }
+      // Check that license has actual numbers after the prefix
+      if (formData.license_number === 'KMPDC-') {
+        setError('Please enter a valid license number');
+        return false;
+      }
+      if (!formData.resume) {
+        setError('Please upload your CV or Resume');
         return false;
       }
     }
@@ -217,7 +238,13 @@ const DoctorRegister = () => {
     setError('');
 
     try {
-      await register(formData, 'doctor');
+      const data = new FormData();
+      Object.keys(formData).forEach(key => {
+        data.append(key, formData[key]);
+      });
+
+      await register(data, 'doctor');
+
       setSuccess('Registration submitted! Pending admin approval. You will receive an email once approved.');
       setTimeout(() => {
         navigate('/login');
@@ -465,10 +492,10 @@ const DoctorRegister = () => {
                       name="license_number"
                       label="Medical License Number"
                       value={formData.license_number}
-                      onChange={handleChange}
+                      onChange={handleLicenseChange}
                       margin="normal"
                       required
-                      helperText="Your valid medical license number"
+                      helperText="Your valid KMPDC medical license number"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -478,25 +505,40 @@ const DoctorRegister = () => {
                       }}
                     />
 
-                    <GoldTextField
-                      fullWidth
-                      name="qualifications"
-                      label="Qualifications"
-                      multiline
-                      rows={3}
-                      value={formData.qualifications}
-                      onChange={handleChange}
-                      margin="normal"
-                      required
-                      helperText="List your degrees and certifications (e.g., MD, MBBS, Board Certifications)"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <QualificationIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="body2" sx={{ color: goldTheme.textSecondary, mb: 1 }}>
+                        Upload CV / Resume (PDF, DOCX) *
+                      </Typography>
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 4,
+                          textAlign: 'center',
+                          borderStyle: 'dashed',
+                          borderWidth: 2,
+                          borderColor: formData.resume ? '#4caf50' : alpha(goldTheme.primary, 0.3),
+                          bgcolor: formData.resume ? alpha('#4caf50', 0.1) : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          '&:hover': { borderColor: goldTheme.primary, bgcolor: alpha(goldTheme.primary, 0.05) },
+                        }}
+                        component="label"
+                      >
+                        <input
+                          type="file"
+                          hidden
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleFileChange}
+                        />
+                        <CloudUploadIcon sx={{ fontSize: 48, color: formData.resume ? '#4caf50' : goldTheme.primary, mb: 1 }} />
+                        <Typography variant="body1" sx={{ fontWeight: 600, color: formData.resume ? '#4caf50' : goldTheme.textPrimary }}>
+                          {formData.resume ? formData.resume.name : 'Click to upload your CV / Resume'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: goldTheme.textSecondary }}>
+                          Max file size: 5MB
+                        </Typography>
+                      </Paper>
+                    </Box>
 
                   </Box>
                 </Grow>

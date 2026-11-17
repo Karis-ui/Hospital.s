@@ -1,4 +1,17 @@
-from audioop import reverse
+from django.db.models import Q
+from Hospital import settings
+from django.template.loader import render_to_string
+from django.shortcuts import redirect
+from django.contrib import messages
+from reportlab.platypus import TableStyle
+from reportlab.platypus import Table
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus.doctemplate import SimpleDocTemplate
+from reportlab.platypus import Image
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import Spacer
+from reportlab.platypus import Paragraph
+from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadhandler import load_handler
 from django.core.mail import EmailMessage
@@ -42,7 +55,7 @@ class PatientPdf(APIView):
             patient = appointments.first().patient
             paper =  HttpResponse(content_type='application/pdf')
             paper['Content-Disposition'] = f'attachemnt; filename="{patient.first_name} {patient.last_name}.pdf"'
-            doc = SimpleDocTemplate(response,pagesize=A4)
+            doc = SimpleDocTemplate(Response,pagesize=A4)
             styles = getSampleStyleSheet()
             elements = []
             logo_path = os.path.join("static","img","logo.png")
@@ -106,7 +119,7 @@ class DoctorView(APIView):
             
 class DoctorDashboard(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
-    def get(self,rquest):
+    def get(self,request):
         try:
             doctor = Doctor.objects.select_related('user').get(user=request.user)
             if not request.user.is_approved:
@@ -119,13 +132,14 @@ class DoctorDashboard(APIView):
                         'department': doctor.department
                     }
                 },status=status.HTTP_200_OK)
-                
+            
             today_appointments = Appointment.objects.filter(created_at=datetime.today())
-            complete_today = Appointment.objects.filte(doctor=doctor,appointment_date=datetime.today(),status='Completed') 
+            total_appointments = Appointment.objects.filter(doctor=doctor)
+            completed_today = Appointment.objects.filter(doctor=doctor,appointment_date=datetime.today(),status='Completed') 
             waiting = Appointment.objects.filter(appointment_date=datetime.today(),status='Requested')
             total_patients = Patient.objects.filter(doctor=doctor).values('patient').distinct().count()
             cancelled = Appointment.objects.filter(doctor=doctor,status='cancelled')
-            patient_list = Patient.objects.filter(id__in=recent_patients)
+            patient_list = Patient.objects.filter(id__in=total_patients)
             pending_prescriptions = Prescription.objects.filter(doctor=doctor,status='pending').count()
             week_days =[]
             appointment_counts = []
@@ -148,18 +162,17 @@ class DoctorDashboard(APIView):
                     'is_approved': request.user.is_approved,
                     'statistics': {
                         'total_patients': total_patients,
-                        'total_appointments': total_appointments,
-                        'completed_appointments': completed_appointments,
-                        'cancelled_appointments': cancelled_appointments,
+                        'total_appointments': total_appointments.count(),
+                        'completed_appointments_today': completed_today,
+                        'cancelled_appointments': cancelled,
                         'pending_prescriptions': pending_prescriptions,
-                        'pending_lab_requests': pending_lab_requests,
                         'today_appointments_count': today_appointments.count(),
                     },
                     'appointments': {
                         'today': today_serializer.data,
                         'upcoming': upcoming_serializer.data,
                     },
-                    'recent_patients': patients_serializer.data,
+                    'recent_patients': patient_serializer.data,
                     'chart_data': {
                         'labels': week_days,
                         'values': appointment_counts
@@ -206,9 +219,9 @@ class UpdateDoctorProfile(APIView):
             allowed_extensions = ['jpg','jpeg','png','webp']
             file_extension = photo.name.split('.')[-1].lower()
             
-            if file_extension not in allowed_extension:
+            if file_extension not in allowed_extensions:
                 return Response({
-                    'error': f'file type not allowed. Try {", ".join(allowed_extension)}'
+                    'error': f'file type not allowed. Try {", ".join(allowed_extensions)}'
                 },status = status.HTTP_400_BAD_REQUEST)
             max_size = 5 * 1024 * 1024
             if photo.size > max_size:
@@ -262,21 +275,21 @@ class AppointmentView(APIView):
     @action(detail=True,methods=['put'],url_path='confirmed')
     def confirm_appointment(self,request,pk):
         appointment = get_object_or_404(Appointment,appointment_id=pk)
-        appointment.status == 'confirmed'
+        appointment.status = 'confirmed'
         appointment.save()
         return Response({'message': 'Appointment confirmed'})
     
     @action(detail=True,methods=['put'],url_path='complete')
     def complete_appointment(self,request,pk):
         appointment = get_object_or_404(Appointment,appointment_id=pk)
-        appointment.status == 'completed'
+        appointment.status = 'completed'
         appointment.save()
         return Response({'message': 'Appointment completed'})
     
     @action(detail=True,methods=['put'],url_path='cancel')
     def cancel_appointment(self,request,pk):
         appointment = get_object_or_404(Appointment,appointment_id=pk)
-        appointment.status == 'cancelled'
+        appointment.status = 'cancelled'
         appointment.save()
         return Response({'message': 'Appointment cancelled'})
 
@@ -299,7 +312,7 @@ class MyPatients(APIView):
 
 class PrescriptionView(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
-    def get(self,request):
+    def get(self,request,patient_id):
         doctor_profile = Doctor.objects.filter(user=request.user).first()
         prescriptions = Prescription.objects.filter(doctor__user=request.user)
         patients = Prescription.objects.filter(id__in=patient_id)
@@ -432,8 +445,8 @@ class Reports(APIView):
     def get(self,request):
         try:
             doctor = Doctor.objects.filter(user=request.user)
-            pending_reports = Report.object.filter(doctor=doctor,is_sent_to_patient=False)
-            sent_reports = Report.object.filter(doctor=doctor,is_sent_to_patient=True)
+            pending_reports = Report.objects.filter(doctor=doctor,is_sent_to_patient=False)
+            sent_reports = Report.objects.filter(doctor=doctor,is_sent_to_patient=True)
             context = {
                 'doctor':doctor,'pending_reports':pending_reports,'sent_reports':sent_reports
             }
@@ -451,7 +464,7 @@ class Appointments(APIView):
     permission_classes = [IsAuthenticated, IsDoctor]
     def get(self,request):
         doctor = request.user.doctor
-        appointments = Appointment.object.filter(doctor=doctor).order_by('-appointment_date')
+        appointments = Appointment.objects.filter(doctor=doctor).order_by('-appointment_date')
         serializer = AppointmentSerializer(appointments,many=True)
         return Response({
             'data': serializer.data
@@ -524,13 +537,13 @@ class LabRequests(APIView):
             if status_filter:
                 lab_requsets = lab_requsets.filter(status=status_filter)
             
-            patient = request.quer_params.get('patient')
+            patient = request.query_params.get('patient')
             if status_filter:
                 patient = lab_requsets.filter(patient=patient)
             page = int(request.quer_params.get('page',1))
             page_size = int(request.query_params.get('page_size',20))  
             
-            paginator = Pagiinator(lab_requsets,page_size)
+            paginator = Paginator(lab_requsets,page_size)
             current_page = paginator.get_page(page)
             
             serializers = LabRequestSerializer(current_page,many=True,context={'request':request})
@@ -553,7 +566,7 @@ class LabRequests(APIView):
             },status=status.HTTP_404_NOT_FOUND)
     def post(self,request):
         try:
-            doctor = Doctor.objects.get(user=rquest.user)
+            doctor = Doctor.objects.get(user=request.user)
             patient_id = request.data.get('patient_id')
             test_type = request.data.get('test_type')
             notes = request.data.get('instruction','')
@@ -619,7 +632,7 @@ class DoctorSearch(APIView):
             if prescriptions.exists() or lab_requests.exists():
                 results[f'patient_{patient.id}'] = {
                     'patient_name': patient.first_name,
-                    'prescriptions': PrescrptionSerializer(prescriptions,many=True).data,
+                    'prescriptions': PrescriptionSerializer(prescriptions,many=True).data,
                     'lab_request': LabRequestSerializer(lab_requests,many=True).data
                 }
             return Response({

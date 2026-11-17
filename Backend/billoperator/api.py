@@ -1,3 +1,10 @@
+from Backend.core.models import Notification
+from Hospital.settings import settings
+from decimal import Decimal
+from django.db.models import Q
+from Admin.API import logger
+from django.db.models import QuerySet
+from datetime import datetime
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadhandler import load_handler
 from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
@@ -122,7 +129,7 @@ class TransactionList(APIView):
                 'patient'
             ).order_by('-created_at')
             
-            bills = bills.self.apply_filters(bills,request)
+            bills = self.apply_filters(bills,request)
             summary = self.calculate_summary(bills)
             paginated_bills,pagination_meta = self.paginate_bills(bills,request)
             serializer = BillSerializer(paginated_bills,many=True,context={'request':request})
@@ -130,14 +137,14 @@ class TransactionList(APIView):
             return Response({
                 'status': 'success',
                 'data': {
-                    'tranactions': serilaizer.data,
+                    'tranactions': serializer.data,
                     'pagination': pagination_meta,
                     'summary': summary
                 }
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            logger.erroe(f'Transaction list error: {str(e)}',exc_info=True)
+            logger.error(f'Transaction list error: {str(e)}',exc_info=True)
             return Response({
                 'status': 'error',
                 'message': 'An error occurred while fetching transactions',
@@ -162,14 +169,14 @@ class TransactionList(APIView):
         queryset = self.apply_amount_filters(queryset,request)
         return queryset
     
-    def apply_date_filters(self,request,queryset):
+    def apply_date_filters(self,queryset,request):
         date_from = request.query_params.get('date_from','')
         date_to = request.query_params.get('date_to','')
         
         if date_from:
             try:
                 date_to_obj = datetime.strptime(date_to,'%Y-%m-%d').date()
-                queryset = queryset.filter(created_at__date__gte=date_from_obj)
+                queryset = queryset.filter(created_at__date__gte=date_to_obj)
             except ValueError:
                 logger.warning(f'Invalid date_from format: {date_from}')
         
@@ -274,12 +281,12 @@ class ExportTransaction(APIView):
                 try:
                     start_date = datetime.strptime(date_from,'%Y-%m-%d').date()
                     end_date = datetime.strptime(date_to,'%Y-%m-%d').date()
-                    query_set = queryset.filter(created_at__date_range=[start_date,end_date])
+                    query_set = QuerySet.filter(created_at__date_range=[start_date,end_date])
                 except ValueError:
                     pass
             
             if export_format == 'csv':
-                return self.export_csv(queryset)
+                return self.export_csv(query_set)
             else:
                 return Response({
                     'status': 'error',
@@ -657,7 +664,7 @@ class SendReminder(APIView):
     permission_classes=[IsAuthenticated,IsOperator]
     def post(self,request,pk):
         try:
-            billl = get_object_or_404(Bill,id=pk)
+            bill = get_object_or_404(Bill,id=pk)
             if bill.payment_status == 'Cleared':
                 return Response({
                     'status': 'error',
@@ -1074,13 +1081,13 @@ class GetStaffProfile(APIView):
     def get(self,request):
         user = get_object_or_404(OperatorField, user=request.user)
         profile_data = {
-            'username': user.username,
+            'username': request.user.username,
             'full_name': user.get_full_name(),
             'email': user.email,
-            'phone': user.phone,
+            'phone': request.user.phone,
             'user_type': user.user_type,
         }
-        serializer = OperatorProfileSerializer(profile_data)
+        serializer = OperatorSerializer(profile_data)
         return Response({
             'status': 'success',
             'data': serializer.data
@@ -1094,9 +1101,9 @@ class UpdateStaffProfile(APIView):
         
         user.full_name = data.get('full_name', user.full_name)
         user.email = data.get('email', user.email)
-        user.phone_number = data.get('phone', user.phone)
+        user.phone_number = data.get('phone', request.user.phone)
         
-        serializer = OperatorProfileSerializer(user,data=request.data,partial=True,context={'request': request})
+        serializer = OperatorSerializer(user,data=request.data,partial=True,context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({
@@ -1128,7 +1135,7 @@ class UpdateStaffProfile(APIView):
                     'message': 'File size exceeds the maximum limit of 5MB'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            serializer = OperatorProfileSerializer(user, data=request.data, partial=True, context={'request': request})
+            serializer = OperatorSerializer(user, data=request.data, partial=True, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response({
@@ -1167,7 +1174,7 @@ class DownloadPDFView(APIView):
     def get(self,request,bill_id):
         bill = get_object_or_404(Bill,id=bill_id)
         
-        buffer = ByteIO()
+        buffer = BytesIO()
         doc = SimpleDocTemplate(buffer,pagesize=letter)
         styles = getSampleStyleSheet()
         story = []

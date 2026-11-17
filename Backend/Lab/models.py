@@ -19,6 +19,7 @@ class LabTech(models.Model):
     is_available = models.BooleanField(default=True)
     qualifications = models.TextField()
     license_number = models.CharField(max_length=100)
+    resume = models.FileField(upload_to='resumes/labs/',null=True,blank=True)
     photo = models.ImageField(upload_to='lab_photos',null=True,blank=True)
 
     def __str__(self):
