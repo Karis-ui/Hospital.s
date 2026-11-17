@@ -343,7 +343,7 @@ const Home = () => {
       icon: <LabIcon sx={{ fontSize: 40 }} />,
       color: '#9b59b6',
       bg: 'linear-gradient(135deg, #f3e5f5, #e1bee7)',
-      route: '/register/lab'
+      route: '/register/lab-technician'
     },
     {
       title: 'Billing & Admin',
@@ -351,7 +351,7 @@ const Home = () => {
       icon: <BillingIcon sx={{ fontSize: 40 }} />,
       color: '#e67e22',
       bg: 'linear-gradient(135deg, #fff3e0, #ffe0b2)',
-      route: '/register/operator'
+      route: '/register/bill-operator'
     },
   ];
 
