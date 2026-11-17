@@ -14,6 +14,7 @@ from core.util.pdf_generator import generate_pdf
 from Lab.models import labRequest,LabReport
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from datetime import datetime, time, timedelta
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
@@ -157,68 +158,47 @@ class BookAppointment(APIView):
                 'status': 'error',
                 'Message': str(e)
             },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def get_available_slots(self,doctor,date):
-        start_hour = 8
-        end_hour = 17
-        slot_duration= 30
-        
-        booked_slots = Appointment.objects.filter(
-            doctor=doctor,
-            appointment_date=date,
-            status__in=['Requested','Scheduled']
-        ).values_list('time',flat=True)
-        
-        availabe_slots = []
-        current_time = datetime.strptime(f'{start_hour}:00', '%H:%M').time()
-        end_time = datetime.strptime(f'{end_hour}:00','%H:%M').time()
-        
-        while current_time < end_time:
-            if current_time not in booked_slots:
-                availabe_slots.append(current_time.strftime("%H:%M"))
-                
-            current_time = (datetime.combine(date,current_time)) + timezone.timedelta(minutes=slot_duration).time()
-        return availabe_slots
-    
-    def get_doctors(self,request):
+
+def free_slots(doctor, day):
+    booked = set(Appointment.objects.filter(
+        doctor=doctor, appointment_date=day,
+        status__iregex=r'^(requested|scheduled|confirmed)$',
+    ).values_list('appointment_time', flat=True))
+    slots, cur = [], datetime.combine(day, time(8, 0))
+    end = datetime.combine(day, time(17, 0))
+    while cur < end:
+        if cur.time() not in booked:
+            slots.append(cur.strftime('%H:%M'))
+        cur += timedelta(minutes=30)
+    return slots
+
+class AvailableDoctors(APIView):
+    permission_classes = [IsAuthenticated, IsPatient]
+
+    def get(self, request):
         try:
-            doctor_id = request.query_params.get('doctor_id')
-            date = request.query_params.get('date',timezone.now().date().isoformat())
-            doctors = Doctor.objects.select_related('user').filter(user__is_approved=True)
-            
-            if doctor_id:
-                doctors = doctors.filter(id=doctor_id)
-            try:
-                selected_date = datetime.strptime(date,'%Y-%m-%d').date()
-            except ValueError:
-                selected_date = timezone.now().date()
-            
-            doctor_data = []
-            for doctor in doctor_data:
-                availabel_slots = self.get_available_slots(doctor,selected_date)
-                doctor_data.append({
-                    'id': doctor.id,
-                    'name': doctor.user.get_full_name(),
-                    'specialization': doctor.speciality,
-                    'available_slots': availabel_slots,
-                    'consultation_fee': doctor.consultation_fee,
-                    'image': doctor.user.profile_image.url if hasattr(doctor.user,'profile_image') and doctor.user.profile_image else None
-                })
-            return Response({
-                'status': 'success',
-                'data':{
-                    'date': selected_date.isoformat(),
-                    'doctor': doctor_data,
-                    'total_doctors': len(doctor_data)
-                }
-            },status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'Message': str(e)
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+            day = datetime.strptime(
+                request.query_params.get('date', timezone.now().date().isoformat()), '%Y-%m-%d'
+            ).date()
+        except ValueError:
+            day = timezone.now().date()
+
+        qs = Doctor.objects.select_related('user').filter(user__is_approved=True)
+        if request.query_params.get('doctor_id'):
+            qs = qs.filter(id=request.query_params['doctor_id'])
+
+        doctors = [{
+            'id': d.id,
+            'name': d.user.get_full_name(),
+            'specialization': d.speciality,
+            'consultation_fee': d.consultation_fee,
+            'image': d.user.profile_image.url if getattr(d.user, 'profile_image', None) else None,
+            'available_slots': free_slots(d, day),
+        } for d in qs]
+
+        return Response({'status': 'success',
+                         'data': {'date': day.isoformat(), 'doctors': doctors, 'total': len(doctors)}})    
+
 class  CancelAppointment(APIView):
     permission_classes = [IsAuthenticated]
     def delete(self,request,pk):

@@ -3,8 +3,7 @@ import { api } from '../api';
 export const PatientService = {
     getDashboard: () => api.get(`patient/dashboard/`),
     bookAppointment: () => api.post(`patient/appointment/book/`),
-    getDoctors: () => api.get(`patient/appointment/book/`),
-    getAvailableSlots: () => api.get(`patient/appointment/book/`),
+    getDoctors: () => api.get(`patient/available-doctors/`),
     getBill: (id) => api.get(`patient/view/bill/${id}/`),
     downloadInvoice: (id) => api.get(`patient/bills/${id}/invoice/`),
     paymentHistory: () => api.get(`patient/bills/payment-history/`),

@@ -5,6 +5,7 @@ from . import medical_API
 urlpatterns = [
     path('dashboard/',API.Patientdashboard.as_view(),name='patient_dashboard'),
     path('appointment/book/',API.BookAppointment.as_view(),name='book_appointment'),
+    path('available-doctors/',API.AvailableDoctors.as_view(),name="available_doctors"),
     path('view/bill/<int:pk>',API.BillingView.as_view(),name='view_bill'),
     path('get/profile/',API.GetProfile.as_view(),name='get-profile'),
     path('update/profile/',API.UpdateProfile.as_view(),name='update_profile'),
