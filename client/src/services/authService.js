@@ -110,14 +110,12 @@ export const authService = {
             formData.append('password', labTechData.password);
             formData.append('confirm_password', labTechData.confirm_password);
             formData.append('full_name', labTechData.full_name);
-            formData.append('phone_number', labTechData.phone_number); // Lab form uses phone_number
-            formData.append('license_number', labTechData.license_number); // KMLTTB-
-            formData.append('date_of_birth', labTechData.date_of_birth || '');
+            formData.append('phone_number', labTechData.phone_number); 
+            formData.append('license_number', labTechData.license_number); 
             formData.append('gender', labTechData.gender || '');
             formData.append('department', labTechData.department || '');
             formData.append('shift_time', labTechData.shift_time || '');
             formData.append('experience_years', labTechData.experience_years || '');
-            formData.append('username', labTechData.username);
 
             if (labTechData.resume) {
                 formData.append('resume', labTechData.resume);

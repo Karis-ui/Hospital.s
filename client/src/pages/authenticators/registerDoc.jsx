@@ -238,12 +238,7 @@ const DoctorRegister = () => {
     setError('');
 
     try {
-      const data = new FormData();
-      Object.keys(formData).forEach(key => {
-        data.append(key, formData[key]);
-      });
-
-      await register(data, 'doctor');
+      await register(formData, 'doctor');
 
       setSuccess('Registration submitted! Pending admin approval. You will receive an email once approved.');
       setTimeout(() => {
