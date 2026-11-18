@@ -206,7 +206,6 @@ const DoctorRegister = () => {
         setError('All fields are required');
         return false;
       }
-      // Check that license has actual numbers after the prefix
       if (formData.license_number === 'KMPDC-') {
         setError('Please enter a valid license number');
         return false;

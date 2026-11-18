@@ -305,13 +305,13 @@ class DoctorRegistrationAPIView(APIView):
             email = request.data.get('email', '').strip().lower()
             password = request.data.get('password', '')
             confirm_password = request.data.get('confirm_password', '')
-            full_name = request.data.get('first_name', '').strip()
+            full_name = request.data.get('full_name', '').strip()
             phone = request.data.get('phone', '').strip()
             specialization = request.data.get('specialization', '').strip()
             license_number = request.data.get('license_number', '').strip()
             resume_file = request.FILES.get('resume') 
             
-            if not all([email, password, full_name, specialization, resume_file]):
+            if not all([email, password, full_name, phone, specialization, license_number, resume_file]):
                 return Response({
                     'status': 'error',
                     'message': 'All required fields must be filled'
@@ -346,6 +346,7 @@ class DoctorRegistrationAPIView(APIView):
                     username=email,
                     email=email,
                     password=password,
+                    phone=phone,
                     first_name=full_name,
                     is_active=False,
                 )
@@ -356,10 +357,12 @@ class DoctorRegistrationAPIView(APIView):
                 
                 doctor = Doctor.objects.create(
                     user=user,
-                    specialization=specialization,
+                    full_name=full_name,
+                    email=email,
+                    speciality=specialization,
                     license_number=license_number,
                     resume=resume_file,
-                    phone=phone,
+                    phone_number=phone,
                     is_available=False,
                 )
                 

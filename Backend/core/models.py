@@ -50,13 +50,13 @@ class Doctor(models.Model):
         ('Male', 'Male'),
         ('Female', 'Female'),
     ]
-    gender = models.CharField(max_length=10, choices=gender_choices)
+    gender = models.CharField(max_length=10, choices=gender_choices, blank=True, default='')
     speciality = models.CharField(max_length=120)
     available = models.BooleanField(default=True)
-    department = models.CharField(max_length=120)
+    department = models.CharField(max_length=120, blank=True, default='')
     phone_number = models.CharField(max_length=120)
     is_available = models.BooleanField(default=True)
-    qualifications = models.TextField()
+    qualifications = models.TextField(blank=True, default='')
     license_number = models.CharField(max_length=100)
     resume = models.FileField(upload_to='resumes/doctors/',null=True,blank=True)
     doctor_photo = models.ImageField(upload_to='doctor_photos/',null=True,blank=True)
