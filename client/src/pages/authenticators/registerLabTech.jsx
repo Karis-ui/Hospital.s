@@ -38,7 +38,7 @@ export const LabTechRegister = () => {
     resume: null,
   });
   const [errors, setErrors] = useState({});
-  const register = useAuth();
+  const { register } = useAuth();
 
   const validateStep = () => {
     const newErrors = {};
@@ -47,6 +47,7 @@ export const LabTechRegister = () => {
       if (!formData.full_name) newErrors.full_name = 'Full name required';
       if (!formData.email) newErrors.email = 'Email required';
       if (!formData.phone_number) newErrors.phone_number = 'Phone number required';
+      if (!formData.gender) newErrors.gender = 'Gender required';
       if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = 'Valid email required';
     }
 
@@ -85,21 +86,8 @@ export const LabTechRegister = () => {
 
     setLoading(true);
     try {
-      const submitData = {
-        ...formData,
-        role: 'lab_technician',
-      };
-      delete submitData.confirm_password;
-
-      const data = new FormData();
-      Object.keys(submitData).forEach(key => {
-        if (submitData[key] !== null && submitData[key] !== '') {
-          data.append(key, submitData[key]);
-        }
-      });
-
-      const response = await register(data, 'lab_technician');
-      if (response.data.status === 'success') {
+      const response = await register(formData, 'lab_technician');
+      if (response.status === 'success') {
         toast.success('Registration successful! Awaiting admin approval.');
         setTimeout(() => navigate('/login'), 3000);
       }
@@ -167,7 +155,7 @@ export const LabTechRegister = () => {
                         <TextField fullWidth type="date" label="Date of Birth" value={formData.date_of_birth} onChange={(e) => handleChange('date_of_birth', e.target.value)} InputLabelProps={{ shrink: true }} />
                       </Grid>
                       <Grid item xs={12} md={6}>
-                        <TextField fullWidth select label="Gender" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}>
+                        <TextField fullWidth select label="Gender" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)} error={!!errors.gender} helperText={errors.gender}>
                           <MenuItem value="Male">Male</MenuItem>
                           <MenuItem value="Female">Female</MenuItem>
                         </TextField>

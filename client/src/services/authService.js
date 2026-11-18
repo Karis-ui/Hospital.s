@@ -83,12 +83,14 @@ export const authService = {
     registerOperator: async (operatorData) => {
         try {
             const formData = new FormData();
+            formData.append('username', operatorData.username);
             formData.append('email', operatorData.email);
             formData.append('password', operatorData.password);
             formData.append('confirm_password', operatorData.confirm_password);
             formData.append('full_name', operatorData.full_name);
             formData.append('phone', operatorData.phone);
-            formData.append('license_number', operatorData.license_number); // SC-STAFF-
+            formData.append('shift_time', operatorData.shift_time);
+            formData.append('license_number', operatorData.license_number || '');
 
             if (operatorData.resume) {
                 formData.append('resume', operatorData.resume);
@@ -109,13 +111,18 @@ export const authService = {
             formData.append('email', labTechData.email);
             formData.append('password', labTechData.password);
             formData.append('confirm_password', labTechData.confirm_password);
+            formData.append('username', labTechData.username);
             formData.append('full_name', labTechData.full_name);
             formData.append('phone_number', labTechData.phone_number); 
             formData.append('license_number', labTechData.license_number); 
-            formData.append('gender', labTechData.gender || '');
+            formData.append('gender', labTechData.gender);
             formData.append('department', labTechData.department || '');
             formData.append('shift_time', labTechData.shift_time || '');
-            formData.append('experience_years', labTechData.experience_years || '');
+            formData.append('experience_years', labTechData.experience_years || '0');
+
+            if (labTechData.date_of_birth) {
+                formData.append('date_of_birth', labTechData.date_of_birth);
+            }
 
             if (labTechData.resume) {
                 formData.append('resume', labTechData.resume);

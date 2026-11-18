@@ -17,10 +17,13 @@ class LabTech(models.Model):
     available = models.BooleanField(default=True)
     phone_number = models.CharField(max_length=120)
     is_available = models.BooleanField(default=True)
-    qualifications = models.TextField()
+    qualifications = models.TextField(blank=True, default='')
     license_number = models.CharField(max_length=100)
     resume = models.FileField(upload_to='resumes/labs/',null=True,blank=True)
     photo = models.ImageField(upload_to='lab_photos',null=True,blank=True)
+    department = models.CharField(max_length=120, blank=True, default='')
+    shift_time = models.CharField(max_length=50, blank=True, default='')
+    experience_years = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"Lab Technician.{self.user.username}"

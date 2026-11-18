@@ -512,7 +512,7 @@ class GetUser(APIView):
                 
                 labtech_fields = [
                     'full_name', 'email', 'date_of_birth', 'gender', 'phone_number',
-                    'qualifications', 'license_number', 'is_available', 'available',
+                    'qualifications', 'license_number', 'is_available', 'available', 'experience_years',
                     'shift_time', 'department'
                 ]
                 

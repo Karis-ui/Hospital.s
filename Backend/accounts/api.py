@@ -391,18 +391,57 @@ class LabTechnRegistrationAPIView(APIView):
     def post(self, request):
         try:
             email = request.data.get('email', '').strip().lower()
+            username = request.data.get('username', '').strip()
             password = request.data.get('password', '')
             confirm_password = request.data.get('confirm_password', '')
             full_name = request.data.get('full_name', '').strip()
-            phone = request.data.get('phone', '').strip()
+            phone = request.data.get('phone_number', '').strip()
             gender = request.data.get('gender', '').strip()
-            resume_file = request.FILES.get('resume') 
+            resume_file = request.FILES.get('resume')
             license_number = request.data.get('license_number', '').strip()
+            qualifications = request.data.get('qualifications', '').strip()
+            department = request.data.get('department', '').strip()
+            shift_time = request.data.get('shift_time', '').strip()
+            date_of_birth = request.data.get('date_of_birth') or None
+
+            try:
+                experience_years = int(request.data.get('experience_years') or 0)
+                if experience_years < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return Response({
+                    'status': 'error',
+                    'message': 'Experience years must be a non-negative whole number'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
-            if not all([email, password, full_name]):
+            if not all([email, username, password, confirm_password, full_name, phone, gender, license_number, resume_file]):
                 return Response({
                     'status': 'error',
                     'message': 'Required fields missing'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not is_valid_email(email):
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid email format'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if gender not in {'Male', 'Female'}:
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid gender'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if len(password) < 8:
+                return Response({
+                    'status': 'error',
+                    'message': 'Password must be at least 8 characters'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if password != confirm_password:
+                return Response({
+                    'status': 'error',
+                    'message': 'Passwords do not match'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             if User.objects.filter(email=email).exists():
@@ -410,24 +449,36 @@ class LabTechnRegistrationAPIView(APIView):
                     'status': 'error',
                     'message': 'Email already registered'
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+            if User.objects.filter(username=username).exists():
+                return Response({
+                    'status': 'error',
+                    'message': 'Username already registered'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             with transaction.atomic():
                 user = User.objects.create_user(
-                    username=email,
+                    username=username,
                     email=email,
                     password=password,
-                    full_name=full_name,
+                    first_name=full_name,
+                    phone=phone,
+                    user_type='lab_technician',
                     is_active=False,
+                    is_approved=False,
                 )
-                
-                user.user_type = 'lab_technician'
-                user.is_approved = False
-                user.save()
-                
+
                 lab_technician = LabTech.objects.create(
                     user=user,
+                    full_name=full_name,
+                    email=email,
+                    date_of_birth=date_of_birth,
                     phone_number=phone,
                     gender=gender,
+                    qualifications=qualifications,
+                    department=department,
+                    shift_time=shift_time,
+                    experience_years=experience_years,
                     resume=resume_file,
                     license_number=license_number,
                 )
@@ -455,17 +506,37 @@ class OperatorRegistrationAPIView(APIView):
     def post(self, request):
         try:
             email = request.data.get('email', '').strip().lower()
+            username = request.data.get('username', '').strip()
             password = request.data.get('password', '')
             confirm_password = request.data.get('confirm_password', '')
             full_name = request.data.get('full_name', '').strip()
             phone = request.data.get('phone', '').strip()
-            department = request.data.get('department', '').strip()
-            resume_file = request.FILES.get('resume') 
+            shift_time = request.data.get('shift_time', '').strip()
+            license_number = request.data.get('license_number', '').strip()
+            resume_file = request.FILES.get('resume')
             
-            if not all([email, password, full_name]):
+            if not all([email, username, password, confirm_password, full_name, phone, shift_time, license_number, resume_file]):
                 return Response({
                     'status': 'error',
                     'message': 'Required fields missing'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not is_valid_email(email):
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid email format'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if len(password) < 8:
+                return Response({
+                    'status': 'error',
+                    'message': 'Password must be at least 8 characters'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if password != confirm_password:
+                return Response({
+                    'status': 'error',
+                    'message': 'Passwords do not match'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             if User.objects.filter(email=email).exists():
@@ -473,24 +544,32 @@ class OperatorRegistrationAPIView(APIView):
                     'status': 'error',
                     'message': 'Email already registered'
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+            if User.objects.filter(username=username).exists():
+                return Response({
+                    'status': 'error',
+                    'message': 'Username already registered'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             with transaction.atomic():
                 user = User.objects.create_user(
-                    username=email,
+                    username=username,
                     email=email,
                     password=password,
-                    full_name=full_name,
+                    first_name=full_name,
+                    phone=phone,
+                    user_type='operator',
                     is_active=False,
+                    is_approved=False,
                 )
-                
-                user.user_type = 'operator'
-                user.is_approved = False
-                user.save()
-                
+
                 operator = OperatorField.objects.create(
                     user=user,
-                    department=department,
-                    phone=phone,
+                    full_name=full_name,
+                    email=email,
+                    shift_time=shift_time,
+                    phone_number=phone,
+                    license_number=license_number,
                     resume=resume_file,
                 )
                 
