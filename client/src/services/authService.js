@@ -5,7 +5,7 @@ import { useEffect } from "react";
 export const authService = {
     registerAdmin: async (adminData) => {
         try {
-            const response = await api.post('/accounts/admin/register/', {
+            const response = await api.post('accounts/admin/register/', {
                 email: adminData.email,
                 password: adminData.password,
                 confirm_password: adminData.confirm_password,
@@ -22,7 +22,7 @@ export const authService = {
     adminLogin: async (email, password) => {
         try {
             console.log('Attempting login for:', email);
-            const response = await api.post('/accounts/admin/login/', { email, password });
+            const response = await api.post('accounts/admin/login/', { email, password });
 
             if (response.data.data.tokens) {
                 localStorage.setItem('access_token', response.data.data.tokens.access);
@@ -37,7 +37,7 @@ export const authService = {
     },
     registerPatient: async (userData) => {
         try {
-            const response = await api.post('/accounts/signup/', {
+            const response = await api.post('accounts/signup/', {
                 email: userData.email,
                 password: userData.password,
                 confirm_password: userData.confirm_password,
@@ -58,7 +58,7 @@ export const authService = {
 
     registerDoctor: async (doctorData) => {
         try {
-            const response = await api.post('/accounts/doctor/register/', {
+            const response = await api.post('accounts/doctor/register/', {
                 email: doctorData.email,
                 password: doctorData.password,
                 confirm_password: doctorData.confirm_password,
@@ -79,7 +79,7 @@ export const authService = {
 
     registerOperator: async (operatorData) => {
         try {
-            const response = await api.post('/accounts/operator/register/', {
+            const response = await api.post('accounts/operator/register/', {
                 email: operatorData.email,
                 password: operatorData.password,
                 confirm_password: operatorData.confirm_password,
@@ -97,7 +97,7 @@ export const authService = {
 
     registerLabTechnician: async (labTechData) => {
         try {
-            const response = await api.post('/accounts/lab/register/', {
+            const response = await api.post('accounts/lab/register/', {
                 email: labTechData.email,
                 password: labTechData.password,
                 confirm_password: labTechData.confirm_password,
@@ -116,7 +116,7 @@ export const authService = {
     login: async (email, password) => {
         try {
             console.log('Attempting login for:', email);
-            const response = await api.post('/accounts/login/', { email, password });
+            const response = await api.post('accounts/login/', { email, password });
 
             if (response.data.data.tokens) {
                 localStorage.setItem('access_token', response.data.data.tokens.access);
@@ -133,7 +133,7 @@ export const authService = {
     forgotPassword: async (email) => {
         try {
             console.log("📧 Requesting password reset for:", email);
-            const response = await api.post('/accounts/forgot-password/', { email });
+            const response = await api.post('accounts/forgot-password/', { email });
             console.log("Password reset email sent:", response.data);
             return response.data;
         } catch (err) {
@@ -145,7 +145,7 @@ export const authService = {
     resetPassword: async (uId, token, newPassword, confirmPassword) => {
         try {
             console.log('Reseting password for UID:', uId);
-            const response = await api.post('/accounts/change-password/', {
+            const response = await api.post('accounts/change-password/', {
                 uId: uId, token: token, newPassword: newPassword, confirm_Password: confirmPassword
             });
             console.log('Password reset successfully');
