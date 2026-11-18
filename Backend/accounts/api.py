@@ -309,9 +309,9 @@ class DoctorRegistrationAPIView(APIView):
             phone = request.data.get('phone', '').strip()
             specialization = request.data.get('specialization', '').strip()
             license_number = request.data.get('license_number', '').strip()
-            qualifications = request.data.get('qualifications', '').strip()
+            resume_file = request.FILES.get('resume') 
             
-            if not all([email, password, full_name, specialization, license_number]):
+            if not all([email, password, full_name, specialization, resume_file]):
                 return Response({
                     'status': 'error',
                     'message': 'All required fields must be filled'
@@ -358,7 +358,7 @@ class DoctorRegistrationAPIView(APIView):
                     user=user,
                     specialization=specialization,
                     license_number=license_number,
-                    qualifications=qualifications,
+                    resume=resume_file,
                     phone=phone,
                     is_available=False,
                 )
@@ -393,7 +393,7 @@ class LabTechnRegistrationAPIView(APIView):
             full_name = request.data.get('full_name', '').strip()
             phone = request.data.get('phone', '').strip()
             gender = request.data.get('gender', '').strip()
-            qualifications = request.data.get('qualifications', '').strip()
+            resume_file = request.FILES.get('resume') 
             license_number = request.data.get('license_number', '').strip()
             
             if not all([email, password, full_name]):
@@ -425,7 +425,7 @@ class LabTechnRegistrationAPIView(APIView):
                     user=user,
                     phone_number=phone,
                     gender=gender,
-                    qualifications=qualifications,
+                    resume=resume_file,
                     license_number=license_number,
                 )
                 
@@ -457,6 +457,7 @@ class OperatorRegistrationAPIView(APIView):
             full_name = request.data.get('full_name', '').strip()
             phone = request.data.get('phone', '').strip()
             department = request.data.get('department', '').strip()
+            resume_file = request.FILES.get('resume') 
             
             if not all([email, password, full_name]):
                 return Response({
@@ -475,7 +476,7 @@ class OperatorRegistrationAPIView(APIView):
                     username=email,
                     email=email,
                     password=password,
-                    first_name=full_name,
+                    full_name=full_name,
                     is_active=False,
                 )
                 
@@ -487,6 +488,7 @@ class OperatorRegistrationAPIView(APIView):
                     user=user,
                     department=department,
                     phone=phone,
+                    resume=resume_file,
                 )
                 
                 return Response({
