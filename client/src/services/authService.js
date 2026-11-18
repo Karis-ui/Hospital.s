@@ -58,17 +58,20 @@ export const authService = {
 
     registerDoctor: async (doctorData) => {
         try {
-            const response = await api.post('accounts/doctor/register/', {
-                email: doctorData.email,
-                password: doctorData.password,
-                confirm_password: doctorData.confirm_password,
-                full_name: doctorData.full_name,
-                phone: doctorData.phone,
-                gender: doctorData.gender,
-                specialization: doctorData.specialization,
-                qualification: doctorData.qualification,
-                license_number: doctorData.license_number
-            });
+            const formData = new FormData();
+            formData.append('email', doctorData.email);
+            formData.append('password', doctorData.password);
+            formData.append('confirm_password', doctorData.confirm_password);
+            formData.append('full_name', doctorData.full_name);
+            formData.append('phone', doctorData.phone);
+            formData.append('specialization', doctorData.specialization);
+            formData.append('license_number', doctorData.license_number);
+
+            if (doctorData.resume) {
+                formData.append('resume', doctorData.resume);
+            }
+
+            const response = await api.post('accounts/doctor/register/', formData);
             console.log('Doctor Registration successful:', response.data);
             return response.data;
         } catch (error) {
@@ -79,14 +82,19 @@ export const authService = {
 
     registerOperator: async (operatorData) => {
         try {
-            const response = await api.post('accounts/operator/register/', {
-                email: operatorData.email,
-                password: operatorData.password,
-                confirm_password: operatorData.confirm_password,
-                full_name: operatorData.full_name,
-                phone: operatorData.phone,
-                qualification: operatorData.qualification
-            });
+            const formData = new FormData();
+            formData.append('email', operatorData.email);
+            formData.append('password', operatorData.password);
+            formData.append('confirm_password', operatorData.confirm_password);
+            formData.append('full_name', operatorData.full_name);
+            formData.append('phone', operatorData.phone);
+            formData.append('license_number', operatorData.license_number); // SC-STAFF-
+
+            if (operatorData.resume) {
+                formData.append('resume', operatorData.resume);
+            }
+
+            const response = await api.post('accounts/operator/register/', formData);
             console.log('Operator Registration successful:', response.data);
             return response.data;
         } catch (error) {
@@ -97,14 +105,25 @@ export const authService = {
 
     registerLabTechnician: async (labTechData) => {
         try {
-            const response = await api.post('accounts/lab/register/', {
-                email: labTechData.email,
-                password: labTechData.password,
-                confirm_password: labTechData.confirm_password,
-                full_name: labTechData.full_name,
-                phone: labTechData.phone,
-                qualification: labTechData.qualification
-            });
+            const formData = new FormData();
+            formData.append('email', labTechData.email);
+            formData.append('password', labTechData.password);
+            formData.append('confirm_password', labTechData.confirm_password);
+            formData.append('full_name', labTechData.full_name);
+            formData.append('phone_number', labTechData.phone_number); // Lab form uses phone_number
+            formData.append('license_number', labTechData.license_number); // KMLTTB-
+            formData.append('date_of_birth', labTechData.date_of_birth || '');
+            formData.append('gender', labTechData.gender || '');
+            formData.append('department', labTechData.department || '');
+            formData.append('shift_time', labTechData.shift_time || '');
+            formData.append('experience_years', labTechData.experience_years || '');
+            formData.append('username', labTechData.username);
+
+            if (labTechData.resume) {
+                formData.append('resume', labTechData.resume);
+            }
+
+            const response = await api.post('accounts/lab/register/', formData);
             console.log('Lab Technician Registration successful:', response.data);
             return response.data;
         } catch (error) {
@@ -160,13 +179,13 @@ export const authService = {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = 'login';
     },
 
     adminLogout: () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/admin/login'
+        window.location.href = 'admin/login'
     },
 
     getCurrentUser: () => {
@@ -190,7 +209,7 @@ export const authService = {
             }
 
             console.log('🔄 Refreshing access token');
-            const response = await api.post('/accounts/refresh_token/', { refresh: refresh });
+            const response = await api.post('accounts/refresh_token/', { refresh: refresh });
             localStorage.setItem('access_token', response.data.access);
             console.log('Token refreshed successfully.');
             return response;

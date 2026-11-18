@@ -5,7 +5,6 @@ const API_BASE_URL = 'https://hospitals-production.up.railway.app/api';
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
-    headers: { 'Content-Type': 'application/json' },
     timeout: 10000,
 });
 
