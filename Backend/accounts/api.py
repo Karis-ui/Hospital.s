@@ -305,14 +305,13 @@ class DoctorRegistrationAPIView(APIView):
             email = request.data.get('email', '').strip().lower()
             password = request.data.get('password', '')
             confirm_password = request.data.get('confirm_password', '')
-            first_name = request.data.get('first_name', '').strip()
-            last_name = request.data.get('last_name', '').strip()
+            full_name = request.data.get('first_name', '').strip()
             phone = request.data.get('phone', '').strip()
             specialization = request.data.get('specialization', '').strip()
             license_number = request.data.get('license_number', '').strip()
             qualifications = request.data.get('qualifications', '').strip()
             
-            if not all([email, password, first_name, last_name, specialization, license_number]):
+            if not all([email, password, full_name, specialization, license_number]):
                 return Response({
                     'status': 'error',
                     'message': 'All required fields must be filled'
@@ -347,8 +346,7 @@ class DoctorRegistrationAPIView(APIView):
                     username=email,
                     email=email,
                     password=password,
-                    first_name=first_name,
-                    last_name=last_name,
+                    first_name=full_name,
                     is_active=False,
                 )
                 
@@ -370,7 +368,7 @@ class DoctorRegistrationAPIView(APIView):
                     'message': 'Registration submitted for admin approval. You will be notified once approved.',
                     'data': {
                         'email': user.email,
-                        'name': f"{first_name} {last_name}",
+                        'name': f"{full_name}",
                         'specialization': specialization,
                         'status': 'pending_approval'
                     }
@@ -392,12 +390,11 @@ class LabTechnRegistrationAPIView(APIView):
             email = request.data.get('email', '').strip().lower()
             password = request.data.get('password', '')
             confirm_password = request.data.get('confirm_password', '')
-            full_name = request.data.get('first_name', '').strip()
+            full_name = request.data.get('full_name', '').strip()
             phone = request.data.get('phone', '').strip()
-            gender = request.data.get('department', '').strip()
+            gender = request.data.get('gender', '').strip()
             qualifications = request.data.get('qualifications', '').strip()
             license_number = request.data.get('license_number', '').strip()
-            date_of_birth = request.data.get('date_of_birth', '').strip()
             
             if not all([email, password, full_name]):
                 return Response({
@@ -426,11 +423,10 @@ class LabTechnRegistrationAPIView(APIView):
                 
                 lab_technician = LabTech.objects.create(
                     user=user,
-                    phone=phone,
+                    phone_number=phone,
                     gender=gender,
                     qualifications=qualifications,
                     license_number=license_number,
-                    date_of_birth=date_of_birth,
                 )
                 
                 return Response({
@@ -458,12 +454,11 @@ class OperatorRegistrationAPIView(APIView):
             email = request.data.get('email', '').strip().lower()
             password = request.data.get('password', '')
             confirm_password = request.data.get('confirm_password', '')
-            first_name = request.data.get('first_name', '').strip()
-            last_name = request.data.get('last_name', '').strip()
+            full_name = request.data.get('full_name', '').strip()
             phone = request.data.get('phone', '').strip()
             department = request.data.get('department', '').strip()
             
-            if not all([email, password, first_name, last_name]):
+            if not all([email, password, full_name]):
                 return Response({
                     'status': 'error',
                     'message': 'Required fields missing'
@@ -480,8 +475,7 @@ class OperatorRegistrationAPIView(APIView):
                     username=email,
                     email=email,
                     password=password,
-                    first_name=first_name,
-                    last_name=last_name,
+                    first_name=full_name,
                     is_active=False,
                 )
                 
@@ -500,7 +494,7 @@ class OperatorRegistrationAPIView(APIView):
                     'message': 'Operator registration submitted for approval',
                     'data': {
                         'email': user.email,
-                        'name': f"{first_name} {last_name}",
+                        'name': f"{full_name}",
                         'status': 'pending_approval'
                     }
                 }, status=status.HTTP_201_CREATED)
