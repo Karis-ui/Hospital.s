@@ -5,7 +5,7 @@ import { useEffect } from "react";
 export const authService = {
     registerAdmin: async (adminData) => {
         try {
-            const response = await api.post('accounts/admin/register/', {
+            const response = await api.post('accounts/admin/public-register/', {
                 email: adminData.email,
                 password: adminData.password,
                 confirm_password: adminData.confirm_password,

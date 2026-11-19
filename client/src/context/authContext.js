@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }) => {
                     throw err;
                 }
             }
-            else {
+            else if (type === 'operator') {
                 try {
                     setError(null);
                     console.log('📝 Register staff function called with data:', data);
@@ -129,6 +129,9 @@ export const AuthProvider = ({ children }) => {
                     setError('Registration failed:', err);
                     throw err;
                 }
+            }
+            else{
+                throw new Error('Invalid user type for registration');
             }
 
             const tokenData = response?.data?.data?.tokens || response?.data?.tokens;

@@ -111,11 +111,6 @@ const steps = [
         description: 'Tell us about yourself',
         icon: <PersonIcon />,
     },
-    {
-        label: 'Professional Information',
-        description: 'Your medical credentials',
-        icon: <HospitalIcon />,
-    },
 ];
 
 const RegisterAdmin = () => {
@@ -174,14 +169,6 @@ const RegisterAdmin = () => {
                 return false;
             }
         }
-
-        if (activeStep === 2) {
-            if (!formData.specialization || !formData.license_number || !formData.qualifications) {
-                setError('All fields are required');
-                return false;
-            }
-        }
-
         return true;
     };
 

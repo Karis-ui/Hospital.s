@@ -12,7 +12,7 @@ from time import timezone
 from django.contrib.auth import get_user_model
 from Hospital.Api.permissions import IsAdmin
 from system.utils import get_system_settings
-from core.models import Activity,AdminAnnouncement,Patient,Bill,Doctor,Appointment,AuditLog,Doctor,OperatorField,AdminReport
+from core.models import Activity,AdminAnnouncement,Patient,Bill,Doctor,Appointment,AuditLog,Doctor,OperatorField,AdminReport,HospitalAdmin
 from Lab.models import LabTech
 from system.models import SystemSettings
 from Hospital.Api.serializers import DoctorSerializer,AdminReportSerializer,OperatorSerializer,PatientSerializer,AppointmentSerializer,UserSerializer,LabTechSerializer,SettingSerializer,AuditLogSerializer
@@ -888,20 +888,43 @@ class AppointmentHeatmapAPIView(APIView):
             })
         
         return peak_hours
+
 class PendingApprovals(APIView):
-    permission_classes = [IsAdmin,IsAuthenticated]
-    def get(self,request):
-        data = {
-            'doctors': DoctorSerializer(is_approved=False,many=True
-            ).data,
-            
-            'operators': OperatorSerializer(is_approved=False,many=True
-            ).data,
-            
-            'lab_tech': LabTechSerializer(is_approved=False,many=True
-            ).data,
-        }
-        return Response(data)
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_superuser and request.user.user_type != 'admin':
+            return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+        pending_doctors = Doctor.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
+        pending_labs = LabTech.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
+        pending_operators = OperatorField.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
+        pending_admins = HospitalAdmin.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
+
+        doctors_data = [{...} for d in pending_doctors] 
+        labs_data = [{...} for l in pending_labs]      
+        operators_data = [{...} for o in pending_operators]  
+
+        admins_data = [{
+            'id': a.id,
+            'user_id': a.user.id,
+            'type': 'admin',
+            'full_name': a.full_name,
+            'email': a.email,
+            'phone': a.phone,
+            'registered_at': a.user.date_joined,
+        } for a in pending_admins]
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'doctors': doctors_data,
+                'lab_technicians': labs_data,
+                'operators': operators_data,
+                'admins': admins_data,
+                'total': len(doctors_data) + len(labs_data) + len(operators_data) + len(admins_data),
+            }
+        }, status=200)
             
 class DeactivateUser(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
@@ -933,10 +956,10 @@ class SetApproval(APIView):
     def post(self,request, user_id):
         try:
             user = get_object_or_404(User,id=user_id)
-            if user.user_type not  in ['doctor','operator']:
+            if user.user_type not  in ['doctor','operator','lab_technician','admin']:
                 return Response({
                     'status':'error',
-                    'meaasge': "Only doctors and operators can be approved"
+                    'meaasge': "Only staff can be approved"
                 },status=status.HTTP_400_BAD_REQUEST)
             user.is_active = True
             user.is_approved = True

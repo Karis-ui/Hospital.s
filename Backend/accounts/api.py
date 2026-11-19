@@ -115,6 +115,68 @@ class RegisterHospitalAdmin(APIView):
             }
         }, status=201)
 
+class PublicAdminRegistration(APIView):
+    permission_classes = [AllowAny]
+    @throttle_classes([RegistrationRateThrottle])
+
+    def post(self, request):
+        try:
+            email = request.data.get('email', '').strip().lower()
+            password = request.data.get('password', '')
+            confirm_password = request.data.get('confirm_password', '')
+            full_name = request.data.get('full_name', '').strip()
+            phone = request.data.get('phone', '').strip()
+
+            if not all([email, password, full_name, phone]):
+                return Response({'status': 'error', 'message': 'All fields are required'}, status=400)
+
+            if not is_valid_email(email):
+                return Response({'status': 'error', 'message': 'Invalid email format'}, status=400)
+
+            if User.objects.filter(email=email).exists():
+                return Response({'status': 'error', 'message': 'Email already registered'}, status=400)
+
+            if len(password) < 8:
+                return Response({'status': 'error', 'message': 'Password must be at least 8 characters'}, status=400)
+
+            if password != confirm_password:
+                return Response({'status': 'error', 'message': 'Passwords do not match'}, status=400)
+
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=password,
+                    first_name=full_name,
+                    is_staff=True,
+                    is_active=False,
+                )
+                user.user_type = 'admin'
+                user.is_approved = False
+                user.save()
+
+                admin = HospitalAdmin.objects.create(
+                    user=user,
+                    full_name=full_name,
+                    email=email,
+                    phone=phone,
+                    admin_level='operations',
+                    is_active=True,
+                )
+
+                return Response({
+                    'status': 'success',
+                    'message': 'Admin registration submitted for superuser approval',
+                    'data': {
+                        'email': user.email,
+                        'name': full_name,
+                        'status': 'pending_approval'
+                    }
+                }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=500)
+
 class HospitalAdminLogin(APIView):
     permission_classes=[AllowAny]
     @throttle_classes([AdminLoginRateThrottle])
@@ -618,7 +680,7 @@ class LoginAPIView(APIView):
                     'status': 'error',
                     'message': 'Account is inactive. Please contact admin.'
                 }, status=status.HTTP_403_FORBIDDEN)
-            if user.user_type in ['doctor', 'operator'] and not user.is_approved:
+            if user.user_type in ['doctor', 'operator','admin','lab_technician'] and not user.is_approved:
                 return Response({
                     'status': 'error',
                     'message': 'Account pending admin approval'

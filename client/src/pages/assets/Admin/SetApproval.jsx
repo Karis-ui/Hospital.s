@@ -2,38 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, IconButton, TextField, InputAdornment, Avatar, Stack, Tooltip,
-  Alert, CircularProgress, Grid, Card, CardContent, Typography,LinearProgress,
-  styled,Dialog,Paper,Button,Badge,
-  DialogTitle,
-  DialogContent,
-  Fade,
-  RadioGroup
+  Chip, IconButton, TextField, Avatar, Stack, Tooltip,
+  Alert, CircularProgress, Grid, CardContent, Typography, LinearProgress,
+  styled, Dialog, Paper, Button, Badge,
+  DialogTitle, DialogContent, Fade, RadioGroup, Tab, Tabs,
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Close as CloseIcon,
-  PersonAdd as PersonAddIcon,
-  Verified as VerifiedIcon,
-  Schedule as ScheduleIcon,
-  TrendingUp as TrendingUpIcon,
-  Celebration as CelebrationIcon,
-  Warning as WarningIcon,
-  Radio,
+  Search as SearchIcon, Refresh as RefreshIcon,
+  CheckCircle as ApproveIcon, Cancel as RejectIcon,
+  Email as EmailIcon, Phone as PhoneIcon, Close as CloseIcon,
+  PersonAdd as PersonAddIcon, Verified as VerifiedIcon,
+  Schedule as ScheduleIcon, Celebration as CelebrationIcon,
+  Radio, Description as ResumeIcon,
 } from '@mui/icons-material';
-import { animate, AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { alpha } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 import { adminService } from '../../../services/users/admin';
 import {
   platinumTheme, PremiumHeader, PremiumCard, PremiumTableContainer,
-  StatusChip, GlassSearchBar, SectionTitle, StatCard,GlassCard,RoleBadge,
-  PlatinumButton
+  GlassSearchBar, SectionTitle, StatCard, GlassCard, RoleBadge,
+  PlatinumButton,
 } from '../../../theme/GenLayout';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -50,9 +39,7 @@ const ReviewDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 const DecisionCard = styled(Paper)(({ theme, isSelected }) => ({
-  padding: theme.spacing(2.5),
-  borderRadius: 20,
-  cursor: 'pointer',
+  padding: theme.spacing(2.5), borderRadius: 20, cursor: 'pointer',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   border: `2px solid ${isSelected ? platinumTheme.accent.green : alpha(platinumTheme.primary.main, 0.1)}`,
   background: isSelected ? alpha(platinumTheme.accent.green, 0.05) : 'transparent',
@@ -64,121 +51,135 @@ const DecisionCard = styled(Paper)(({ theme, isSelected }) => ({
 }));
 
 const EmptyState = styled(Box)(({ theme }) => ({
-  textAlign: 'center',
-  padding: theme.spacing(8),
+  textAlign: 'center', padding: theme.spacing(8),
   background: `linear-gradient(135deg, ${alpha(platinumTheme.primary.main, 0.02)}, ${alpha(platinumTheme.secondary.main, 0.02)})`,
   borderRadius: 32,
 }));
 
-export const SetApproval = ()=>{
-    const navigate = useNavigate();
-    const [approvals,setApprovals] = useState([]);
-    const [selectedApproval,setSelectedApproval] = useState(null);
-    const [filteredApprovals,setFilteredApprovals] = useState([]);
-    const [loading,setLoading] = useState(true);
-    const [searchTerm,setSearchTerm] = useState('');
-    const [stats,setStats] = useState({total:0,pending:0,approved:0,rejected:0});
-    const [action,setAction] = useState('approve');
-    const [rejectReason,setRejectReason] = useState('');
-    const [openReviewDialog,setOpenreviewDialog] = useState(false);
-    const [submitting,setSubmitting] = useState(true);
+const flattenApprovals = (data) => {
+  if (!data) return [];
+  const flat = [
+    ...(data.doctors || []),
+    ...(data.lab_technicians || []),
+    ...(data.operators || []),
+    ...(data.admins || []),
+  ];
+  return flat;
+};
 
-    useEffect(()=>{
-        fetchApprovals();
-    },[]);
+export const SetApproval = () => {
+  const navigate = useNavigate();
+  const [approvals, setApprovals] = useState([]);
+  const [selectedApproval, setSelectedApproval] = useState(null);
+  const [filteredApprovals, setFilteredApprovals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stats, setStats] = useState({ total: 0, doctors: 0, labs: 0, operators: 0, admins: 0 });
+  const [activeTab, setActiveTab] = useState('all');
+  const [action, setAction] = useState('approve');
+  const [rejectReason, setRejectReason] = useState('');
+  const [openReviewDialog, setOpenreviewDialog] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-    const fetchApprovals = async()=>{
-        setLoading(true);
-        try{
-            const response = await adminService.pendingApprovals();
-            if(response.data.status === 'success'){
-                setApprovals(response.data.data);
-                filterApprovals(response.data.data, searchTerm);
-                calculateStats(response.data.data);
-            }
-        }catch(err){
-            toast.error('Failed to load approvals');
-        }finally{
-            setLoading(false);
-        }
-    };
+  useEffect(() => { fetchApprovals(); }, []);
 
-    const calculateStats = (list) =>{
+  const fetchApprovals = async () => {
+    setLoading(true);
+    try {
+      const response = await adminService.pendingApprovals();
+      if (response.data.status === 'success') {
+        const raw = response.data.data;
+        const flat = flattenApprovals(raw);
+        setApprovals(flat);
+        filterApprovals(flat, searchTerm, activeTab);
         setStats({
-            total: list.length,
-            pending: list.filter(a => a.status === 'pending').length,
-            approved: list.filter(a => a.status === 'approved').length,
-            rejected: list.filter(a => a.status === 'rejected').length
+          total: flat.length,
+          doctors: raw.doctors?.length || 0,
+          labs: raw.lab_technicians?.length || 0,
+          operators: raw.operators?.length || 0,
+          admins: raw.admins?.length || 0,
         });
-    };
-
-    const filterApprovals = (list,term)=>{
-        if(!term) setFilteredApprovals(list);
-        else setFilteredApprovals(list.filter(a => 
-            a.full_name?.toLowerCase().includes(term.toLowerCase()) ||
-            a.email?.toLowerCase().includes(term.toLowerCase()) ||
-            a.role?.toLowerCase().includes(term.toLowerCase())
-        ));
-    };
-
-    const handleSearch = (e)=>{
-        setSearchTerm(e.target.value);
-        filterApprovals(approvals,e.target.value);
-    };
-
-    const handleOpenReview = (approval)=>{
-        setSelectedApproval(approval);
-        setRejectReason('');
-        setAction('approve');
-        setOpenreviewDialog(true);
-    };
-
-    const handleSubmitDecision = async()=>{
-      if(action == 'reject' && !rejectReason){
-        toast.warning('Please provide a valid reason');
-        return;
       }
-      setSubmitting(true);
-      try{
-        const data = action === 'approve' ? { status: 'approved' } : { status: 'rejected', reject_reason: rejectReason };
-        await adminService.setApproval(selectedApproval.id, data);
-        toast.success(`User ${action}d successfully`);
-        setOpenreviewDialog(false);
-        fetchApprovals();
-      }catch(err){
-        toast.error('Failed to process approval');
-      }finally{
-        setLoading(false);
-      }
-    };
+    } catch (err) {
+      toast.error('Failed to load approvals');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const statsCard = [
-      {label: 'Total Requests',value: stats.total,icon: <PersonAddIcon/>,color: platinumTheme.primary.main,gradient: 'linear-gradient(135deg,#1a2639,#2c3e50)'},
-      {label: 'Pending Review',value: stats.pending,icon: <ScheduleIcon/>,color: platinumTheme.accent.orange,gradient: 'linear-gradient(135deg,#f39c12,#e67e22)'},
-      {label: 'Approved',value: stats.approved,icon: <VerifiedIcon/>,color: platinumTheme.accent.green,gradient: 'linear-gradient(135deg,#27ae60,#2ecc71)'},
-      {label: 'Rejected',value: stats.rejected,icon: <RejectIcon/>,color: platinumTheme.accent.red,gradient: 'linear-gradient(135deg,#e74c3c,#c0392b)'},
-    ];
+  const filterApprovals = (list, term, tab) => {
+    let filtered = list;
+    if (tab !== 'all') {
+      filtered = filtered.filter(a => a.type === tab);
+    }
+    if (term) {
+      filtered = filtered.filter(a =>
+        a.full_name?.toLowerCase().includes(term.toLowerCase()) ||
+        a.email?.toLowerCase().includes(term.toLowerCase()) ||
+        a.type?.toLowerCase().includes(term.toLowerCase())
+      );
+    }
+    setFilteredApprovals(filtered);
+  };
 
-    return (
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    filterApprovals(approvals, e.target.value, activeTab);
+  };
+
+  const handleTabChange = (e, value) => {
+    setActiveTab(value);
+    filterApprovals(approvals, searchTerm, value);
+  };
+
+  const handleOpenReview = (approval) => {
+    setSelectedApproval(approval);
+    setRejectReason('');
+    setAction('approve');
+    setOpenreviewDialog(true);
+  };
+
+  const handleSubmitDecision = async () => {
+    if (action === 'reject' && !rejectReason.trim()) {
+      toast.warning('Please provide a valid reason for rejection');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Uses user_id, not the profile record's id
+      await adminService.setApproval(selectedApproval.user_id, action, rejectReason);
+      toast.success(`User ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+      setOpenreviewDialog(false);
+      fetchApprovals();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to process approval');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const statsCard = [
+    { label: 'Total Pending', value: stats.total, icon: <PersonAddIcon />, color: platinumTheme.primary.main },
+    { label: 'Doctors', value: stats.doctors, icon: <PersonAddIcon />, color: '#3498db' },
+    { label: 'Lab Technicians', value: stats.labs, icon: <PersonAddIcon />, color: '#9b59b6' },
+    { label: 'Operators', value: stats.operators, icon: <PersonAddIcon />, color: '#e67e22' },
+  ];
+
+  return (
     <Box sx={{ p: 3, bgcolor: platinumTheme.background.default, minHeight: '100vh' }}>
       <PremiumHeader>
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-        >
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
             <PersonAddIcon sx={{ fontSize: 40 }} />
-            <Typography variant="h4" sx={{ fontWeight: 800 }}>
-              Pending Approvals
-            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>Pending Approvals</Typography>
             <Chip
-              label={`${stats.pending} pending`}
+              label={`${stats.total} pending`}
               sx={{ bgcolor: alpha(platinumTheme.accent.orange, 0.2), color: platinumTheme.accent.orange, fontWeight: 600 }}
             />
           </Box>
           <Typography variant="body2" sx={{ opacity: 0.9 }}>
-            Review and manage new user registration requests
+            Review and approve new staff registrations before they can log in.
           </Typography>
         </motion.div>
       </PremiumHeader>
@@ -187,11 +188,10 @@ export const SetApproval = ()=>{
         {statsCard.map((stat, idx) => (
           <Grid item xs={12} sm={6} md={3} key={idx}>
             <AnimatedStatCard
-              color={stat.color}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, duration: 0.5 }}
-              whileHover={{ y: -8, transition: { duration: 0.2 } }}
+              whileHover={{ y: -8 }}
             >
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -199,32 +199,36 @@ export const SetApproval = ()=>{
                     <Typography variant="caption" sx={{ color: platinumTheme.text.secondary, textTransform: 'uppercase', fontWeight: 600 }}>
                       {stat.label}
                     </Typography>
-                    <motion.div
-                      initial={{ scale: 1 }}
-                      animate={animate && idx === 0 ? { scale: [1, 1.2, 1] } : {}}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <Typography variant="h2" sx={{ fontWeight: 800, fontSize: '2.5rem', color: stat.color }}>
-                        {stat.value}
-                      </Typography>
-                    </motion.div>
+                    <Typography variant="h2" sx={{ fontWeight: 800, fontSize: '2.5rem', color: stat.color }}>
+                      {stat.value}
+                    </Typography>
                   </Box>
-                  <Avatar sx={{ bgcolor: alpha(stat.color, 0.15), width: 56, height: 56 }}>
+                  <Avatar sx={{ bgcolor: alpha(stat.color, 0.15), width: 56, height: 56, color: stat.color }}>
                     {stat.icon}
                   </Avatar>
                 </Box>
-                {stat.label === 'Pending Review' && stat.value > 0 && (
-                  <LinearProgress
-                    variant="determinate"
-                    value={(stat.value / stats.total) * 100}
-                    sx={{ mt: 2, height: 6, borderRadius: 3, bgcolor: alpha(stat.color, 0.2), '& .MuiLinearProgress-bar': { bgcolor: stat.color, borderRadius: 3 } }}
-                  />
-                )}
               </CardContent>
             </AnimatedStatCard>
           </Grid>
         ))}
       </Grid>
+
+      <Paper sx={{ mb: 3, borderRadius: 3, overflow: 'hidden' }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          sx={{
+            '& .MuiTabs-indicator': { bgcolor: platinumTheme.secondary.main, height: 3 },
+            '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, py: 2 },
+          }}
+        >
+          <Tab label={`All (${stats.total})`} value="all" />
+          <Tab label={`Doctors (${stats.doctors})`} value="doctor" />
+          <Tab label={`Lab Techs (${stats.labs})`} value="lab_technician" />
+          <Tab label={`Operators (${stats.operators})`} value="operator" />
+          <Tab label={`Admins (${stats.admins})`} value="admin" />
+        </Tabs>
+      </Paper>
 
       <GlassSearchBar sx={{ mb: 3 }}>
         <SearchIcon sx={{ color: platinumTheme.text.secondary, mr: 1.5 }} />
@@ -233,29 +237,28 @@ export const SetApproval = ()=>{
           variant="standard"
           fullWidth
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearch}
           InputProps={{ disableUnderline: true }}
         />
         {searchTerm && (
-          <IconButton size="small" onClick={() => setSearchTerm('')} sx={{ mr: 1 }}>
+          <IconButton size="small" onClick={() => { setSearchTerm(''); filterApprovals(approvals, '', activeTab); }}>
             <CloseIcon fontSize="small" />
           </IconButton>
         )}
         <Tooltip title="Refresh">
-          <IconButton onClick={fetchApprovals}>
-            <RefreshIcon />
-          </IconButton>
+          <IconButton onClick={fetchApprovals}><RefreshIcon /></IconButton>
         </Tooltip>
       </GlassSearchBar>
 
       <PremiumTableContainer>
-        {loading && <LinearProgress sx={{ '& .MuiLinearProgress-bar': { bgcolor: platinumTheme.secondary.main } }} />}
+        {loading && <LinearProgress />}
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(platinumTheme.primary.main, 0.04) }}>
-                <TableCell><strong>User</strong></TableCell>
+                <TableCell><strong>Applicant</strong></TableCell>
                 <TableCell><strong>Role</strong></TableCell>
+                <TableCell><strong>License #</strong></TableCell>
                 <TableCell><strong>Contact</strong></TableCell>
                 <TableCell><strong>Registered</strong></TableCell>
                 <TableCell align="center"><strong>Actions</strong></TableCell>
@@ -266,39 +269,35 @@ export const SetApproval = ()=>{
                 {filteredApprovals.length > 0 ? (
                   filteredApprovals.map((approval, idx) => (
                     <AnimatedTableFlow
-                      key={approval.id}
+                      key={`${approval.type}-${approval.id}`}
                       initial={{ opacity: 0, x: -30 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 30 }}
                       transition={{ delay: idx * 0.03, duration: 0.3 }}
                       hover
-                      sx={{ '&:hover': { bgcolor: alpha(platinumTheme.primary.main, 0.02) } }}
                     >
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Badge
-                            overlap="circular"
-                            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                            badgeContent={
-                              <Box sx={{ width: 12, height: 12, bgcolor: platinumTheme.accent.orange, borderRadius: '50%', border: `2px solid white` }} />
-                            }
-                          >
-                            <Avatar sx={{ bgcolor: alpha(platinumTheme.primary.main, 0.1), width: 48, height: 48 }}>
-                              <Typography variant="h6">{approval.full_name?.charAt(0)}</Typography>
-                            </Avatar>
-                          </Badge>
+                          <Avatar sx={{ bgcolor: alpha(platinumTheme.primary.main, 0.1), width: 48, height: 48 }}>
+                            <Typography variant="h6">{approval.full_name?.charAt(0)}</Typography>
+                          </Avatar>
                           <Box>
                             <Typography variant="body1" sx={{ fontWeight: 700 }}>
                               {approval.full_name}
                             </Typography>
                             <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>
-                              @{approval.username}
+                              {approval.email}
                             </Typography>
                           </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <RoleBadge role={approval.role} label={approval.role?.replace('_', ' ')} size="small" />
+                        <RoleBadge role={approval.type} label={approval.type?.replace('_', ' ')} size="small" />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                          {approval.license_number || 'N/A'}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Stack spacing={0.5}>
@@ -315,45 +314,39 @@ export const SetApproval = ()=>{
                         </Stack>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{format(new Date(approval.requested_at), 'MMM dd, yyyy')}</Typography>
+                        <Typography variant="body2">
+                          {format(new Date(approval.registered_at), 'MMM dd, yyyy')}
+                        </Typography>
                         <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>
-                          {formatDistanceToNow(new Date(approval.requested_at), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(approval.registered_at), { addSuffix: true })}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Stack direction="row" spacing={1} justifyContent="center">
-                          <Tooltip title="Review Application">
-                            <Button
-                              variant="contained"
-                              size="small"
-                              startIcon={<ApproveIcon />}
-                              onClick={() => handleOpenReview(approval)}
-                              sx={{
-                                borderRadius: 3,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                background: `linear-gradient(135deg, ${platinumTheme.primary.main}, ${platinumTheme.secondary.main})`,
-                                '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 8px 20px ${alpha(platinumTheme.primary.main, 0.4)}` },
-                              }}
-                            >
-                              Review Now
-                            </Button>
-                          </Tooltip>
-                        </Stack>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<ApproveIcon />}
+                          onClick={() => handleOpenReview(approval)}
+                          sx={{
+                            borderRadius: 3, textTransform: 'none', fontWeight: 600,
+                            background: `linear-gradient(135deg, ${platinumTheme.primary.main}, ${platinumTheme.secondary.main})`,
+                            '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 8px 20px ${alpha(platinumTheme.primary.main, 0.4)}` },
+                          }}
+                        >
+                          Review
+                        </Button>
                       </TableCell>
                     </AnimatedTableFlow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                       <EmptyState>
-                        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
-                          <CelebrationIcon sx={{ fontSize: 64, color: platinumTheme.accent.green, mb: 2, opacity: 0.7 }} />
-                          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>All Caught Up! 🎉</Typography>
-                          <Typography variant="body2" sx={{ color: platinumTheme.text.secondary }}>
-                            No pending approvals at the moment. New registrations will appear here.
-                          </Typography>
-                        </motion.div>
+                        <CelebrationIcon sx={{ fontSize: 64, color: platinumTheme.accent.green, mb: 2, opacity: 0.7 }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>All Caught Up! 🎉</Typography>
+                        <Typography variant="body2" sx={{ color: platinumTheme.text.secondary }}>
+                          No pending approvals in this category.
+                        </Typography>
                       </EmptyState>
                     </TableCell>
                   </TableRow>
@@ -372,7 +365,7 @@ export const SetApproval = ()=>{
                 <PersonAddIcon sx={{ color: platinumTheme.secondary.main }} />
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>Review Registration</Typography>
               </Box>
-              <IconButton onClick={() => setOpenreviewDialog(false)} sx={{ '&:hover': { bgcolor: alpha(platinumTheme.accent.red, 0.1) } }}>
+              <IconButton onClick={() => setOpenreviewDialog(false)}>
                 <CloseIcon />
               </IconButton>
             </Box>
@@ -384,53 +377,67 @@ export const SetApproval = ()=>{
             <Fade in timeout={300}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={7}>
-                  <PremiumCard sx={{ overflow: 'visible' }}>
+                  <PremiumCard>
                     <CardContent sx={{ p: 3 }}>
                       <SectionTitle variant="h6">Applicant Information</SectionTitle>
 
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
-                        <motion.div whileHover={{ scale: 1.05 }}>
-                          <Avatar
-                            sx={{
-                              width: 80,
-                              height: 80,
-                              background: `linear-gradient(135deg, ${platinumTheme.primary.main}, ${platinumTheme.secondary.main})`,
-                              boxShadow: `0 10px 25px ${alpha(platinumTheme.primary.main, 0.3)}`,
-                            }}
-                          >
-                            <Typography variant="h3">{selectedApproval.full_name?.charAt(0)}</Typography>
-                          </Avatar>
-                        </motion.div>
+                        <Avatar sx={{ width: 80, height: 80, background: `linear-gradient(135deg, ${platinumTheme.primary.main}, ${platinumTheme.secondary.main})` }}>
+                          <Typography variant="h3">{selectedApproval.full_name?.charAt(0)}</Typography>
+                        </Avatar>
                         <Box>
                           <Typography variant="h5" sx={{ fontWeight: 700 }}>{selectedApproval.full_name}</Typography>
-                          <Typography variant="body2" sx={{ color: platinumTheme.text.secondary }}>@{selectedApproval.username}</Typography>
-                          <Chip
-                            label={`Registered ${formatDistanceToNow(new Date(selectedApproval.requested_at), { addSuffix: true })}`}
-                            size="small"
-                            sx={{ mt: 1, bgcolor: alpha(platinumTheme.accent.orange, 0.1), color: platinumTheme.accent.orange }}
-                          />
+                          <Typography variant="body2" sx={{ color: platinumTheme.text.secondary }}>{selectedApproval.email}</Typography>
                         </Box>
                       </Box>
 
                       <Grid container spacing={2}>
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Email Address</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedApproval.email}</Typography>
+                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Role</Typography>
+                          <RoleBadge role={selectedApproval.type} label={selectedApproval.type?.replace('_', ' ')} />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Phone Number</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedApproval.phone || 'Not provided'}</Typography>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Requested Role</Typography>
-                          <RoleBadge role={selectedApproval.role} label={selectedApproval.role?.replace('_', ' ')} sx={{ mt: 0.5 }} />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Registration Date</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            {format(new Date(selectedApproval.requested_at), 'MMMM dd, yyyy hh:mm a')}
+                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>License Number</Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                            {selectedApproval.license_number || 'N/A'}
                           </Typography>
                         </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Phone</Typography>
+                          <Typography variant="body1">{selectedApproval.phone || 'Not provided'}</Typography>
+                        </Grid>
+                        {selectedApproval.specialization && (
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Specialization</Typography>
+                            <Typography variant="body1">{selectedApproval.specialization}</Typography>
+                          </Grid>
+                        )}
+                        {selectedApproval.department && (
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Department</Typography>
+                            <Typography variant="body1">{selectedApproval.department}</Typography>
+                          </Grid>
+                        )}
+                        <Grid item xs={12}>
+                          <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Registered</Typography>
+                          <Typography variant="body1">
+                            {format(new Date(selectedApproval.registered_at), 'MMMM dd, yyyy hh:mm a')}
+                          </Typography>
+                        </Grid>
+                        {selectedApproval.resume_url && (
+                          <Grid item xs={12}>
+                            <Button
+                              startIcon={<ResumeIcon />}
+                              href={selectedApproval.resume_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              variant="outlined"
+                              sx={{ textTransform: 'none', borderRadius: 2 }}
+                            >
+                              View CV / Resume
+                            </Button>
+                          </Grid>
+                        )}
                       </Grid>
                     </CardContent>
                   </PremiumCard>
@@ -446,8 +453,8 @@ export const SetApproval = ()=>{
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <ApproveIcon sx={{ color: platinumTheme.accent.green, fontSize: 32 }} />
                             <Box>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Approve Registration</Typography>
-                              <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>User will be notified and can log in</Typography>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Approve</Typography>
+                              <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>User can log in immediately</Typography>
                             </Box>
                             <Radio checked={action === 'approve'} value="approve" sx={{ ml: 'auto' }} />
                           </Box>
@@ -457,8 +464,8 @@ export const SetApproval = ()=>{
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <RejectIcon sx={{ color: platinumTheme.accent.red, fontSize: 32 }} />
                             <Box>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Reject Registration</Typography>
-                              <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Provide a reason for rejection</Typography>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Reject</Typography>
+                              <Typography variant="caption" sx={{ color: platinumTheme.text.secondary }}>Provide a reason</Typography>
                             </Box>
                             <Radio checked={action === 'reject'} value="reject" sx={{ ml: 'auto' }} />
                           </Box>
@@ -466,17 +473,11 @@ export const SetApproval = ()=>{
                       </RadioGroup>
 
                       {action === 'reject' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          transition={{ duration: 0.3 }}
-                        >
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
                           <TextField
-                            fullWidth
-                            multiline
-                            rows={3}
+                            fullWidth multiline rows={3}
                             label="Rejection Reason"
-                            placeholder="Please explain why this registration is being rejected..."
+                            placeholder="Explain why this registration is being rejected..."
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
                             required
@@ -491,8 +492,7 @@ export const SetApproval = ()=>{
                         onClick={handleSubmitDecision}
                         disabled={submitting}
                         sx={{
-                          mt: 3,
-                          py: 1.5,
+                          mt: 3, py: 1.5,
                           background: action === 'approve'
                             ? `linear-gradient(135deg, ${platinumTheme.accent.green}, ${platinumTheme.accent.green}cc)`
                             : `linear-gradient(135deg, ${platinumTheme.accent.red}, ${platinumTheme.accent.red}cc)`,
@@ -501,13 +501,9 @@ export const SetApproval = ()=>{
                         {submitting ? 'Processing...' : action === 'approve' ? 'Approve User' : 'Reject User'}
                       </PlatinumButton>
 
-                      <Alert
-                        severity="info"
-                        icon={<VerifiedIcon />}
-                        sx={{ mt: 3, borderRadius: 2, bgcolor: alpha(platinumTheme.accent.blue, 0.05) }}
-                      >
+                      <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
                         <Typography variant="caption">
-                          <strong>Note:</strong> User will receive an email notification. Password is managed by the user via "Forgot Password" for security.
+                          The user will be notified by email. They can log in once approved.
                         </Typography>
                       </Alert>
                     </CardContent>
@@ -521,3 +517,5 @@ export const SetApproval = ()=>{
     </Box>
   );
 };
+
+export default SetApproval;
