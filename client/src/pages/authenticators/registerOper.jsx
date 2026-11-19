@@ -42,7 +42,7 @@ const RegisterStaff = () => {
     email: '',
     phone: '',
     shift_time: '',
-    license_number: '',
+    license_number: 'KMLTTB-',
     resume: null,
     username: '',
     password: '',
