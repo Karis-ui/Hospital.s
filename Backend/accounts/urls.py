@@ -1,4 +1,4 @@
-from .api import SignUp,LoginAPIView,ChangePassword,CurrentProfileApi,RefreshTokenView,ForgotPassword,VerifyToken,Logout,DoctorRegistrationAPIView,LabTechnRegistrationAPIView,OperatorRegistrationAPIView,RegisterHospitalAdmin,HospitalAdminLogin
+from .api import SignUp,LoginAPIView,ChangePassword,CurrentProfileApi,RefreshTokenView,ForgotPassword,VerifyToken,Logout,DoctorRegistrationAPIView,LabTechnRegistrationAPIView,OperatorRegistrationAPIView,RegisterHospitalAdmin,HospitalAdminLogin,PublicAdminRegistration
 from django.urls import path
 
 urlpatterns = [
