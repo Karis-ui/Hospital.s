@@ -2,7 +2,7 @@ from .api import SignUp,LoginAPIView,ChangePassword,CurrentProfileApi,RefreshTok
 from django.urls import path
 
 urlpatterns = [
-    path('admin/public-register',PublicAdminRegistration.as_view(),name='admin_register'),
+    path('admin/public-register/',PublicAdminRegistration.as_view(),name='admin_register'),
     path('admin/login/',HospitalAdminLogin.as_view(),name='admin_login'),
     path('signup/',SignUp.as_view(),name='signup'),
     path('doctor/register/',DoctorRegistrationAPIView.as_view(),name='doctor_register'),
