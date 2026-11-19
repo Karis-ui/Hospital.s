@@ -17,8 +17,10 @@ import {
 } from '@mui/material';
 import {
   ArrowForward as ArrowForwardIcon,
+  Badge as BadgeIcon,
   Business as BusinessIcon,
   CheckCircle as CheckIcon,
+  CloudUpload as CloudUploadIcon,
   Email as EmailIcon,
   Lock as LockIcon,
   Person as PersonIcon,
@@ -40,6 +42,8 @@ const RegisterStaff = () => {
     email: '',
     phone: '',
     shift_time: '',
+    license_number: '',
+    resume: null,
     username: '',
     password: '',
     confirm_password: '',
@@ -57,6 +61,8 @@ const RegisterStaff = () => {
 
     if (activeStep === 1) {
       if (!formData.shift_time) newErrors.shift_time = 'Shift preference required';
+      if (!formData.license_number.trim()) newErrors.license_number = 'License number required';
+      if (!formData.resume) newErrors.resume = 'Resume required';
     }
 
     if (activeStep === 2) {
@@ -77,6 +83,12 @@ const RegisterStaff = () => {
     const value = event.target.value;
     setFormData((previous) => ({ ...previous, [field]: value }));
     setErrors((previous) => ({ ...previous, [field]: '' }));
+  };
+
+  const handleFileChange = (event) => {
+    const resume = event.target.files?.[0] || null;
+    setFormData((previous) => ({ ...previous, resume }));
+    setErrors((previous) => ({ ...previous, resume: '' }));
   };
 
   const handleSubmit = async () => {
@@ -200,6 +212,37 @@ const RegisterStaff = () => {
                       <MenuItem value="Night">Night</MenuItem>
                       <MenuItem value="Rotating">Rotating</MenuItem>
                     </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="License Number"
+                      value={formData.license_number}
+                      onChange={handleChange('license_number')}
+                      error={!!errors.license_number}
+                      helperText={errors.license_number}
+                      InputProps={{ startAdornment: <BadgeIcon sx={{ mr: 1 }} /> }}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />}>
+                      Upload Resume
+                      <input
+                        hidden
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                      />
+                    </Button>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      {formData.resume ? formData.resume.name : 'No resume selected'}
+                    </Typography>
+                    {errors.resume && (
+                      <Typography variant="caption" color="error">
+                        {errors.resume}
+                      </Typography>
+                    )}
                   </Grid>
                 </Grid>
               )}
