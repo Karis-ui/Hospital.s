@@ -422,7 +422,7 @@ class BillDetailAPIView(APIView):
     def get(self, request, bill_id):
         try:
             bill = get_object_or_404(
-                Bill.objects.select_related('patient', 'doctor'), 
+                Bill.objects.select_related('patient'),
                 id=bill_id
             )
             serializer = BillSerializer(bill, context={'request': request})

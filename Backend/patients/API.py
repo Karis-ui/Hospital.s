@@ -4,7 +4,6 @@ from Hospital.Api.serializers import PrescriptionSerializer
 from django.db.models import Q
 from Hospital.Api.serializers import NotificationSerializer
 from django.http import FileResponse
-from django.http import Http404
 from system.utils import get_system_settings
 from django.db import transaction
 from accounts.models import CustomUser
@@ -262,10 +261,14 @@ class LabViews(APIView):
 
 class BillingView(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
-    def get(self,request):
+    def get(self,request,pk=None):
         patient = get_object_or_404(Patient,user=request.user)
-        bills = Bill.objects.filter(patient=patient).all
-        return Response(BillSerializer(bills,many=True).data,status=status.HTTP_200_OK)
+        if pk is None:
+            bills = Bill.objects.filter(patient=patient).order_by('-created_at')
+            return Response(BillSerializer(bills,many=True).data,status=status.HTTP_200_OK)
+
+        bill = get_object_or_404(Bill,pk=pk,patient=patient)
+        return Response(BillSerializer(bill).data,status=status.HTTP_200_OK)
 
 class GetProfile(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
@@ -393,47 +396,43 @@ class EditAppointment(APIView):
 
 class LabResult(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
-    def get(self,request):
-        try:
-            patient = get_object_or_404(Patient,user=request.user)
-            results = LabReport.objects.filter(
-                lab_request__patient = patient,
-                is_approved=True
-            ).select_related('lab_request__doctor__user').order_by('-uploaded_at')
-        
-            data = []
-            for report in results:
-                data.append({
-                    'id': report.id,
-                    'test_type': report.lab_request.test_type,
-                    'doctor': report.lab_request.doctor.user.get_full_name() if report.lab_request.doctor else 'N/A',
-                    'uploaded_at': report.uploaded_at,
-                    'remarks': report.remarks,
-                    'file_url': report.report_file.url if report.report_file else None,
-                    'status': 'Available' if report.is_approved else 'Pending'
-                })
-                
-            if not report.pdf_file:
-                raise Http404('Report file missing.')
-            return FileResponse(
-                report.pdf_file.open("rb"),
-                content_type = "application/pdf",
-                as_attachment = True,
-                filename = f'Labreport_{report.id}.pdf'
+    def get(self,request,pk=None):
+        patient = get_object_or_404(Patient,user=request.user)
+        results = LabReport.objects.filter(
+            lab_request__patient=patient,
+        ).select_related('lab_request', 'lab_request__doctor__user').order_by('-uploaded_at')
+
+        if pk is not None:
+            report = get_object_or_404(results,pk=pk)
+            return Response(
+                LabReportSerializer(report,context={'request':request}).data,
+                status=status.HTTP_200_OK
             )
-            
-            return Response({
-                'counts': len(data),
-                'data':data
-            },status=status.HTTP_200_OK)
-        except Patient.DoesNotExist:
-            return Response({
-                'error':'Patient profile not found'
-            },status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({
-                'error':str(e)
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+
+        serializer = LabReportSerializer(results,many=True,context={'request':request})
+        return Response({
+            'count': results.count(),
+            'data': serializer.data
+        },status=status.HTTP_200_OK)
+
+class LabReportDownload(APIView):
+    permission_classes = [IsAuthenticated,IsPatient]
+
+    def get(self,request,pk):
+        patient = get_object_or_404(Patient,user=request.user)
+        report = get_object_or_404(LabReport,pk=pk,lab_request__patient=patient)
+        if not report.report_file:
+            return Response(
+                {'error':'Lab report file is not available.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return FileResponse(
+            report.report_file.open('rb'),
+            content_type='application/pdf',
+            as_attachment=True,
+            filename=os.path.basename(report.report_file.name)
+        )
 
 class NotificationView(APIView):
     permission_classes = [IsAuthenticated,IsPatient]

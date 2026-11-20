@@ -1,221 +1,225 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
   Box,
-  Paper,
-  Typography,
-  Grid,
-  Chip,
   Button,
-  Divider,
   Card,
   CardContent,
-  Alert,
+  Chip,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  IconButton,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  Avatar,
-  Rating,
-  LinearProgress,
-  Tooltip,
-  Zoom,
-  Tab,
-  Tabs,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemAvatar,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
-  Slider,
-  Switch,
-  Badge,
+  Typography,
 } from '@mui/material';
-import { styled, alpha } from '@mui/material/styles';
 import {
   ArrowBack as ArrowBackIcon,
   Download as DownloadIcon,
-  Print as PrintIcon,
-  Share as ShareIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Science as LabIcon,
-  Biotech as TestIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckIcon,
-  Info as InfoIcon,
-  CalendarToday as CalendarIcon,
-  AccessTime as TimeIcon,
-  Person as PersonIcon,
-  LocalHospital as HospitalIcon,
-  Description as DescriptionIcon,
-  FilePresent as FileIcon,
-  PictureAsPdf as PdfIcon,
-  Visibility as ViewIcon,
-  History as HistoryIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  RemoveCircle as RemoveIcon,
-  AddCircle as AddIcon,
-  Error as ErrorIcon,
-  WarningAmber as AlertIcon,
-  MedicalInformation as MedicalInfoIcon,
-  Bloodtype as BloodIcon,
-  WaterDrop as UrineIcon,
-  BiotechSharp as MicrobeIcon,
-  BloodtypeTwoTone as DNAIcon,
-  RadioOutlined as XRayIcon,
-  Favorite as HeartIcon,
-  ScienceOutlined as FlaskIcon,
+  Science as ScienceIcon,
 } from '@mui/icons-material';
-import { format, formatDistance } from 'date-fns';
 import { toast } from 'react-toastify';
 import PatientService from '../../../services/users/patient';
-import { labServices } from '../../../services/users/labtech';
-import { formatDate, formatTime, formatCurrency } from '../../../formatters';
-import { tr } from 'date-fns/locale';
+import { formatDate } from '../../../formatters';
 
-const ResultCard = styled(Card)(({ theme, abnormal }) => ({
-  marginBottom: theme.spacing(2),
-  borderRadius: theme.spacing(2),
-  border: `1px solid ${abnormal ? alpha(theme.palette.error.main, 0.3) : alpha(theme.palette.success.main, 0.1)}`,
-  backgroundColor: abnormal ? alpha(theme.palette.error.main, 0.02) : 'white',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    boxShadow: theme.shadows[5],
-  },
-}));
-
-const AbnormalBadge = styled(Chip)(({ theme }) => ({
-  backgroundColor: alpha(theme.palette.error.main, 0.1),
-  color: theme.palette.error.main,
-  borderColor: theme.palette.error.main,
-  fontWeight: 600,
-}));
-
-const NormalBadge = styled(Chip)(({ theme }) => ({
-  backgroundColor: alpha(theme.palette.success.main, 0.1),
-  color: theme.palette.success.main,
-  borderColor: theme.palette.success.main,
-  fontWeight: 600,
-}));
-
-const InfoItem = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  padding: theme.spacing(1, 0),
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: 'none',
-  fontWeight: 600,
-  fontSize: '1rem',
-  minHeight: 48,
-}));
-
-const testIcons = {
-  'blood': <BloodIcon />,
-  'urine': <UrineIcon />,
-  'microbiology': <MicrobeIcon />,
-  'pathology': <DNAIcon />,
-  'radiology': <XRayIcon />,
-  'cardiology': <HeartIcon />,
-  'default': <FlaskIcon />,
+const getStatus = (report) => {
+  if (report.is_approved) return 'Available';
+  return report.status || 'Pending';
 };
 
-export const Labview = () =>{
-    const {id} = useParams();
-    const navigate = useNavigate();
-    const [loading,setLoading] = useState(true);
-    const [result,setResult] = useState(null);
-    const [error,setError] = useState('');
-    const [tabValue, setTabValue] = useState(0);
-    const [shareDialog, setShareDialog] = useState(false);
-    const [shareEmail,setShareEmail] = useState('');
-    const [shareNote, setShareNote] = useState('');
-    const [printMode,setPrintMode] = useState(false);
-    const [comparisonData, setComparisonData] = useState(null);
-    const [showComparison,setShowComparison] = useState(false);
-    const [anchor,setAnchor] = useState(null);
+const getStatusColor = (report) => {
+  if (report.is_approved) return 'success';
+  if (report.status === 'rejected') return 'error';
+  return 'warning';
+};
 
-    useEffect(() =>{
-        fetchLabResult();
-    },[id]);
+export const Labview = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [results, setResults] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    const fetchLabResult = async() =>{
-        try{
-            setLoading(true);
-            const response = await PatientService.viewLab(id);
-            setResult(response.data);
-            setError('');
-        }catch(err){
-            console.error('Failed: ',err);
-            setError('Failed to fetch lab results.');
-            toast.error('Failed to load lab result.');
-        }finally{
-            setLoading(false);
+  const fetchLabResults = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      if (id) {
+        const response = await PatientService.viewLab(id);
+        setResult(response.data);
+        setResults([]);
+      } else {
+        const response = await PatientService.getLabResults();
+        const reports = response.data?.data;
+        if (!Array.isArray(reports)) {
+          throw new Error('The lab results response was not a list.');
         }
-    };
+        setResults(reports);
+        setResult(null);
+      }
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || requestError.message || 'Failed to load lab results.');
+      setResults([]);
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
-    const handleDownloadPdf = async() =>{
-        try{
-            toast.info('Preparing PDF download...');
-            const response = await PatientService.downloadLabReport();
-            setResult(response.data);
-            await new Promise(resolve => setTimeout(resolve,1500));
-            toast.success('PDF downloaded successfully.');
-        }catch(err){
-            toast.error('Failed to download PDF');
-        }
-    };
+  useEffect(() => {
+    fetchLabResults();
+  }, [fetchLabResults]);
 
-    const handlePrint =() =>{
-        setPrintMode(true);
-        setTimeout(() =>{
-            window.print();
-            setPrintMode(false);
-        },100);
-    };
+  const handleDownload = async (reportId) => {
+    try {
+      const response = await PatientService.downloadLabReport(reportId);
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `lab_report_${reportId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      toast.error(downloadError.response?.data?.error || 'Failed to download the lab report.');
+    }
+  };
 
-    const handleShare = () =>{
-        if(navigator.share){
-            navigator.share({url: window.location.href});
-        }else{
-            navigator.clipboard.writeText(window.location.href);
-            toast.success('Link copied to clipboard');
-        }
-    };
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-    const handleShareSubmit = async()=>{
-        try{
-            toast.success(`Result shared with ${shareEmail}`);
-            setShareDialog(false);
-            setShareEmail('');
-            setShareNote('');
-        }catch(err){
-            toast.error('Failed to share result.');
-        }
-    };
-}
+  if (error) {
+    return (
+      <Box sx={{ p: { xs: 2, md: 3 } }}>
+        <Alert severity="error">{error}</Alert>
+        <Button onClick={() => navigate('/patient/dashboard')} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
+          Back to dashboard
+        </Button>
+      </Box>
+    );
+  }
+
+  if (!id) {
+    return (
+      <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
+          Lab Results
+        </Typography>
+        {results.length === 0 ? (
+          <Alert severity="info">You do not have any lab reports yet.</Alert>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Report</TableCell>
+                  <TableCell>Uploaded</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Remarks</TableCell>
+                  <TableCell align="right">Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {results.map((report) => (
+                  <TableRow key={report.id} hover>
+                    <TableCell>Lab report #{report.id}</TableCell>
+                    <TableCell>{formatDate(report.uploaded_at) || 'Not recorded'}</TableCell>
+                    <TableCell>
+                      <Chip label={getStatus(report)} color={getStatusColor(report)} size="small" />
+                    </TableCell>
+                    <TableCell>{report.remarks || '—'}</TableCell>
+                    <TableCell align="right">
+                      <Button onClick={() => navigate(`/patient/lab-view/${report.id}`)}>
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Box>
+    );
+  }
+
+  if (!result) {
+    return (
+      <Box sx={{ p: { xs: 2, md: 3 } }}>
+        <Alert severity="error">Lab report not found.</Alert>
+        <Button onClick={() => navigate('/patient/lab-view')} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
+          Back to lab results
+        </Button>
+      </Box>
+    );
+  }
+
+  const structuredResults = result.structured_results;
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1000, mx: 'auto' }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+        <IconButton onClick={() => navigate('/patient/lab-view')} aria-label="Back to lab results">
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h4" sx={{ fontWeight: 700, flex: 1 }}>
+          Lab Report #{result.id}
+        </Typography>
+        {result.report_file && (
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => handleDownload(result.id)}
+          >
+            Download
+          </Button>
+        )}
+      </Stack>
+
+      <Card>
+        <CardContent>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <ScienceIcon color="primary" />
+            <Typography variant="h6">Report details</Typography>
+            <Chip label={getStatus(result)} color={getStatusColor(result)} size="small" />
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            Uploaded: {formatDate(result.uploaded_at) || 'Not recorded'}
+          </Typography>
+          {result.remarks && (
+            <Typography sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>{result.remarks}</Typography>
+          )}
+          {structuredResults && (
+            <Box
+              component="pre"
+              sx={{
+                mt: 2,
+                p: 2,
+                overflowX: 'auto',
+                bgcolor: 'grey.100',
+                borderRadius: 1,
+                fontFamily: 'monospace',
+              }}
+            >
+              {JSON.stringify(structuredResults, null, 2)}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};

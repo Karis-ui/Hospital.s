@@ -82,7 +82,7 @@ export const OperatorService = {
         return response;
     },
     downloadInvoicePdf: (id) =>
-        api.get(`operator/invoice-bill/${id}/download-pdf/`),
+        api.get(`operator/invoice-bill/${id}/download-pdf/`, { responseType: 'blob' }),
 
     exportTransactions: (params) =>
         api.get(`operator/transaction-list/export/`, {
