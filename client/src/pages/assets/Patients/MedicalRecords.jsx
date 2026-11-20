@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -156,15 +156,11 @@ export const MedicalRecords = () => {
     fetchMedicalRecords();
   }, []);
 
-  useEffect(() => {
-    filterRecords();
-  }, [records, searchTerm, tabValue]);
-
   const fetchMedicalRecords = async () => {
     try {
       setLoading(true);
       const response = await PatientService.getMedicalRecords();
-      setRecords(response.data.records);
+      setRecords(response.data.records || {});
       setVitals(response.data.vitals || []);
       setError('');
     } catch (err) {
@@ -175,34 +171,30 @@ export const MedicalRecords = () => {
     }
   };
 
-  const filterRecords = () => {
+  const filterRecords = useCallback(() => {
     if (!records) return;
     let filtered = [];
-    const typeMap = ['diagnoses', 'medications', 'allergies', 'lab_results', 'procedures', 'immunizations', 'notes'];
+    const typeMap = ['all', 'diagnoses', 'medications', 'allergies', 'lab_results', 'notes'];
     const currentType = typeMap[tabValue];
 
-    if (currentType && records[currentType]) {
+    if (currentType === 'all') {
+      filtered = Object.values(records).flatMap((items) => Array.isArray(items) ? items : []);
+    } else if (currentType && records[currentType]) {
       filtered = [...records[currentType]];
-    } else if (tabValue === 0) {
-      filtered = [
-        ...(records.diagnoses || []),
-        ...(records.medications || []),
-        ...(records.alergies || []),
-        ...(records.lab_results || []),
-        ...(records.precedures || []),
-        ...(records.immunizations || []),
-        ...(records.notes || []),
-      ];
     }
 
     if (searchTerm) {
       filtered = filtered.filter(r =>
-        r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     setFilteredRecords(filtered);
-  };
+  }, [records, searchTerm, tabValue]);
+
+  useEffect(() => {
+    filterRecords();
+  }, [filterRecords]);
 
   const handleAddRecord = async () => {
     setSubmitting(true)
@@ -278,7 +270,7 @@ export const MedicalRecords = () => {
     { label: 'All', icon: <DashboardIcon />, count: filterRecords.length },
     { label: 'Diagnoses', icon: <DiagnosisIcon />, count: records?.diagnoses?.length || 0 },
     { label: 'Medications', icon: <MedicalIcon />, count: records?.medications?.length || 0 },
-    { label: 'Allergy', icon: <AllergyIcon />, count: records?.allrgies?.length || 0 },
+    { label: 'Allergy', icon: <AllergyIcon />, count: records?.allergies?.length || 0 },
     { label: 'Lab Results', icon: <LabIcon />, count: records?.lab_results?.length || 0 },
     { label: 'Notes', icon: <NoteIcon />, count: records?.notes?.length || 0 },
   ];

@@ -117,12 +117,12 @@ class UserSerializer(serializers.Serializer):
         model = Bill,Patient,Doctor,Report,OperatorField,LabTech
         fields = '__all__'
 
-class MedicalRecordSerializer(serializers.Serializer):
+class MedicalRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicalRecords
         fields = '__all__'
 
-class VitalSignSerializer(serializers.Serializer):
+class VitalSignSerializer(serializers.ModelSerializer):
     class Meta:
         model = VitalSign
         fields = '__all__'

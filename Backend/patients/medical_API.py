@@ -1,4 +1,4 @@
-from core.models import Patient,Doctor,Prescription,MedicalRecords
+from core.models import Patient,Doctor,Prescription,MedicalRecords,VitalSign
 from Lab.models import labRequest,LabReport
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -18,11 +18,13 @@ class PatientMedicalView(APIView):
         patient = get_object_or_404(Patient,user=request.user)
         records = MedicalRecords.objects.filter(patient=patient).order_by('-created_at')
         grouped = {
-            'diagnosis': records.filter(record_type='diagnosis'),
+            'diagnoses': records.filter(record_type__in=['diagnosis','condition']),
             'medications': records.filter(record_type='medication',status='active'),
+            'allergies': records.filter(record_type='allergy'),
             'lab_results': records.filter(record_type='lab'),
-            'immunization': records.filter(record_type='immunization'),
-            'notes': records.filter(record_type='notes'),
+            'procedures': records.filter(record_type='procedure'),
+            'immunizations': records.filter(record_type='immunization'),
+            'notes': records.filter(record_type__in=['notes','social_history','document']),
             }
         
         vitals = VitalSign.objects.filter(patient=patient).order_by('recorded_at')[:20]
@@ -35,7 +37,7 @@ class PatientMedicalView(APIView):
             },
             'records':{ key: MedicalRecordSerializer(value,many=True).data for key,value in grouped.items()},
             'vitals':VitalSignSerializer(vitals,many=True).data
-        },status=status.HTTP_2000_OK)
+        },status=status.HTTP_200_OK)
     
     def post(self,request):
         patient = get_object_or_404(Patient,user=request.user)

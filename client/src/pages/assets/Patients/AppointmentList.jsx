@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useConfirm } from '../../../theme/useConfirm';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -46,7 +46,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../../context/authContext';
 import PatientService from '../../../services/users/patient';
-import { formatDate, formatTime } from '../../../formatters';
+import { formatDate } from '../../../formatters';
 import { da } from 'date-fns/locale';
 
 const AppointmentList = () => {
@@ -67,25 +67,15 @@ const AppointmentList = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [anchor, setAnchor] = useState(null);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [tabValue]);
-  useEffect(() => {
-    applyFilters();
-  }, [appointments, searchTerms, statusFilter, dateFilter]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
-
-      let status = null;
-      if (tabValue === 0) status = 'upcoming';
-      else if (tabValue === 1) status = 'confirmed';
-      else if (tabValue === 2) status = 'cancelled';
-      else if (tabValue === 3) status = 'completed';
-
-      const response = await PatientService.getAllAppointments({ status });
-      setAppointments(response.data);
+      const response = await PatientService.getAllAppointments();
+      const appointmentData = response.data?.data?.appointments;
+      if (!Array.isArray(appointmentData)) {
+        throw new Error('The appointments response was not a list.');
+      }
+      setAppointments(appointmentData);
       setError('');
     } catch (err) {
       console.error('Failed to fetch appointments: ', err);
@@ -94,10 +84,29 @@ const AppointmentList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const applyFilters = async () => {
-    let filtered = [...appointments];
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const applyFilters = useCallback(() => {
+    let filtered = Array.isArray(appointments) ? [...appointments] : [];
+    if (tabValue === 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((appointment) => {
+        const status = appointment.status?.toLowerCase();
+        const appointmentDate = new Date(`${appointment.appointment_date}T00:00:00`);
+        return ['requested', 'scheduled', 'confirmed', 'rescheduled'].includes(status) &&
+          appointmentDate >= today;
+      });
+    } else if (tabValue === 1) {
+      filtered = filtered.filter((appointment) => appointment.status?.toLowerCase() === 'completed');
+    } else if (tabValue === 2) {
+      filtered = filtered.filter((appointment) => appointment.status?.toLowerCase() === 'cancelled');
+    }
+
     if (searchTerms) {
       filtered = filtered.filter(apt =>
         apt.doctor_name?.toLowerCase().includes(searchTerms.toLowerCase()) ||
@@ -105,16 +114,23 @@ const AppointmentList = () => {
         apt.purpose?.toLowerCase().includes(searchTerms.toLowerCase())
       );
     }
-    if (statusFilter != 'all') {
-      const filterDate = new Date(dateFilter).toDateString();
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((apt) => apt.status?.toLowerCase() === statusFilter);
+    }
+    if (dateFilter) {
+      const filterDate = dateFilter.toDateString();
       filtered = filtered.filter(apt =>
-        new Date(apt.appointment_date).toDateString() === filterDate
+        new Date(`${apt.appointment_date}T00:00:00`).toDateString() === filterDate
       );
     }
     setFilteredAppoiynmebt(filtered);
-    setTotalPage(Math.ceil(filtered.length / itemPerPage));
+    setTotalPage(Math.max(1, Math.ceil(filtered.length / itemPerPage)));
     setPage(1);
-  };
+  }, [appointments, dateFilter, itemPerPage, searchTerms, statusFilter, tabValue]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleCancelAppointment = async (appointmentId) => {
     const confirmed = confirm({
@@ -164,7 +180,8 @@ const AppointmentList = () => {
     setTotalPage(1);
   };
 
-  const handleTabChange = () => {
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
     setSerachTerm('');
     setstatusFilter('all');
     setDateFilter(null);
@@ -243,7 +260,9 @@ const AppointmentList = () => {
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="confirmed">Confirmed</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="requested">Requested</MenuItem>
+                <MenuItem value="scheduled">Scheduled</MenuItem>
+                <MenuItem value="rescheduled">Rescheduled</MenuItem>
                 <MenuItem value="completed">Completed</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>
               </Select>
@@ -299,7 +318,7 @@ const AppointmentList = () => {
                       {formatDate(apt.appointment_date)}
                     </Typography>
                     <Typography variant="caption" color="textSecondary">
-                      {apt.time || '--:--'}
+                      {apt.appointment_time || '--:--'}
                     </Typography>
                   </TableCell>
                   <TableCell>
