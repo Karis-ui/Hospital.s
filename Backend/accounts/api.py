@@ -1010,7 +1010,7 @@ class ForgotPassword(APIView):
                     message=f'Hi {user.first_name},\n\nWe received a request to reset your password for your SmartCare account. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nSmartCare Team',
                     from_email='noreply@smartcare.com',
                     recipient_list=[user.email],
-                    fail_silently=True
+                    fail_silently=False
                 )
             except User.DoesNotExist:
                 pass
