@@ -98,7 +98,13 @@ const ForgotPassword = () => {
       await forgotPass(email);
       setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send reset email');
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.Message ||
+        (err.response
+          ? `Password reset request failed (HTTP ${err.response.status}). Please try again later.`
+          : 'Unable to reach the server. Check your connection and try again.')
+      );
     } finally {
       setLoading(false);
     }

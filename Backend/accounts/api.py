@@ -1,6 +1,8 @@
 from rest_framework.decorators import throttle_classes
 from re import match
 import secrets
+import logging
+import smtplib
 from rest_framework.parsers import MultiPartParser, FormParser
 import string
 from rest_framework.decorators import api_view,permission_classes
@@ -15,6 +17,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
@@ -39,6 +42,7 @@ from django.utils.encoding import force_bytes,force_str
 from core.throttles import LoginRateThrottle,RegistrationRateThrottle,AdminLoginRateThrottle,PasswordResetRateThrottle
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 USER_TYPES = {
     'PATIENT': 'patient',
@@ -1001,35 +1005,58 @@ class ForgotPassword(APIView):
     @throttle_classes([PasswordResetRateThrottle])
     def post(self,request):
         serializer = ForgotPasswordSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            try:
-                user = User.objects.get(email=email)
-                token_generator = PasswordResetTokenGenerator()
-                token = token_generator.make_token(user)
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
+        if not serializer.is_valid():
+            return Response({
+                'status': 'error',
+                'message': serializer.errors['email'][0]
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-                from django.conf import settings
-                reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
-                send_mail(
-                    subject='Password Reset  Request - SmartCare Hospital',
-                    message=f'Hi {user.first_name},\n\nWe received a request to reset your password for your SmartCare account. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nSmartCare Team',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False
-                )
-            except User.DoesNotExist:
-                pass
-            except Exception as exc:
-                return Response({
-                    'status': 'error',
-                    'message': 'Unable to send reset email. Please try again later.'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        email = serializer.validated_data['email']
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
             return Response({
                 'status': 'success',
                 'Message': 'If an account with that email exists, a password reset link has been sent.'
-            },status=status.HTTP_200_OK)
+            }, status=status.HTTP_200_OK)
+
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            logger.error('Password reset email not sent: SMTP credentials are not configured.')
+            return Response({
+                'status': 'error',
+                'message': 'Password reset email is not configured. Please contact support.'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        token = PasswordResetTokenGenerator().make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
+
+        try:
+            sent_count = send_mail(
+                subject='Password Reset Request - SmartCare Hospital',
+                message=f'Hi {user.first_name},\n\nWe received a request to reset your password for your SmartCare account. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nSmartCare Team',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False
+            )
+        except (smtplib.SMTPException, OSError, ValueError):
+            logger.exception('Password reset email delivery failed.')
+            return Response({
+                'status': 'error',
+                'message': 'Unable to send reset email. Please check the email service configuration.'
+            }, status=status.HTTP_502_BAD_GATEWAY)
+
+        if sent_count != 1:
+            logger.error('Password reset email backend did not send a message for user ID %s.', user.pk)
+            return Response({
+                'status': 'error',
+                'message': 'Unable to send reset email. Please try again later.'
+            }, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({
+            'status': 'success',
+            'Message': 'If an account with that email exists, a password reset link has been sent.'
+        }, status=status.HTTP_200_OK)
 
 class ResetPassword(APIView):
     permission_classes = [AllowAny]
