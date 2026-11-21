@@ -18,7 +18,14 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
-from .serializers import SignUp,LoginSerializer,ForgotPassword,ChangePasswordSerializer,UserProfile
+from .serializers import (
+    SignUp,
+    LoginSerializer,
+    ForgotPassword as ForgotPasswordSerializer,
+    ResetPassword as ResetPasswordSerializer,
+    ChangePasswordSerializer,
+    UserProfile,
+)
 from Hospital.Api.serializers import UserSerializer,HospitalAdminSerializer
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.views import APIView
@@ -993,7 +1000,7 @@ class ForgotPassword(APIView):
     permission_classes = [AllowAny]
     @throttle_classes([PasswordResetRateThrottle])
     def post(self,request):
-        serializer = ForgotPassword(data=request.data)
+        serializer = ForgotPasswordSerializer(data=request.data)
         
         if serializer.is_valid():
             email = serializer.validated_data['email']
@@ -1002,22 +1009,61 @@ class ForgotPassword(APIView):
                 token_generator = PasswordResetTokenGenerator()
                 token = token_generator.make_token(user)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
-                
-                current_site = get_current_site(request)
-                reset_link = f"{request.scheme}://{current_site.domain}/reset-password/{uid}/{token}/"
+
+                from django.conf import settings
+                reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
                 send_mail(
                     subject='Password Reset  Request - SmartCare Hospital',
                     message=f'Hi {user.first_name},\n\nWe received a request to reset your password for your SmartCare account. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nSmartCare Team',
-                    from_email='noreply@smartcare.com',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
                     fail_silently=False
                 )
             except User.DoesNotExist:
                 pass
+            except Exception as exc:
+                return Response({
+                    'status': 'error',
+                    'message': 'Unable to send reset email. Please try again later.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response({
                 'status': 'success',
                 'Message': 'If an account with that email exists, a password reset link has been sent.'
             },status=status.HTTP_200_OK)
+
+class ResetPassword(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'status': 'error',
+                'message': next(iter(serializer.errors.values()))[0]
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(serializer.validated_data['uid']))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({
+                'status': 'error',
+                'message': 'Invalid or expired password reset link.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        token = serializer.validated_data['token']
+        if not PasswordResetTokenGenerator().check_token(user, token):
+            return Response({
+                'status': 'error',
+                'message': 'Invalid or expired password reset link.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.validated_data['new_password'])
+        user.save(update_fields=['password'])
+        return Response({
+            'status': 'success',
+            'message': 'Password reset successfully'
+        }, status=status.HTTP_200_OK)
 
 class VerifyToken(APIView):
     permission_classes = [IsAuthenticated]

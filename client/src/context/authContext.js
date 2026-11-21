@@ -177,6 +177,7 @@ export const AuthProvider = ({ children }) => {
         catch (err) {
             console.error('Error occurred while reseting password!', err);
             setError(err.response?.data?.message || 'Reset password unsuccessful. Try again.');
+            throw err;
         }
     };
 

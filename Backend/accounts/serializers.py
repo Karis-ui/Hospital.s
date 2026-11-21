@@ -49,6 +49,17 @@ class ChangePasswordSerializer(serializers.Serializer):
 class ForgotPassword(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
+class ResetPassword(serializers.Serializer):
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True, write_only=True, validators=[validate_password])
+    confirm_password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError('Passwords do not match!')
+        return data
+
 class UserProfile(serializers.Serializer):
     user = serializers.CharField(source='get_full_name',read_only=True)
     profile = serializers.DictField()

@@ -199,7 +199,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
                 <Route path="/register/doctor" element={<DoctorRegister />} />
                 <Route path="/register/bill-operator" element={<RegisterStaff />} />
                 <Route path="/register/lab-technician" element={<LabTechRegister />} />

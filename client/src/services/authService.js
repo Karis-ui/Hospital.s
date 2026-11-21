@@ -169,8 +169,11 @@ export const authService = {
     resetPassword: async (uId, token, newPassword, confirmPassword) => {
         try {
             console.log('Reseting password for UID:', uId);
-            const response = await api.post('accounts/change-password/', {
-                uId: uId, token: token, newPassword: newPassword, confirm_Password: confirmPassword
+            const response = await api.post('accounts/reset-password/', {
+                uid: uId,
+                token: token,
+                new_password: newPassword,
+                confirm_password: confirmPassword
             });
             console.log('Password reset successfully');
             return response;
