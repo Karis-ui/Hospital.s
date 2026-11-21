@@ -74,11 +74,39 @@ class Patient(models.Model):
     ]
     gender = models.CharField(max_length=10, choices=gender_choices)
     age = models.IntegerField(null=True,blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=10,unique=True)
     email = models.CharField(max_length=100,unique=True)
     address = models.CharField(max_length=100)
     medical_history = models.TextField(null=True, blank=True)
     patient_photo = models.ImageField(upload_to='patient_photos/',null=True,blank=True)
+    city = models.CharField(max_length=100, blank=True, default='')
+    state = models.CharField(max_length=100, blank=True, default='')
+    zip_code = models.CharField(max_length=20, blank=True, default='')
+    country = models.CharField(max_length=100, blank=True, default='Kenya')
+    
+    blood_group = models.CharField(max_length=5, blank=True, default='')
+    height = models.CharField(max_length=10, blank=True, default='')
+    weight = models.CharField(max_length=10, blank=True, default='')
+    allergies = models.JSONField(default=list, blank=True)
+    chronic_conditions = models.JSONField(default=list, blank=True)
+    medications = models.JSONField(default=list, blank=True)
+    past_surgeries = models.JSONField(default=list, blank=True)
+
+    emergency_contact_name = models.CharField(max_length=100, blank=True, default='')
+    emergency_contact_relation = models.CharField(max_length=50, blank=True, default='')
+    emergency_contact_phone = models.CharField(max_length=15, blank=True, default='')
+
+    insurance_provider = models.CharField(max_length=100, blank=True, default='')
+    policy_number = models.CharField(max_length=100, blank=True, default='')
+    group_number = models.CharField(max_length=100, blank=True, default='')
+    insurance_expiry_date = models.DateField(null=True, blank=True)
+
+    preferred_language = models.CharField(max_length=50, default='English')
+    communication_preference = models.CharField(max_length=20, default='email')
+    sms_notifications = models.BooleanField(default=True)
+    email_notifications = models.BooleanField(default=True)
+    appointment_reminders = models.BooleanField(default=True)
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email})"
     

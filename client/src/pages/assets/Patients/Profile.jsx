@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -36,7 +36,7 @@ import {
   ListItemButton,
   styled,
   Tab,Badge,Tooltip,LinearProgress,Tabs,
-  DialogActions,DialogContent,Dialog,DialogTitle,Switch,
+  DialogActions,DialogContent,Dialog,DialogTitle,Switch,IconButton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -60,6 +60,7 @@ import {
   Edit as EditIcon,Security as SecurityIcon,Save as SaveIcon,Cancel as CancelIcon,Verified as VerifiedIcon,Email as EmailIcon,
   Phone as PhoneIcon,HealthAndSafety as HealthIcon,Payment as PaymentIcon,Settings as SettingsIcon,Lock as LockIcon,Fingerprint as FingerprintIcon,
   Warning as WarningIcon,Bloodtype as BloodIcon,Height as HeightIcon,LineWeight as WeightIcon,Medication as MedicationIcon,Info as InfoIcon,Dangerous as AllergyIcon,
+  CameraAlt as CameraIcon, // Added for photo upload
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -103,7 +104,8 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 
 export const PatientProfile = () =>{
   const navigate = useNavigate();
-  const { user,updateUser} = useAuth();
+  const { user, updateUser } = useAuth();
+  const fileInputRef = useRef(null);
   
   const [loading ,setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -114,10 +116,11 @@ export const PatientProfile = () =>{
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [verificationDialog, setVerificationDialog] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [formData, setFormData] = useState({
-    firstName: '',lastName: '',age: '',gender: '',height: '',weight: '',height: '',bloodGroup: '',
-    email: '',phone: '',address: '',city: '',state: '',country: 'Kenya',
+    firstName: '',lastName: '',age: '',gender: '',height: '',weight: '',bloodGroup: '',
+    email: '',phone: '',address: '',city: '',state: '',country: 'Kenya', dateOfBirth: null,
     emergencyContactName: '',emergencyContactRelation: '',emergencyContactPhone: '',
     insuranceProvider: '',policyNumber: '',groupNumber: '',expiryDate: null,
     allergies: [],chronicConditions: [],medications: [],pastSurgeries: [],
@@ -137,38 +140,40 @@ export const PatientProfile = () =>{
       setLoading(true);
       const response = await PatientService.getProfile();
       setProfile(response.data);
+      
       setFormData({
-        firstName: response.data.firstName || user?.first_name || '',
-        lastName: response.data.lastName || user?.last_name || '',
+        firstName: response.data.first_name || user?.first_name || '',
+        lastName: response.data.last_name || user?.last_name || '',
         age: response.data.age || null,
         gender: response.data.gender || '',
-        bloodGroup: response.data.bloodGroup || '',
+        bloodGroup: response.data.blood_group || '',
         height: response.data.height || '',
         weight: response.data.weight || '',
         email: response.data.email || user?.email || '',
         phone: response.data.phone || '',
-        alternatePhone: response.data.alternatePhone || '',
+        alternatePhone: response.data.alternate_phone || '',
         address: response.data.address || '',
         city: response.data.city || '',
         state: response.data.state || '',
-        zipCode: response.data.zipCode || '',
-        country: response.data.country || 'USA',
-        emergencyContactName: response.data.emergencyContactName || '',
-        emergencyContactRelation: response.data.emergencyContactRelation || '',
-        emergencyContactPhone: response.data.emergencyContactPhone || '',
-        insuranceProvider: response.data.insuranceProvider || '',
-        policyNumber: response.data.policyNumber || '',
-        groupNumber: response.data.groupNumber || '',
-        expiryDate: response.data.expiryDate || null,
+        zipCode: response.data.zip_code || '',
+        country: response.data.country || 'Kenya',
+        dateOfBirth: response.data.date_of_birth || null,
+        emergencyContactName: response.data.emergency_contact_name || '',
+        emergencyContactRelation: response.data.emergency_contact_relation || '',
+        emergencyContactPhone: response.data.emergency_contact_phone || '',
+        insuranceProvider: response.data.insurance_provider || '',
+        policyNumber: response.data.policy_number || '',
+        groupNumber: response.data.group_number || '',
+        expiryDate: response.data.insurance_expiry_date || null,
         allergies: response.data.allergies || [],
-        chronicConditions: response.data.chronicConditions || [],
+        chronicConditions: response.data.chronic_conditions || [],
         medications: response.data.medications || [],
-        pastSurgeries: response.data.pastSurgeries || [],
-        preferredLanguage: response.data.preferredLanguage || 'English',
-        communicationPreference: response.data.communicationPreference || 'email',
-        smsNotifications: response.data.smsNotifications ?? true,
-        emailNotifications: response.data.emailNotifications ?? true,
-        appointmentReminders: response.data.appointmentReminders ?? true,
+        pastSurgeries: response.data.past_surgeries || [],
+        preferredLanguage: response.data.preferred_language || 'English',
+        communicationPreference: response.data.communication_preference || 'email',
+        smsNotifications: response.data.sms_notifications ?? true,
+        emailNotifications: response.data.email_notifications ?? true,
+        appointmentReminders: response.data.appointment_reminders ?? true,
       });
       setError('');
     }catch(err){
@@ -180,10 +185,47 @@ export const PatientProfile = () =>{
     }
   };
 
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const photoData = new FormData();
+    photoData.append('patient_photo', file);
+
+    try {
+      setUploadingPhoto(true);
+      await PatientService.uploadProfilePhoto(photoData);
+      toast.success('Profile photo updated successfully');
+      fetchProfile(); 
+    } catch (err) {
+      toast.error('Failed to upload photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleSave = async() =>{
     setSaveLoading(true);
     try{
-      await PatientService.updateProfile(formData);
+      const data = new FormData();
+      
+      Object.keys(formData).forEach(key => {
+        if (key === 'patientPhoto') return;
+        
+        const backendKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        let value = formData[key];
+        
+        if ((key === 'dateOfBirth' || key === 'expiryDate') && value) {
+            value = value instanceof Date ? value.toISOString().split('T')[0] : value;
+        }
+        if (Array.isArray(value)) value = JSON.stringify(value);
+
+        if (value !== null && value !== undefined) {
+          data.append(backendKey, value);
+        }
+      });
+
+      await PatientService.updateProfile(data);
       toast.success('Profile updated successfully.');
       setEditMode(false);
       fetchProfile();
@@ -209,22 +251,18 @@ export const PatientProfile = () =>{
     }
   };
 
-  const handleAddAllergy = (index) =>{
-    setFormData({
-      ...formData,allergies: formData.allergies.filter((_,i) => i !== index),
-    });
+  const handleAddAllergy = (value) =>{
+    if(!value) return;
+    setFormData({...formData, allergies: [...formData.allergies, value]});
   };
 
   const handleRemoveAllergy = (index)=>{
-    setFormData({
-      ...formData,allergies: formData.allergies.filter((_,i)=> i == index),
-    });
+    setFormData({...formData, allergies: formData.allergies.filter((_,i)=> i !== index)});
   };
 
   const handleAddMedications = (med) =>{
-    setFormData({
-      ...formData,medications:[...formData.medications,med]
-    });
+    if(!med) return;
+    setFormData({...formData, medications: [...formData.medications, med]});
   };
 
   if(loading){
@@ -285,16 +323,24 @@ export const PatientProfile = () =>{
       <Card sx={{ mb: 3, p: 3 }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={2} sx={{ textAlign: 'center' }}>
+            <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handlePhotoUpload} />
             <Badge
               overlap="circular"
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               badgeContent={
-                <Tooltip title="Verified Account">
-                  <VerifiedIcon color="primary" sx={{ fontSize: 24 }} />
+                <Tooltip title="Upload New Photo">
+                  <IconButton
+                    size="small"
+                    sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+                    onClick={() => fileInputRef.current.click()}
+                    disabled={uploadingPhoto}
+                  >
+                    {uploadingPhoto ? <CircularProgress size={20} color="inherit" /> : <CameraIcon fontSize="small" />}
+                  </IconButton>
                 </Tooltip>
               }
             >
-              <ProfileAvatar>
+              <ProfileAvatar src={profile?.patient_photo || ''}>
                 {formData.firstName?.[0]}{formData.lastName?.[0]}
               </ProfileAvatar>
             </Badge>
@@ -631,7 +677,7 @@ export const PatientProfile = () =>{
                   <TextField
                     fullWidth
                     size="small"
-                    placeholder="Add allergy"
+                    placeholder="Add allergy and press Enter"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && e.target.value) {
                         handleAddAllergy(e.target.value);
@@ -658,6 +704,19 @@ export const PatientProfile = () =>{
                     </ListItem>
                   ))}
                 </List>
+                {editMode && (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Add medication and press Enter"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && e.target.value) {
+                        handleAddMedications(e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                )}
               </CardContent>
             </InfoCard>
           </Grid>
@@ -939,4 +998,6 @@ export const PatientProfile = () =>{
       </Dialog>
     </Box>
   );
-}
+};
+
+export default PatientProfile;

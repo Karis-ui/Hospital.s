@@ -8,6 +8,7 @@ from system.utils import get_system_settings
 from django.db import transaction
 from accounts.models import CustomUser
 from datetime import datetime
+from rest_framework.parsers import MultiPartParser, FormParser
 from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription,Notification
 from core.util.pdf_generator import generate_pdf
 from Lab.models import labRequest,LabReport
@@ -279,6 +280,7 @@ class GetProfile(APIView):
 
 class UpdateProfile(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
+    parser_classes = [MultiPartParser, FormParser]
     def put(self,request):
         patient_profile = get_object_or_404(Patient, user=request.user)
         serializer = PatientSerializer(
@@ -292,6 +294,7 @@ class UpdateProfile(APIView):
                 'patient':serializer.data
             })
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
     def post(self,request):
         patient_profile = get_object_or_404(Patient,user=request.user)
         if 'patient_photo' in request.FILES:

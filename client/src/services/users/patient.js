@@ -9,7 +9,16 @@ export const PatientService = {
     downloadInvoice: (id) => api.get(`patient/bills/${id}/invoice/`, { responseType: 'blob' }),
     paymentHistory: () => api.get(`patient/bills/payment-history/`),
     getProfile: () => api.get(`patient/get/profile/`),
-    updateProfile: () => api.put(`patient/update/profile/`),
+    updateProfile: (formData) => api.put(`patient/update/profile/`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    }),
+    uploadProfilePhoto: (formData) => api.post(`patient/update/profile/`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    }),
     downloadReport: (id) => api.get(`patient/download/report/${id}/`),
     editAppointment: (id) => api.patch(`patient/edit/appointment/${id}/`),
     getLabResults: () => api.get(`patient/lab/results/`),

@@ -46,6 +46,7 @@ class OperatorSerializer(serializers.ModelSerializer):
 
 class PatientSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    patient_photo = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Patient
         fields = '__all__'
