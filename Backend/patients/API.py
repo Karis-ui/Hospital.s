@@ -59,7 +59,7 @@ class BookAppointment(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
     def post(self,request):
         try:
-            required_fields = ['doctor_id','appointment_date','appoitment_time']
+            required_fields = ['doctor_id','appointment_date','appointment_time']
             for field in required_fields:
                 if field not in request.data:
                     return Response({
@@ -118,7 +118,7 @@ class BookAppointment(APIView):
                     'Message': 'Invalid date or time format. Use YYYY-MM-DD for date and HH:MM for time'
                 },status=status.HTTP_400_BAD_REQUEST)
                     
-            if not Doctor.is_available(doctor,app_date,app_time):
+            if not doctor.available or app_time.strftime('%H:%M') not in free_slots(doctor, app_date):
                 return Response({
                     'status': 'error',
                     'Message': 'Selected time slot is not available'
@@ -133,7 +133,7 @@ class BookAppointment(APIView):
                 appointment_time=app_time,
                 duration=duration,
                 purpose=purpose,
-                status='requested',
+                status='Requested',
                 created_at=timezone.now(),
                 created_by=request.user if request.user.is_authenticated else None
             )
@@ -162,7 +162,7 @@ class BookAppointment(APIView):
 def free_slots(doctor, day):
     booked = set(Appointment.objects.filter(
         doctor=doctor, appointment_date=day,
-        status__iregex=r'^(requested|scheduled|confirmed)$',
+        status__iregex=r'^(requested|scheduled|confirmed|rescheduled)$',
     ).values_list('appointment_time', flat=True))
     slots, cur = [], datetime.combine(day, time(8, 0))
     end = datetime.combine(day, time(17, 0))
@@ -184,14 +184,19 @@ class AvailableDoctors(APIView):
             day = timezone.now().date()
 
         qs = Doctor.objects.select_related('user').filter(user__is_approved=True)
+        specialization = request.query_params.get('specialization')
+        if specialization:
+            qs = qs.filter(speciality__iexact=specialization)
         if request.query_params.get('doctor_id'):
             qs = qs.filter(id=request.query_params['doctor_id'])
 
         doctors = [{
             'id': d.id,
-            'name': d.user.get_full_name(),
+            'name': d.full_name or d.user.get_full_name(),
+            'first_name': d.user.first_name,
+            'last_name': d.user.last_name,
             'specialization': d.speciality,
-            'consultation_fee': d.consultation_fee,
+            'consultation_fee': getattr(d, 'consultation_fee', None),
             'image': d.user.profile_image.url if getattr(d.user, 'profile_image', None) else None,
             'available_slots': free_slots(d, day),
         } for d in qs]

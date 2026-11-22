@@ -2,8 +2,8 @@ import { api } from '../api';
 
 export const PatientService = {
     getDashboard: () => api.get(`patient/dashboard/`),
-    bookAppointment: () => api.post(`patient/appointment/book/`),
-    getDoctors: () => api.get(`patient/available-doctors/`),
+    bookAppointment: (data) => api.post(`patient/appointment/book/`, data),
+    getDoctors: (params = {}) => api.get(`patient/available-doctors/`, { params }),
     getBills: () => api.get(`patient/bills/`),
     getBill: (id) => api.get(`patient/view/bill/${id}/`),
     downloadInvoice: (id) => api.get(`patient/bills/${id}/invoice/`, { responseType: 'blob' }),

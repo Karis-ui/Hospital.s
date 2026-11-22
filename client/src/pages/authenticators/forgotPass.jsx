@@ -100,10 +100,7 @@ const ForgotPassword = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        err.response?.data?.Message ||
-        (err.response
-          ? `Password reset request failed (HTTP ${err.response.status}). Please try again later.`
-          : 'Unable to reach the server. Check your connection and try again.')
+        err.response?.data?.Message
       );
     } finally {
       setLoading(false);

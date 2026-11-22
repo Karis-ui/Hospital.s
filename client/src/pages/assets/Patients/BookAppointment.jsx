@@ -146,8 +146,8 @@ const BookAppointment = () => {
   const fetchDoctorsBySpecialization = async () => {
     setLoading(true);
     try {
-      const response = await PatientService.getDoctors(selectedSpecialization);
-      setDoctors(response.data || []);
+      const response = await PatientService.getDoctors({ specialization: selectedSpecialization });
+      setDoctors(response.data?.data?.doctors || []);
     } catch (err) {
       console.error('Failed to fetch doctors:', err);
       toast.error('Failed to load doctors');
@@ -162,11 +162,14 @@ const BookAppointment = () => {
     
     setLoading(true);
     try {
-      const response = await PatientService.getAvailableSlots({
-        doctorId: selectedDoctor.id,
+      const response = await PatientService.getDoctors({
+        doctor_id: selectedDoctor.id,
         date: selectedDate.toISOString().split('T')[0],
       });
-      setAvailableSlots(response.data || []);
+      const doctor = response.data?.data?.doctors?.find(
+        (availableDoctor) => availableDoctor.id === selectedDoctor.id
+      );
+      setAvailableSlots(doctor?.available_slots || []);
     } catch (err) {
       console.error('Failed to fetch slots:', err);
       toast.error('Failed to load available slots');
