@@ -100,7 +100,8 @@ const ForgotPassword = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        err.response?.data?.Message
+        err.response?.data?.Message ||
+        'An error occurred. Please try again.'
       );
     } finally {
       setLoading(false);
