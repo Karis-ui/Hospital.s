@@ -18,6 +18,7 @@ urlpatterns = [
         path('transaction-list/',api.TransactionList.as_view(), name='transaction_list'),
         path('transaction-list/export/', api.ExportTransaction.as_view(), name='transaction_export'),
         path('get/profile/',api.GetStaffProfile.as_view(), name='get_profile'),
+        path('get/profile/photo/',api.GetStaffProfilePhoto.as_view(), name='get_profile_photo'),
         path('update/profile/',api.UpdateStaffProfile.as_view(), name='update_profile'),
         path('invoice-bill/<int:bill_id>/download-pdf/',api.DownloadPDFView.as_view(),name='download_invoice_bill'),
 ]

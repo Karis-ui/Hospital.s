@@ -91,6 +91,11 @@ export const OperatorService = {
         }),
     getStaffProfile: () =>
         api.get(`operator/get/profile`),
+    getStaffPhoto: (cacheKey) =>
+        api.get(`operator/get/profile/photo/`, {
+            responseType: 'blob',
+            params: { _: cacheKey },
+        }),
 
     updateStaffProfile: (data) =>
         api.put(`operator/update/profile`, data),

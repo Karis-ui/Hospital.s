@@ -17,6 +17,7 @@ from Lab.models import LabTech
 from system.models import SystemSettings
 from Hospital.Api.serializers import DoctorSerializer,AdminReportSerializer,OperatorSerializer,PatientSerializer,AppointmentSerializer,UserSerializer,LabTechSerializer,SettingSerializer,AuditLogSerializer
 from core.util.audit import log_activity
+from core.util.profile_photo import profile_photo_response
 from accounts.models import CustomUser
 from datetime import datetime, date, time, timedelta
 from django.utils import timezone
@@ -124,6 +125,12 @@ class AdminProfile(APIView):
             'message': 'Profile photo updated successfully.',
             'data': self.profile_data(request),
         })
+
+class AdminProfilePhoto(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        return profile_photo_response(request.user.profile_photo)
 
 class AdminDashboard(APIView):
     permission_classes = [AllowAny]

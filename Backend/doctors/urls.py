@@ -14,6 +14,7 @@ urlpatterns = [
     path('send/to/patient/<int:bill_id>/',API.SendReportToPatient.as_view(),name='send_to_patient'),
     path('lab/requests/',API.LabRequests.as_view(),name='lab_request'),
     path('get/profile/',API.GetDoctorProfile.as_view(),name='doctor-profile'),
+    path('get/profile/photo/',API.GetDoctorProfilePhoto.as_view(),name='doctor-profile-photo'),
     path('update/profile/',API.UpdateDoctorProfile.as_view(),name='update-profile'),
     path('update/profile/upload-photo/',API.UpdateDoctorProfile.as_view(),name='upload-photo_doctor'),
     path('update/profile/delete-photo/',API.UpdateDoctorProfile.as_view(),name='delete-photo_doctor'),

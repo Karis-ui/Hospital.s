@@ -17,6 +17,10 @@ export const doctorSevice = {
     uploadPhoto: (formData) => api.post(`doctors/update/profile/upload-photo/`, formData),
     deletePhoto: () => api.delete(`doctor/update/profile/delete-photo/`),
     getDoctorProfile: () => api.get(`doctors/get/profile/`),
+    getDoctorProfilePhoto: (cacheKey) => api.get(`doctors/get/profile/photo/`, {
+        responseType: 'blob',
+        params: { _: cacheKey },
+    }),
     prescriptions: () => api.get(`doctor/prescriptions/`),
     searchItems: () => api.get(`doctor/search/`),
     getAllAppointments: () => api.get(`appointment/list/`),

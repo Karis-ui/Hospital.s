@@ -50,9 +50,19 @@ api.interceptors.response.use(
 
                     return api(originalRequest);
                 } catch (refreshError) {
+                    let loginPath = "/login";
+                    try {
+                        const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+                        if (storedUser?.user_type === 'admin' || storedUser?.role === 'admin') {
+                            loginPath = "/admin/login";
+                        }
+                    } catch (parseError) {
+                        console.error('Failed to read the stored user during logout.', parseError);
+                    }
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
-                    window.location.href = "/login";
+                    localStorage.removeItem('user');
+                    window.location.replace(loginPath);
                     return Promise.reject(refreshError);
                 }
             }

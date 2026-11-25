@@ -61,6 +61,7 @@ import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../../context/authContext';
 import { labServices } from '../../../services/users/labtech';
+import { useProfilePhoto } from '../../../hooks/useProfilePhoto';
 
 const ProfileHeader = styled(Paper)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 50%, ${theme.palette.info.main} 100%)`,
@@ -175,6 +176,7 @@ export const Profile = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [profile, setProfile] = useState(null);
+  const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(labServices.getProfilePhoto, profile?.photo);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -257,6 +259,7 @@ export const Profile = () => {
     setUploadingPhoto(true);
     try {
       const response = await labServices.uploadPhoto(formData);
+      refreshProfilePhoto();
       setProfile(response.data.data);
       setEditForm(response.data.data);
       toast.success('Profile photo updated successfully.');
@@ -317,7 +320,7 @@ export const Profile = () => {
             onChange={handlePhotoUpload}
           />
           <ProfileAvatar
-            src={profile.photo || undefined}
+            src={profilePhotoUrl || undefined}
             onClick={() => photoInputRef.current?.click()}
             sx={{ cursor: 'pointer' }}
           >

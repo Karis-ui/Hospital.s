@@ -70,6 +70,7 @@ import { PatientService } from '../../../services/users/patient';
 import authService from '../../../services/authService';
 import { formatDate } from '../../../formatters';
 import { useAuth } from '../../../context/authContext';
+import { useProfilePhoto } from '../../../hooks/useProfilePhoto';
 
 const ProfileAvatar = styled(Avatar)(({ theme }) => ({
   width: 120,
@@ -109,6 +110,7 @@ export const PatientProfile = () =>{
   
   const [loading ,setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(PatientService.getProfilePhoto, profile?.patient_photo);
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [error, setError] = useState('');
   const [editMode,setEditMode] = useState(false);
@@ -196,6 +198,7 @@ export const PatientProfile = () =>{
     try {
       setUploadingPhoto(true);
       await PatientService.uploadProfilePhoto(photoData);
+      refreshProfilePhoto();
       toast.success('Profile photo updated successfully');
       fetchProfile(); 
     } catch (err) {
@@ -341,7 +344,7 @@ export const PatientProfile = () =>{
                 </Tooltip>
               }
             >
-              <ProfileAvatar src={profile?.patient_photo || ''}>
+              <ProfileAvatar src={profilePhotoUrl}>
                 {formData.firstName?.[0]}{formData.lastName?.[0]}
               </ProfileAvatar>
             </Badge>

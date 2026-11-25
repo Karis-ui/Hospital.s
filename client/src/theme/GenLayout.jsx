@@ -291,13 +291,7 @@ export const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(120);
-  const { showWarning, extendSession, logout: sessionLogout } = useSessionTimeout(15);
-
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
-  }, [user, navigate]);
+  const { showWarning, extendSession } = useSessionTimeout(15);
 
   useEffect(() => {
     if (showWarning) {
@@ -382,13 +376,6 @@ export const AppLayout = () => {
 
   const handleLogout = () => {
     logout();
-    const rolePaths = {
-      doctor: '/login',
-      patient: '/login',
-      operator: '/login',
-      lab_technician: '/login'
-    };
-    navigate(rolePaths[userRole] || '/login');
   };
 
   const userRole = user?.user_type || user?.role;

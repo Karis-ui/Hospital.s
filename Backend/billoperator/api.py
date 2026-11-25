@@ -26,6 +26,7 @@ from django.http import FileResponse
 from reportlab.lib.pagesizes import A4
 from core.util.email_service import send_email,EmailMessage
 from core.util.pdf_generator import generate_pdf
+from core.util.profile_photo import profile_photo_response
 from system.utils import get_system_settings
 from rest_framework import status
 from rest_framework.views import APIView
@@ -1094,6 +1095,13 @@ class GetStaffProfile(APIView):
             'status': 'success',
             'data': profile_data
         })
+
+class GetStaffProfilePhoto(APIView):
+    permission_classes = [IsAuthenticated, IsOperator]
+
+    def get(self, request):
+        staff = get_object_or_404(OperatorField, user=request.user)
+        return profile_photo_response(staff.staff_photo)
 
 class UpdateStaffProfile(APIView):
     permission_classes = [IsAuthenticated,IsOperator]

@@ -9,6 +9,10 @@ export const PatientService = {
     downloadInvoice: (id) => api.get(`patient/bills/${id}/invoice/`, { responseType: 'blob' }),
     paymentHistory: () => api.get(`patient/bills/payment-history/`),
     getProfile: () => api.get(`patient/get/profile/`),
+    getProfilePhoto: (cacheKey) => api.get(`patient/get/profile/photo/`, {
+        responseType: 'blob',
+        params: { _: cacheKey },
+    }),
     updateProfile: (formData) => api.put(`patient/update/profile/`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',

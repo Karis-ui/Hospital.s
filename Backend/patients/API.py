@@ -11,6 +11,7 @@ from datetime import datetime
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription,Notification
 from core.util.pdf_generator import generate_pdf
+from core.util.profile_photo import profile_photo_response
 from Lab.models import labRequest,LabReport
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -282,6 +283,13 @@ class GetProfile(APIView):
         patient_profile = get_object_or_404(Patient, user=request.user)
         serializer = PatientSerializer(patient_profile, context={'request': request})
         return Response(serializer.data)
+
+class GetProfilePhoto(APIView):
+    permission_classes = [IsAuthenticated, IsPatient]
+
+    def get(self, request):
+        patient = get_object_or_404(Patient, user=request.user)
+        return profile_photo_response(patient.patient_photo)
 
 class UpdateProfile(APIView):
     permission_classes = [IsAuthenticated,IsPatient]

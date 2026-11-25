@@ -9,6 +9,7 @@ urlpatterns = [
     path('bills/',API.BillingView.as_view(),name='bills'),
     path('view/bill/<int:pk>/',API.BillingView.as_view(),name='view_bill'),
     path('get/profile/',API.GetProfile.as_view(),name='get-profile'),
+    path('get/profile/photo/',API.GetProfilePhoto.as_view(),name='get-profile-photo'),
     path('update/profile/',API.UpdateProfile.as_view(),name='update_profile'),
     path('update/profile/upload-photo/',API.UpdateProfile.as_view(),name='upload-photo_patient'),
     path('update/profile/delete-photo/',API.UpdateProfile.as_view(),name='delete-photo_patient'),

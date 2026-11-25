@@ -111,6 +111,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../../context/authContext';
+import { useProfilePhoto } from '../../../hooks/useProfilePhoto';
 import { doctorSevice } from '../../../services/users/doctor';
 import authService from '../../../services/authService';
 import { formatDate, formatTime, getInitials } from '../../../formatters';
@@ -168,6 +169,7 @@ export const DoctorProfile = () =>{
     const [saving,setSaving] = useState(false);
     const [error,setError] = useState('');
     const [profile,setProfile] = useState(null);
+    const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(doctorSevice.getDoctorProfilePhoto, profile?.doctor_photo);
     const [editMode,setEditMode] = useState(false);
     const [tabValue,setTabValue] = useState(0);
     const [stats,setStats] = useState({totalPatients: 0,
@@ -344,6 +346,7 @@ export const DoctorProfile = () =>{
         const photoData = new FormData();
         photoData.append('doctor_photo', selectedFile);
         await doctorSevice.uploadPhoto(photoData);
+        refreshProfilePhoto();
         await fetchProfileData();
         toast.success('Profile update successfully');
         setPhototDialog(false);
@@ -456,7 +459,7 @@ export const DoctorProfile = () =>{
                 </Tooltip>
               }
             >
-              <ProfileAvatar src={previewUrl || profile?.doctor_photo}>
+              <ProfileAvatar src={previewUrl || profilePhotoUrl}>
                 {getInitials(formData.firstName, formData.lastName)}
               </ProfileAvatar>
             </Badge>

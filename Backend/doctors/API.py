@@ -28,6 +28,7 @@ from django.core.files.base import ContentFile
 from django.http import HttpResponse,FileResponse
 import os
 from core.util.pdf_generator import generate_pdf
+from core.util.profile_photo import profile_photo_response
 from core.util.email_service import send_email
 from django.core.paginator import Paginator
 from reportlab.lib import colors
@@ -197,6 +198,13 @@ class GetDoctorProfile(APIView):
         doctor_profile = get_object_or_404(Doctor, user=request.user)
         serializer = DoctorSerializer(doctor_profile, context={'request': request})
         return Response(serializer.data)
+
+class GetDoctorProfilePhoto(APIView):
+    permission_classes = [IsAuthenticated, IsDoctor]
+
+    def get(self, request):
+        doctor = get_object_or_404(Doctor, user=request.user)
+        return profile_photo_response(doctor.doctor_photo)
 
 class UpdateDoctorProfile(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]

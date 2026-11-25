@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { toast } from 'react-toastify';
 import authService from '../services/authService';
 
 export const useSessionTimeout = (timeoutMinutes = 15) => {
-    const navigate = useNavigate();
     const { user, logout } = useAuth();
     const [showWarning, setShowWarning] = useState(false);
     const timeoutRef = useRef(null);
@@ -14,26 +12,6 @@ export const useSessionTimeout = (timeoutMinutes = 15) => {
 
     const timeoutMs = timeoutMinutes * 60 * 1000;
     const warningMs = (timeoutMinutes - 2) * 60 * 1000;
-
-    const getLoginPath = () => {
-        const role = user?.user_type || user?.role || 'patient';
-        const loginPaths = {
-            admin: '/admin/login',
-            doctor: '/login',
-            lab_technician: '/login',
-            patient: '/login',
-            operator: '/login',
-        };
-        return loginPaths[role] || '/login';
-    };
-
-    const getLogoutMethod = () => {
-        const role = user?.user_type || user?.role || 'patient';
-        if (role === 'admin') {
-            return authService.adminLogout;
-        }
-        return authService.logout;
-    };
 
     const getLogoutMessage = () => {
         const role = user?.user_type || user?.role || 'patient';
@@ -72,19 +50,10 @@ export const useSessionTimeout = (timeoutMinutes = 15) => {
         clearTimeout(warningRef.current);
         clearTimeout(timeoutRef.current);
 
-        const role = user?.user_type || user?.role || 'patient';
-        if (role === 'admin') {
-            authService.adminLogout();
-        } else {
-            authService.logout();
-        }
         logout();
 
         const message = getLogoutMessage();
         toast.info(message, { toastId: 'session-expired' });
-
-        const loginPath = getLoginPath();
-        navigate(loginPath);
     };
 
     const extendSession = async () => {
@@ -132,8 +101,6 @@ export const useSessionTimeout = (timeoutMinutes = 15) => {
         extendSession,
         logout: handleLogout,
         resetTimer,
-        getLoginPath,
-        getLogoutMessage,
-        getLogoutMethod
+        getLogoutMessage
     };
 };

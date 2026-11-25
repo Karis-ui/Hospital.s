@@ -16,12 +16,14 @@ import { toast } from 'react-toastify';
 import OperatorService from '../../../services/users/operator';
 import authService from '../../../services/authService';
 import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/adminComponents';
+import { useProfilePhoto } from '../../../hooks/useProfilePhoto';
 
 export const OperatorProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(OperatorService.getStaffPhoto, profile?.staff_photo);
   const [formData, setFormData] = useState({});
   const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -93,6 +95,7 @@ export const OperatorProfile = () => {
     setPhotoUploading(true);
     try {
       await OperatorService.uploadStaffPhoto(photoData);
+      refreshProfilePhoto();
       await fetchProfile();
       toast.success('Profile photo updated successfully');
     } catch (error) {
@@ -130,7 +133,7 @@ export const OperatorProfile = () => {
               onChange={handleUploadPhoto}
             />
             <Avatar
-              src={profile?.staff_photo || undefined}
+              src={profilePhotoUrl || undefined}
               onClick={() => photoInputRef.current?.click()}
               sx={{ width: 120, height: 120, mx: 'auto', mb: 2, bgcolor: platinumTheme.accent.teal, cursor: 'pointer' }}
             >

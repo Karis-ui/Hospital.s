@@ -21,6 +21,7 @@ from Hospital.Api.permissions import IsLabTechnician
 from core.models import Doctor, Patient
 from accounts.models import CustomUser
 from core.util.pdf_generator import generate_pdf
+from core.util.profile_photo import profile_photo_response
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.core.mail import send_mail,EmailMessage
@@ -526,6 +527,13 @@ class GetLabTechProfile(APIView):
         lab_tech = get_object_or_404(LabTech,user=request.user)
         serializer = LabTechSerializer(lab_tech, context={'request': request})
         return Response({'status': 'success', 'data': serializer.data})
+
+class GetLabTechProfilePhoto(APIView):
+    permission_classes = [IsAuthenticated, IsLabTechnician]
+
+    def get(self, request):
+        lab_tech = get_object_or_404(LabTech, user=request.user)
+        return profile_photo_response(lab_tech.photo)
     
 class UpdateLabProfile(APIView):
     permission_classes = [IsAuthenticated,IsLabTechnician]

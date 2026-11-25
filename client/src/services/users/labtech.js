@@ -15,6 +15,10 @@ export const labServices = {
     getLabReportList: () => api.get(`lab/report-list/`),
     patientLabHistory: (id) => api.get(`lab/patient/${id}/history/`),
     labProfile: () => api.get(`lab/profile/`),
+    getProfilePhoto: (cacheKey) => api.get(`lab/profile/photo/`, {
+        responseType: 'blob',
+        params: { _: cacheKey },
+    }),
     updateProfile: () => api.put(`lab/profile/update/`),
     uploadPhoto: (formData) => api.post(`lab/update/profile/upload-photo/`, formData),
     deletePhoto: () => api.delete(`lab/update/profile/delete-photo/`,),

@@ -17,6 +17,7 @@ import { toast } from 'react-toastify';
 import {adminService} from '../../../services/users/admin';
 import authService from '../../../services/authService';
 import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/GenLayout';
+import { useProfilePhoto } from '../../../hooks/useProfilePhoto';
 
 export const AdminProfile = ()=>{
     const navigate = useNavigate();
@@ -24,6 +25,7 @@ export const AdminProfile = ()=>{
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
     const [profile,setProfile] = useState(null);
+    const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(adminService.getAdminPhoto, profile?.profile_photo);
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
         newPassword: '',
@@ -68,6 +70,7 @@ export const AdminProfile = ()=>{
         setPhotoUploading(true);
         try {
             const response = await adminService.uploadAdminPhoto(photoData);
+            refreshProfilePhoto();
             setProfile(response.data.data);
             toast.success('Profile photo updated successfully');
         } catch (error) {
@@ -150,7 +153,7 @@ export const AdminProfile = ()=>{
               onChange={handlePhotoUpload}
             />
             <Avatar
-              src={profile?.profile_photo || undefined}
+              src={profilePhotoUrl || undefined}
               onClick={() => photoInputRef.current?.click()}
               sx={{ width: 120, height: 120, mx: 'auto', mb: 2, bgcolor: platinumTheme.secondary.main, cursor: 'pointer' }}
             >

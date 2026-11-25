@@ -4,6 +4,10 @@ export const adminService = {
     getDashboard: () => api.get(`admin/dashboard/my/`),
     announcements: () => api.post(`admin/announcements/`),
     getAdminProfile: () => api.get(`admin/profile/`),
+    getAdminPhoto: (cacheKey) => api.get(`admin/profile/photo/`, {
+        responseType: 'blob',
+        params: { _: cacheKey },
+    }),
     updateAdminProfile: (data) => api.patch(`admin/profile/`, data),
     uploadAdminPhoto: (formData) => api.post(`admin/profile/`, formData),
     setApproval: (id) => api.post(`admin/set-approval/user/${id}/`),
