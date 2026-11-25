@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -55,6 +55,7 @@ import {
   CalendarToday as CalendarIcon,
   LocationCity as LocationIcon,
   Work as WorkIcon,
+  PhotoCamera as PhotoCameraIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -185,6 +186,8 @@ export const Profile = () => {
     approvalRate: 0,
   });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const photoInputRef = useRef(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -244,6 +247,26 @@ export const Profile = () => {
     } finally { setLoading(false); }
   };
 
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('photo', file);
+    setUploadingPhoto(true);
+    try {
+      const response = await labServices.uploadPhoto(formData);
+      setProfile(response.data.data);
+      setEditForm(response.data.data);
+      toast.success('Profile photo updated successfully.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload profile photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleToggleAvailability = (id) => {
     console.log('Toggle availability for:', id);
   };
@@ -258,7 +281,7 @@ export const Profile = () => {
   };
 
   const getInitials = (name) => {
-    return name?.split(' ').map(word => word[0]).join('').toUpperCase().slIce(0, 2) || 'LT';
+    return name?.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2) || 'LT';
   };
 
   const formatDate = (date) => {
@@ -286,9 +309,28 @@ export const Profile = () => {
         </EditButton>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <ProfileAvatar>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handlePhotoUpload}
+          />
+          <ProfileAvatar
+            src={profile.photo || undefined}
+            onClick={() => photoInputRef.current?.click()}
+            sx={{ cursor: 'pointer' }}
+          >
             {getInitials(profile.full_name)}
           </ProfileAvatar>
+          <Button
+            startIcon={uploadingPhoto ? <CircularProgress size={18} /> : <PhotoCameraIcon />}
+            onClick={() => photoInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            sx={{ mb: 2, color: 'white' }}
+          >
+            Change profile photo
+          </Button>
 
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
             {profile.full_name}

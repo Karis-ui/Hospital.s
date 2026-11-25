@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, TextField, Button,
   Avatar, Divider, Stack, Alert, CircularProgress, Chip,
@@ -9,6 +9,7 @@ import {
   Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon,
   Lock as LockIcon, Receipt as OperatorIcon, Verified as VerifiedIcon,
   Badge as BadgeIcon, Schedule as ScheduleIcon,
+  PhotoCamera as PhotoCameraIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -29,7 +30,7 @@ export const OperatorProfile = () => {
     confirm_password: '',
   });
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     fetchProfile();
@@ -83,15 +84,22 @@ export const OperatorProfile = () => {
   };
 
   const handleUploadPhoto = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedPhoto(file);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        setPhotoUploading(true);
-      };
-      reader.readAsDataURL(file);
-    };
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const photoData = new FormData();
+    photoData.append('staff_photo', file);
+    setPhotoUploading(true);
+    try {
+      await OperatorService.uploadStaffPhoto(photoData);
+      await fetchProfile();
+      toast.success('Profile photo updated successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to upload profile photo');
+    } finally {
+      setPhotoUploading(false);
+    }
   }
 
   if (loading) {
@@ -111,12 +119,31 @@ export const OperatorProfile = () => {
         </motion.div>
       </PremiumHeader>
 
-      <Grid container spacing={3}>]
+      <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <PremiumCard sx={{ textAlign: 'center', p: 3 }}>
-            <Avatar sx={{ width: 120, height: 120, mx: 'auto', mb: 2, bgcolor: platinumTheme.accent.teal }}>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleUploadPhoto}
+            />
+            <Avatar
+              src={profile?.staff_photo || undefined}
+              onClick={() => photoInputRef.current?.click()}
+              sx={{ width: 120, height: 120, mx: 'auto', mb: 2, bgcolor: platinumTheme.accent.teal, cursor: 'pointer' }}
+            >
               <OperatorIcon sx={{ fontSize: 60 }} />
             </Avatar>
+            <Button
+              startIcon={photoUploading ? <CircularProgress size={18} /> : <PhotoCameraIcon />}
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoUploading}
+              fullWidth
+            >
+              Change profile photo
+            </Button>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>{profile?.full_name || 'Operator User'}</Typography>
             <Typography variant="body2" sx={{ color: platinumTheme.text.secondary, mb: 1 }}>@{profile?.username}</Typography>
             <Chip label="Bill Operator" icon={<VerifiedIcon />} sx={{ mb: 2, bgcolor: alpha(platinumTheme.accent.teal, 0.1), color: platinumTheme.accent.teal }} />

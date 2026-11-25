@@ -8,7 +8,7 @@ from system.utils import get_system_settings
 from django.db import transaction
 from accounts.models import CustomUser
 from datetime import datetime
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from core.models import Bill, Appointment, Report, Patient,Doctor,Prescription,Notification
 from core.util.pdf_generator import generate_pdf
 from Lab.models import labRequest,LabReport
@@ -280,12 +280,12 @@ class GetProfile(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
     def get(self,request):
         patient_profile = get_object_or_404(Patient, user=request.user)
-        serializer = PatientSerializer(patient_profile)
+        serializer = PatientSerializer(patient_profile, context={'request': request})
         return Response(serializer.data)
 
 class UpdateProfile(APIView):
     permission_classes = [IsAuthenticated,IsPatient]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     def put(self,request):
         patient_profile = get_object_or_404(Patient, user=request.user)
         serializer = PatientSerializer(
@@ -314,7 +314,7 @@ class UpdateProfile(APIView):
             max_size = 5 * 1024 * 1024
             if photo.size > max_size:
                 return Response({
-                    'error': f'File too large. Max size: {max_size}MB'
+                    'error': 'File too large. Max size: 5MB'
                 },status=status.HTTP_400_BAD_REQUEST)
             
             if patient_profile.patient_photo:
@@ -325,13 +325,13 @@ class UpdateProfile(APIView):
             patient_profile.patient_photo = photo
             patient_profile.save()
             serializer = PatientSerializer(patient_profile,context={'request':request})
-            if (serializer.is_valid()):
-                serializer.save()
             return Response({
                 'message':'Profile updated successfully',
                 'patient':serializer.data
             })
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'error': 'No profile photo was provided.'
+        },status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
         patient_profile = get_object_or_404(Patient, user=request.user)
@@ -347,9 +347,6 @@ class UpdateProfile(APIView):
         
         patient_profile.patient_photo = None
         patient_profile.save()
-        serializer = PatientSerializer(patient_profile,context={'request':request})
-        if (serializer.is_valid()):
-            serializer.save()
         return Response({
             'message': 'Profile photo deleted successfully'
         }, status=status.HTTP_200_OK)

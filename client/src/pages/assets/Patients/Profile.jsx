@@ -131,8 +131,8 @@ export const PatientProfile = () =>{
     current: '',new: '',confirm: '',
   });
 
-  useEffect(() =>{
-    fetchProfile();
+  useEffect(async () =>{
+    await fetchProfile();
   },[]);
 
   const fetchProfile = async ()=>{
@@ -187,6 +187,7 @@ export const PatientProfile = () =>{
 
   const handlePhotoUpload = async (event) => {
     const file = event.target.files[0];
+    event.target.value = '';
     if (!file) return;
 
     const photoData = new FormData();
@@ -198,7 +199,7 @@ export const PatientProfile = () =>{
       toast.success('Profile photo updated successfully');
       fetchProfile(); 
     } catch (err) {
-      toast.error('Failed to upload photo.');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to upload photo.');
     } finally {
       setUploadingPhoto(false);
     }

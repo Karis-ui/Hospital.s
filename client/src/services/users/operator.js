@@ -94,5 +94,7 @@ export const OperatorService = {
 
     updateStaffProfile: (data) =>
         api.put(`operator/update/profile`, data),
+    uploadStaffPhoto: (formData) =>
+        api.post(`operator/update/profile/`, formData),
 };
 export default OperatorService;

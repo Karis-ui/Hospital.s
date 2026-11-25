@@ -21,6 +21,7 @@ from accounts.models import CustomUser
 from datetime import datetime, date, time, timedelta
 from django.utils import timezone
 from rest_framework.permissions import BasePermission,IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Count
 import logging,csv,json,io
 from reportlab.platypus import SimpleDocTemplate,Table,TableStyle,Paragraph,Spacer
@@ -44,6 +45,85 @@ class IsAdmin(BasePermission):
         )
 
 User = get_user_model()
+
+class AdminProfile(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def profile_data(self, request):
+        user = request.user
+        profile_photo = (
+            request.build_absolute_uri(user.profile_photo.url)
+            if user.profile_photo else None
+        )
+        return {
+            'id': user.id,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'phone': user.phone,
+            'is_superuser': user.is_superuser,
+            'is_staff': user.is_staff,
+            'last_login': user.last_login,
+            'date_joined': user.date_joined,
+            'profile_photo': profile_photo,
+        }
+
+    def get(self, request):
+        return Response({
+            'status': 'success',
+            'data': self.profile_data(request),
+        })
+
+    def patch(self, request):
+        user = request.user
+        for field in ('first_name', 'last_name', 'email'):
+            if field in request.data:
+                setattr(user, field, request.data[field])
+        if 'email' in request.data and User.objects.filter(
+            email=request.data['email']
+        ).exclude(id=user.id).exists():
+            return Response({
+                'status': 'error',
+                'message': 'Email is already in use by another account',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+        user.save()
+        return Response({
+            'status': 'success',
+            'data': self.profile_data(request),
+        })
+
+    def post(self, request):
+        photo = request.FILES.get('profile_photo')
+        if not photo:
+            return Response({
+                'status': 'error',
+                'message': 'No profile photo was provided.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+        extension = photo.name.rsplit('.', 1)[-1].lower()
+        if extension not in allowed_extensions:
+            return Response({
+                'status': 'error',
+                'message': 'Unsupported image type. Use JPG, PNG, GIF, or WEBP.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if photo.size > 5 * 1024 * 1024:
+            return Response({
+                'status': 'error',
+                'message': 'Image must be 5 MB or smaller.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.profile_photo = photo
+        request.user.save(update_fields=['profile_photo'])
+        return Response({
+            'status': 'success',
+            'message': 'Profile photo updated successfully.',
+            'data': self.profile_data(request),
+        })
 
 class AdminDashboard(APIView):
     permission_classes = [AllowAny]

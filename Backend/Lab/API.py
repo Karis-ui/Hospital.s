@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from Hospital.Api.serializers import (
     PatientSerializer,AppointmentSerializer,DoctorSerializer,BillSerializer,LabReportSerializer,LabRequestSerializer,ReportSerializer,LabTechSerializer,TestProfileSerializer,TestParameterSerializer
 )
@@ -523,11 +524,12 @@ class GetLabTechProfile(APIView):
     permission_classes = [IsAuthenticated,IsLabTechnician]
     def get(self,request):
         lab_tech = get_object_or_404(LabTech,user=request.user)
-        serializer = LabTechSerializer(lab_tech)
-        return Response(serializer.data)
+        serializer = LabTechSerializer(lab_tech, context={'request': request})
+        return Response({'status': 'success', 'data': serializer.data})
     
 class UpdateLabProfile(APIView):
     permission_classes = [IsAuthenticated,IsLabTechnician]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     def put(self,request):
         lab_tech = get_object_or_404(LabTech, user=request.user)
         serializer = LabTechSerializer(
@@ -537,8 +539,9 @@ class UpdateLabProfile(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({
+                'status': 'success',
                 'message':'Profile updated successfully',
-                'labTech':serializer.data
+                'data':serializer.data
             })
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     def post(self,request):
@@ -555,7 +558,7 @@ class UpdateLabProfile(APIView):
             max_size = 5 * 1024 * 1024
             if photo.size > max_size:
                 return Response({
-                    'error': f'File too large. Max size: {max_size}MB'
+                    'error': 'File too large. Max size: 5MB'
                 },status=status.HTTP_400_BAD_REQUEST)
             
             if lab_tech.photo:
@@ -567,10 +570,14 @@ class UpdateLabProfile(APIView):
             lab_tech.save()
             serializer = LabTechSerializer(lab_tech,context={'request':request})
             return Response({
+                'status': 'success',
                 'message':'Profile updated successfully',
-                'labTech':serializer.data
+                'data':serializer.data
             })
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'status': 'error',
+            'message': 'No profile photo was provided.'
+        },status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
         lab_tech = get_object_or_404(LabTech, user=request.user)

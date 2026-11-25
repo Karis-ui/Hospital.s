@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Grid, Card, CardContent, Typography, TextField, Button,
   Avatar, Divider, Stack, Alert, CircularProgress, IconButton,
-  Dialog, DialogTitle, DialogContent, DialogActions, alpha,
+  Dialog, DialogTitle, DialogContent, DialogActions, alpha, Chip,
 } from '@mui/material';
 import {
   Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon,
   Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon,
   Lock as LockIcon, AdminPanelSettings as AdminIcon,
   Security as SecurityIcon, Verified as VerifiedIcon,
+  PhotoCamera as PhotoCameraIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -29,6 +30,8 @@ export const AdminProfile = ()=>{
         confirmNewPassword: '',
     });
     const [saving, setSaving] = useState(false);
+    const [photoUploading, setPhotoUploading] = useState(false);
+    const photoInputRef = useRef(null);
     const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
 
     useEffect(()=>{
@@ -38,7 +41,7 @@ export const AdminProfile = ()=>{
     const fetchProfile = async()=>{
         try{
             const res = await adminService.getAdminProfile();
-            if(res.status === 'success'){
+            if(res.data.status === 'success'){
                 setProfile(res.data.data);
                 setFormData({
                   first_name: res.data.data.first_name || '',
@@ -52,6 +55,25 @@ export const AdminProfile = ()=>{
             toast.error('Error fetching profile:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePhotoUpload = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+
+        const photoData = new FormData();
+        photoData.append('profile_photo', file);
+        setPhotoUploading(true);
+        try {
+            const response = await adminService.uploadAdminPhoto(photoData);
+            setProfile(response.data.data);
+            toast.success('Profile photo updated successfully');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to upload profile photo');
+        } finally {
+            setPhotoUploading(false);
         }
     };
 
@@ -120,9 +142,30 @@ export const AdminProfile = ()=>{
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <PremiumCard sx={{ textAlign: 'center', p: 3 }}>
-            <Avatar sx={{ width: 120, height: 120, mx: 'auto', mb: 2, bgcolor: platinumTheme.secondary.main }}>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handlePhotoUpload}
+            />
+            <Avatar
+              src={profile?.profile_photo || undefined}
+              onClick={() => photoInputRef.current?.click()}
+              sx={{ width: 120, height: 120, mx: 'auto', mb: 2, bgcolor: platinumTheme.secondary.main, cursor: 'pointer' }}
+            >
               <AdminIcon sx={{ fontSize: 60 }} />
             </Avatar>
+            <Button
+              variant="outlined"
+              startIcon={photoUploading ? <CircularProgress size={18} /> : <PhotoCameraIcon />}
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoUploading}
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              Change profile photo
+            </Button>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>{getFullName()}</Typography>
             <Typography variant="body2" sx={{ color: platinumTheme.text.secondary, mb: 1 }}>@{profile?.username}</Typography>
             <Chip label="Administrator" icon={<VerifiedIcon />} sx={{ mb: 2, bgcolor: alpha(platinumTheme.secondary.main, 0.1), color: platinumTheme.secondary.main }} />

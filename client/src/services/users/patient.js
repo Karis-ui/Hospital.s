@@ -14,11 +14,7 @@ export const PatientService = {
             'Content-Type': 'multipart/form-data',
         }
     }),
-    uploadProfilePhoto: (formData) => api.post(`patient/update/profile/`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        }
-    }),
+    uploadProfilePhoto: (formData) => api.post(`patient/update/profile/upload-photo/`, formData),
     downloadReport: (id) => api.get(`patient/download/report/${id}/`),
     editAppointment: (id) => api.patch(`patient/edit/appointment/${id}/`),
     getLabResults: () => api.get(`patient/lab/results/`),

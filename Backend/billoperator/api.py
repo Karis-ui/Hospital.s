@@ -31,6 +31,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from Hospital.Api.permissions import IsOperator
 from Hospital.Api.serializers import  OperatorSerializer,BillSerializer,PatientSerializer
 from rest_framework.decorators import action
@@ -1082,19 +1083,21 @@ class GetStaffProfile(APIView):
         user = get_object_or_404(OperatorField, user=request.user)
         profile_data = {
             'username': request.user.username,
-            'full_name': user.get_full_name(),
+            'full_name': user.full_name,
             'email': user.email,
             'phone': request.user.phone,
-            'user_type': user.user_type,
+            'user_type': request.user.user_type,
+            'staff_photo': OperatorSerializer(user, context={'request': request}).data.get('staff_photo'),
+            'shift_time': user.shift_time,
         }
-        serializer = OperatorSerializer(profile_data)
         return Response({
             'status': 'success',
-            'data': serializer.data
+            'data': profile_data
         })
 
 class UpdateStaffProfile(APIView):
     permission_classes = [IsAuthenticated,IsOperator]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     def put(self,request):
         user = get_object_or_404(OperatorField, user=request.user)
         data = request.data
@@ -1120,7 +1123,7 @@ class UpdateStaffProfile(APIView):
         user = get_object_or_404(OperatorField, user=request.user)
         if 'staff_photo' in request.FILES:
             photo = request.FILES['staff_photo']
-            allowed_extensions = ['jpg', 'jpeg', 'png','webp']
+            allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
             file_extension = photo.name.split('.')[-1].lower()
             
             if file_extension not in allowed_extensions:
@@ -1143,10 +1146,13 @@ class UpdateStaffProfile(APIView):
                     'message': 'Profile updated successfully',
                     'data': serializer.data
                 })
+            return Response({
+                'status': 'error',
+                'message': serializer.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'status': 'error',
-            'message': 'Invalid data',
-            'errors': serializer.errors
+            'message': 'No profile photo was provided.'
         }, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self,request):

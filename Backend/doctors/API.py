@@ -35,6 +35,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from Hospital.Api.permissions import IsDoctor
 from Hospital.Api.serializers import  DoctorSerializer,LabReportSerializer,LabRequestSerializer,PatientSerializer,AppointmentSerializer,PrescriptionSerializer
 from rest_framework.decorators import action
@@ -194,11 +195,12 @@ class GetDoctorProfile(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
         doctor_profile = get_object_or_404(Doctor, user=request.user)
-        serializer = DoctorSerializer(doctor_profile)
+        serializer = DoctorSerializer(doctor_profile, context={'request': request})
         return Response(serializer.data)
 
 class UpdateDoctorProfile(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     def put(self,request):
         doctor_profile = get_object_or_404(Doctor, user=request.user)
         serializer = DoctorSerializer(
@@ -216,7 +218,7 @@ class UpdateDoctorProfile(APIView):
         doctor_profile = get_object_or_404(Doctor,user=request.user)
         if 'doctor_photo' in request.FILES:
             photo = request.FILES['doctor_photo']
-            allowed_extensions = ['jpg','jpeg','png','webp']
+            allowed_extensions = ['jpg','jpeg','png','gif','webp']
             file_extension = photo.name.split('.')[-1].lower()
             
             if file_extension not in allowed_extensions:
@@ -226,7 +228,7 @@ class UpdateDoctorProfile(APIView):
             max_size = 5 * 1024 * 1024
             if photo.size > max_size:
                 return Response({
-                    'error': f'File too large. Max size: {max_size}MB'
+                    'error': 'File too large. Max size: 5MB'
                 },status=status.HTTP_400_BAD_REQUEST)
             
             if doctor_profile.doctor_photo:
@@ -238,13 +240,13 @@ class UpdateDoctorProfile(APIView):
             doctor_profile.save()
             
             serializer = DoctorSerializer(doctor_profile,context={'request':request})
-            if serializer.is_valid():
-                serializer.save()
             return Response({
                 'message':'Profile updated successfully',
                 'data':serializer.data
             })
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'error': 'No profile photo was provided.'
+        },status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
         doctor_profile = get_object_or_404(Doctor, user=request.user)

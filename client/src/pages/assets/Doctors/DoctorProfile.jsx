@@ -341,8 +341,10 @@ export const DoctorProfile = () =>{
     const handleSavePhoto = async()=>{
       if(!selectedFile)return;
       try{
-        formData.appointmentReminders('photo',selectedFile);
-        await doctorSevice.uploadPhoto();
+        const photoData = new FormData();
+        photoData.append('doctor_photo', selectedFile);
+        await doctorSevice.uploadPhoto(photoData);
+        await fetchProfileData();
         toast.success('Profile update successfully');
         setPhototDialog(false);
         setSelectedFile(null);
@@ -454,7 +456,7 @@ export const DoctorProfile = () =>{
                 </Tooltip>
               }
             >
-              <ProfileAvatar src={previewUrl || profile?.photo_url}>
+              <ProfileAvatar src={previewUrl || profile?.doctor_photo}>
                 {getInitials(formData.firstName, formData.lastName)}
               </ProfileAvatar>
             </Badge>

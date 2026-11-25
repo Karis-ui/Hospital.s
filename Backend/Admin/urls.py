@@ -3,6 +3,7 @@ from django.urls import path
 from . import API
 
 urlpatterns = [
+    path('profile/', API.AdminProfile.as_view(), name='admin_profile'),
     path('dashboard/my/',API.AdminDashboard.as_view(),name='admin_dashboard'),
     path('announcements/',API.Announcement.as_view(),name='announcements'),
     path('set-approval/user/<int:user_id>/',API.SetApproval.as_view(),name='set_approval'),

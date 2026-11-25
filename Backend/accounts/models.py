@@ -43,6 +43,7 @@ class CustomUser(AbstractUser):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     last_login = models.DateTimeField(null=True,blank=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username','phone']

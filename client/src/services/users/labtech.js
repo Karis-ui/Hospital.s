@@ -16,7 +16,7 @@ export const labServices = {
     patientLabHistory: (id) => api.get(`lab/patient/${id}/history/`),
     labProfile: () => api.get(`lab/profile/`),
     updateProfile: () => api.put(`lab/profile/update/`),
-    uploadPhoto: () => api.post(`lab/update/profile/upload-photo/`),
+    uploadPhoto: (formData) => api.post(`lab/update/profile/upload-photo/`, formData),
     deletePhoto: () => api.delete(`lab/update/profile/delete-photo/`,),
     stats: () => api.get(`lab/stats/`),
 
