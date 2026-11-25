@@ -199,7 +199,7 @@ class HospitalAdminLogin(APIView):
             return Response({
                 'status':'error',
                 'message':'Email and password required'
-            },status==status.HTTP_400_BAD_REQUEST)
+            },status=status.HTTP_400_BAD_REQUEST)
         
         try:
             user = User.objects.get(email=email)
@@ -207,7 +207,7 @@ class HospitalAdminLogin(APIView):
                 raise User.DoesNotExist
             
             if not hasattr(user,'hospital_admin'):
-                return Response({'status':'success','message':'Unautjorized for this page'},status=status.HTTP_403_FORBIDDEN)
+                return Response({'status':'success','message':'Unauthorized for this page'},status=status.HTTP_403_FORBIDDEN)
             if not user.hospital_admin.is_active:
                 return Response({
                     'status':'error','messgae':'Admin account is inactive'
