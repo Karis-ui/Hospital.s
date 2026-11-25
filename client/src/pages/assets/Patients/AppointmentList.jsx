@@ -219,7 +219,7 @@ const AppointmentList = () => {
         <Button
           variant="contained"
           startIcon={<CalendarIcon />}
-          onClick={() => navigate('/patient/appointments/book')}
+          onClick={() => navigate('/patient/book-appointment')}
         >
           Book New Appointment
         </Button>
