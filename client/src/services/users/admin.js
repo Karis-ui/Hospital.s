@@ -2,7 +2,7 @@ import api from "../api";
 
 export const adminService = {
     getDashboard: () => api.get(`admin/dashboard/my/`),
-    announcements: () => api.post(`admin/announcements/`),
+    announcements: () => api.get(`admin/announcements/`),
     getAdminProfile: () => api.get(`admin/profile/`),
     getAdminPhoto: (cacheKey) => api.get(`admin/profile/photo/`, {
         responseType: 'blob',
@@ -26,11 +26,11 @@ export const adminService = {
     getUser: (id) => api.get(`admin/user/${id}/detail-view/`),
     updateUser: (id) => api.patch(`admin/user/${id}/detail-view/`),
     pendingApprovals: () => api.get(`admin/approvals/pending/`),
-    getSettings: () => api.post(`admin/system/settings/`),
-    updatetSettings: () => api.patch(`admin/system/settings/`),
+    getSettings: () => api.get(`admin/system/settings/`),
+    updatetSettings: (data) => api.patch(`admin/system/settings/`, data),
     testEmail: () => api.post(`admin/settings/test-mail/`),
     backupSettings: () => api.post(`admin/settings/backup/`),
-    auditView: () => api.get(`admin/audits/`),
+    auditView: (params) => api.get(`admin/audits/`, { params }),
     generateReport: () => api.post(`admin/report/generate/`),
     downloadReport: (id) => api.get(`admin/report/${id}/download/`),
     deleteReport: (id) => api.delete(`admin/report/${id}/delete/`),

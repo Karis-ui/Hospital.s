@@ -10,9 +10,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = '__all__'
     
-    old_date = serializers.DateField(format="%Y-%m-%d",input_formats=['%Y-%m-%d'])
-    new_date = serializers.DateField(format="%Y-%m-%d",input_formats=['%Y-%m-%d'])
-    new_time = serializers.TimeField(format="%H:%M",input_formats=['%H:%M'])
+    old_date = serializers.DateField(format="%Y-%m-%d",input_formats=['%Y-%m-%d'], write_only=True)
+    new_date = serializers.DateField(format="%Y-%m-%d",input_formats=['%Y-%m-%d'], write_only=True)
+    new_time = serializers.TimeField(format="%H:%M",input_formats=['%H:%M'], write_only=True)
         
     def get_patient_name(self,obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}".strip()
@@ -20,7 +20,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return obj.doctor.user.get_full_name() if obj.doctor else None
     
     def validate(self,data):
-        if data['new_date'] < data['old_date']:
+        if 'old_date' in data and 'new_date' in data and data['new_date'] < data['old_date']:
             raise serializers.ValidationError('Doctor might be occupied on earlier date.Select a later date!')
         return data
 
@@ -104,6 +104,8 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AuditLogSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.username', read_only=True, allow_null=True)
+
     class Meta:
         model = AuditLog
         fields = "__all__"
@@ -128,7 +130,7 @@ class VitalSignSerializer(serializers.ModelSerializer):
         model = VitalSign
         fields = '__all__'
 
-class SettingSerializer(serializers.Serializer):
+class SettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemSettings
         fields = '__all__'

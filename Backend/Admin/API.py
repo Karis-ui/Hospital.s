@@ -1,18 +1,14 @@
-from rest_framework.permissions import AllowAny
 from django.db.models import Q
-from accounts import models
 from Hospital.Api.serializers import BillSerializer
-from PIL.Image import module
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
-from time import timezone
 from django.contrib.auth import get_user_model
 from Hospital.Api.permissions import IsAdmin
 from system.utils import get_system_settings
-from core.models import Activity,AdminAnnouncement,Patient,Bill,Doctor,Appointment,AuditLog,Doctor,OperatorField,AdminReport,HospitalAdmin
+from core.models import Activity,AdminAnnouncement,Patient,Bill,Doctor,Appointment,AuditLog,OperatorField,AdminReport,HospitalAdmin
 from Lab.models import LabTech
 from system.models import SystemSettings
 from Hospital.Api.serializers import DoctorSerializer,AdminReportSerializer,OperatorSerializer,PatientSerializer,AppointmentSerializer,UserSerializer,LabTechSerializer,SettingSerializer,AuditLogSerializer
@@ -23,7 +19,7 @@ from datetime import datetime, date, time, timedelta
 from django.utils import timezone
 from rest_framework.permissions import BasePermission,IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.db.models import Count
+from django.db.models import Count, Sum
 import logging,csv,json,io
 from reportlab.platypus import SimpleDocTemplate,Table,TableStyle,Paragraph,Spacer
 from django.core.files.base import ContentFile
@@ -133,10 +129,10 @@ class AdminProfilePhoto(APIView):
         return profile_photo_response(request.user.profile_photo)
 
 class AdminDashboard(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsAdmin]
     def get(self,request):
         today = date.today()
-        appointments_today = Appointment.objects.filter(appointment_date=today).select_related('doctor__user','patient__user').order_by('time')
+        appointments_today = Appointment.objects.filter(appointment_date=today).select_related('doctor__user','patient__user').order_by('appointment_time')
         total_patients = Patient.objects.count()
         total_doctors = Doctor.objects.count()
         total_staff = OperatorField.objects.count()
@@ -168,7 +164,7 @@ class AdminDashboard(APIView):
                     'total_staff': total_staff,
                     'appointments_today': total_appointments_today,                        
                     'completed_today': completed_today,
-                    'pending_approvals': pending_approvals
+                    'pending_approvals': pending_approvals.count()
                 },
                 'today_appointments': appointment_serializer.data,
                 'heatmap_week': heatmap_data
@@ -177,9 +173,32 @@ class AdminDashboard(APIView):
 
 class Announcement(APIView):
     permission_classes =[IsAuthenticated,IsAdmin]
+
+    def get(self, request):
+        announcements = AdminAnnouncement.objects.order_by('-created_at')[:10]
+        return Response({
+            'status': 'success',
+            'data': [
+                {
+                    'id': announcement.id,
+                    'message': announcement.message,
+                    'title': announcement.title,
+                    'time': announcement.created_at.isoformat(),
+                    'type': 'info',
+                    'read': False,
+                }
+                for announcement in announcements
+            ],
+        }, status=status.HTTP_200_OK)
+
     def post(self,request):
-        title = request.POST.get('title')
-        message = request.POST.get('message')
+        title = request.data.get('title')
+        message = request.data.get('message')
+        if not title or not message:
+            return Response({
+                'status': 'error',
+                'message': 'Both title and message are required.',
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         announcement = AdminAnnouncement.objects.create(title=title,message=message)
         Activity.objects.create(message=f"Admin posted new announcement {title} with message {message}")
@@ -445,14 +464,14 @@ class Livedata(APIView):
         ).count()
 
         revenue_today = Bill.objects.filter(
-            date=today,
+            created_at__date=today,
             payment_status='Cleared'
         ).aggregate(
-            total=models.Sum('amount')
+            total=Sum('amount')
         )['total'] or 0
 
         cleared_today = Bill.objects.filter(
-            date=today,
+            created_at__date=today,
             payment_status='Cleared'
         ).count()
 
@@ -489,10 +508,10 @@ class AdminChartDataAPIView(APIView):
             ).count()
 
             daily_revenue = Bill.objects.filter(
-                date=d,
+                created_at__date=d,
                 payment_status='Cleared'
             ).aggregate(
-                total=models.Sum('amount')
+                total=Sum('amount')
             )['total'] or 0
 
             admissions.append(daily_appointments)
@@ -511,13 +530,25 @@ class AdminChartDataAPIView(APIView):
 class AllUsers(APIView):
     permission_classes = [IsAdmin,IsAuthenticated]
     def get(self,request):
-        data = {
-            'doctors': UserSerializer(Doctor,many=True).data,
-            'patients': UserSerializer(Patient,many=True).data,
-            'staff': UserSerializer(OperatorField,many=True).data,
-            'lab_tech': UserSerializer(LabTech,many=True).data
-        }
-        return Response(data)
+        users = User.objects.all().order_by('id')
+        data = [{
+            'id': user.id,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'full_name': user.get_full_name(),
+            'email': user.email,
+            'phone': user.phone,
+            'role': user.user_type,
+            'user_type': user.user_type,
+            'is_active': user.is_active,
+            'is_approved': user.is_approved,
+            'date_joined': user.date_joined,
+        } for user in users]
+        return Response({
+            'status': 'success',
+            'data': data,
+        }, status=status.HTTP_200_OK)
 
 class GetUser(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
@@ -707,10 +738,9 @@ class PatientGet(APIView):
 class DoctorGet(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
     def get(self,request):
-        doctors = Doctor.objects.all()
-        return Response({
-            'message': 'Doctors Fetched successfully'
-        },status=status.HTTP_302_FOUND)
+        doctors = Doctor.objects.select_related('user').all()
+        serializer = DoctorSerializer(doctors, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class OperatorGet(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
@@ -772,7 +802,7 @@ class AdminSchedule(APIView):
     permission_classes = [IsAuthenticated,IsAdmin]
     def get(self,request):
         try:
-            date_param = request.get('date')
+            date_param = request.query_params.get('date')
             if date_param:
                 try:
                     schedule_date = date.fromisoformat(date_param)
@@ -786,10 +816,10 @@ class AdminSchedule(APIView):
             
             doctors = Doctor.objects.select_related('user').all()
             staff = OperatorField.objects.select_related('user').all()
-            appointments = Appointment.objects.filter(appointment_date=schedule_date).select_related('doctor__user','patient__user').order_by('time')
-            doctor_serializer = DoctorSerializer(doctors,many=True,context={'requests':request})
-            staff_serializer = OperatorSerializer(staff,many=True,context={'requests':request})
-            appointment_serializer = AppointmentSerializer(appointments,many=True,context={'requests':request})
+            appointments = Appointment.objects.filter(appointment_date=schedule_date).select_related('doctor__user','patient__user').order_by('appointment_time')
+            doctor_serializer = DoctorSerializer(doctors,many=True,context={'request':request})
+            staff_serializer = OperatorSerializer(staff,many=True,context={'request':request})
+            appointment_serializer = AppointmentSerializer(appointments,many=True,context={'request':request})
             
             total_appointments = appointments.count()
             completed = appointments.filter(status='Completed').count()
@@ -951,9 +981,9 @@ class AppointmentHeatmapAPIView(APIView):
         
         hours = Appointment.objects.filter(
             appointment_date__range=[start_date, end_date],
-            time__isnull=False
+            appointment_time__isnull=False
         ).annotate(
-            hour=ExtractHour('time')
+            hour=ExtractHour('appointment_time')
         ).values('hour').annotate(
             count=Count('id')
         ).order_by('-count')[:5]
@@ -977,28 +1007,38 @@ class AppointmentHeatmapAPIView(APIView):
         return peak_hours
 
 class PendingApprovals(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        if not request.user.is_superuser and request.user.user_type != 'admin':
-            return Response({'status': 'error', 'message': 'Unauthorized'}, status=403)
-
         pending_doctors = Doctor.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
         pending_labs = LabTech.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
         pending_operators = OperatorField.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
         pending_admins = HospitalAdmin.objects.select_related('user').filter(user__is_approved=False, user__is_active=False)
 
-        doctors_data = [{...} for d in pending_doctors] 
-        labs_data = [{...} for l in pending_labs]      
-        operators_data = [{...} for o in pending_operators]  
+        def approval_data(profile, profile_type):
+            user = profile.user
+            return {
+                'id': user.id,
+                'user_id': user.id,
+                'type': profile_type,
+                'full_name': profile.full_name or user.get_full_name(),
+                'email': profile.email or user.email,
+                'speciality': getattr(profile, 'speciality', None),
+                'phone': getattr(profile, 'phone_number', getattr(profile, 'phone', user.phone)),
+                'registered_at': user.date_joined,
+            }
+
+        doctors_data = [approval_data(doctor, 'doctor') for doctor in pending_doctors]
+        labs_data = [approval_data(lab, 'lab_technician') for lab in pending_labs]
+        operators_data = [approval_data(operator, 'operator') for operator in pending_operators]
 
         admins_data = [{
-            'id': a.id,
             'user_id': a.user.id,
             'type': 'admin',
-            'full_name': a.full_name,
-            'email': a.email,
-            'phone': a.phone,
+            'id': a.user.id,
+            'full_name': a.full_name or a.user.get_full_name(),
+            'email': a.email or a.user.email,
+            'phone': a.phone or a.user.phone,
             'registered_at': a.user.date_joined,
         } for a in pending_admins]
 
@@ -1019,7 +1059,7 @@ class DeactivateUser(APIView):
         try:
             user = get_object_or_404(User,id=user_id)
             user.is_active = False
-            user.save(update_fields=['is_active','uploaded_at'])
+            user.save(update_fields=['is_active'])
             username= user.username
             user_type = user.user_type
             
@@ -1050,7 +1090,7 @@ class SetApproval(APIView):
                 },status=status.HTTP_400_BAD_REQUEST)
             user.is_active = True
             user.is_approved = True
-            user.save(update_fields=['is_active','uploaded_at'])
+            user.save(update_fields=['is_active', 'is_approved'])
             
             AuditLog.objects.create(
                 user=request.user,
@@ -1166,7 +1206,7 @@ class SettingsView(APIView):
     def patch(self,request):
         settings,created = SystemSettings.objects.get_or_create(id=1)
         serializer = SettingSerializer(settings,data=request.data,partial=True)
-        if serializer.is_vaild():
+        if serializer.is_valid():
             serializer.save()
             cache.delete('system_settings')
             logger.info(f"Admin {request.user.username} updated system settings: {serializer.data}")
@@ -1257,38 +1297,47 @@ class BackUpView(APIView):
 
 class AuditView(APIView):
     permission_classes = [IsAdmin,IsAuthenticated]
-    def get(self,request,log_id):
-        try:
-            log = AuditLog.objects.select_related('user').get(id=log_id)
-            serializer = AuditLogSerializer(log)
-            return Response({
-                'statud':'success','message':serializer.data
-            })
-        except AuditLog.DoesNotExist:
-            return Response({
-                'status':'error','message':'Log entry missing!'
-            },status=status.HTTP_404_NOT_FOUND)
+    def get(self,request):
+        logs = AuditLog.objects.select_related('user').all()
+        action = request.query_params.get('action')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        search = request.query_params.get('search', '').strip()
+        if action and action != 'all':
+            logs = logs.filter(action=action)
+        if start_date:
+            logs = logs.filter(timestamp__date__gte=start_date)
+        if end_date:
+            logs = logs.filter(timestamp__date__lte=end_date)
+        if search:
+            logs = logs.filter(
+                Q(description__icontains=search) |
+                Q(module__icontains=search) |
+                Q(user__username__icontains=search)
+            )
+
+        total_count = logs.count()
+        page = max(int(request.query_params.get('page', 1)), 1)
+        page_size = 10
+        start = (page - 1) * page_size
+        serialized_logs = AuditLogSerializer(logs.order_by('-timestamp')[start:start + page_size], many=True).data
+
+        today = timezone.now().date()
+        all_logs = AuditLog.objects.all()
         stats = {
-            'total': AuditLog.objects.count(),
-            'today': AuditLog.objects.filter(timestamp__date=timezone.now().date()).count(),
-            'yesterday': AuditLog.objects.filter(timestamp__date=timezone.now().date() - timedelta(days=1)).count(),
-            'this_week': AuditLog.objects.filter(timestamp__date=timezone.now().date() - timedelta(days=7)).count(),
-            'this_month': AuditLog.objects.filter(timestamp__date=timezone.now().date() - timedelta(days=30)).count(),
+            'total': all_logs.count(),
+            'today': all_logs.filter(timestamp__date=today).count(),
+            'this_week': all_logs.filter(timestamp__date__gte=today - timedelta(days=7)).count(),
+            'this_month': all_logs.filter(timestamp__date__gte=today - timedelta(days=30)).count(),
         }
-        top_users = AuditLog.objects.values('user__username').annotate(count=Count('id')).order_by('-count')[:10]
-        stats['top_users'] = list(top_users)
-        top_actions = AuditLog.objects.values('action').annotate(count=Count('id')).order_by('-count')[:10]
-        stats['top_users'] = list(top_actions)
-        
-        hourly = []
-        for i in range(24):
-            hour_start = timezone.now() - timedelta(hours=i+1)
-            hour_end = timezone.now() - timedelta(hours=i)
-            count = AuditLog.objects.filter(timestamp__gte=hour_start,timestamp__lte=hour_end).count()
-            hourly.append({'hour':hour_start.hour,'count':count})
-        stats['hourly_activity'] = hourly[::-1]
-        
         return Response({
-            'status':'success','data':stats
-        })
+            'status': 'success',
+            'data': {'logs': serialized_logs},
+            'pagination': {
+                'total_pages': (total_count + page_size - 1) // page_size,
+                'total_count': total_count,
+                'current_page': page,
+            },
+            'stats': stats,
+        }, status=status.HTTP_200_OK)
     

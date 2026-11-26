@@ -1,4 +1,3 @@
-from rest_framework.settings import APISettings
 from django.urls import path
 from . import API
 
@@ -22,7 +21,7 @@ urlpatterns = [
     path('all/',API.AllUsers.as_view(),name='all'),
     path('user/<int:id>/detail-view/',API.GetUser.as_view(),name='getUser'),
     path('approvals/pending/',API.PendingApprovals.as_view(),name='pending_approvals'),
-    path('system/settings/', APISettings, name='settings'),
+    path('system/settings/', API.SettingsView.as_view(), name='settings'),
     path('settings/test-mail/',API.TestEmailView.as_view(),name='test_mail'),
     path('settings/backup/',API.BackUpView.as_view(),name='back_up'),
     path('audits/',API.AuditView.as_view(),name='audit_view'),

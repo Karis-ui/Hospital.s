@@ -226,6 +226,13 @@ const ActivityIcon = styled(Box)(({ theme, type }) => {
   };
 });
 
+const fallbackPendingApprovals = [
+  { id: 1, initials: 'DR', name: 'Dr. Robert Chen', role: 'Cardiology Specialist', time: 'Applied 2 days ago', type: 'doctor' },
+  { id: 2, initials: 'NS', name: 'Nurse Sarah Wilson', role: 'Emergency Department', time: 'Applied 1 day ago', type: 'nurse' },
+  { id: 3, initials: 'OP', name: 'Michael Brown', role: 'System Operator', time: 'Applied 3 days ago', type: 'operator' },
+  { id: 4, initials: 'DR', name: 'Dr. Lisa Parker', role: 'Pediatrician', time: 'Applied 5 hours ago', type: 'doctor' },
+];
+
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -297,7 +304,7 @@ export const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const response = await adminService.getDashboard();
-      setDashboardData(response.data);
+      setDashboardData(response.data.data || response.data);
     } catch (err) {
       console.error('Failed to fetch dashboard:', err);
     }
@@ -306,7 +313,14 @@ export const AdminDashboard = () => {
   const fetchAnnouncements = async () => {
     try {
       const response = await adminService.announcements();
-      setAnnouncements(response.data);
+      const data = response.data.data || [];
+      setAnnouncements(data.length ? data : [
+        { id: 1, message: 'System maintenance scheduled for tonight', time: '1 hour ago', type: 'info' },
+        { id: 2, message: '3 new staff applications pending', time: '2 hours ago', type: 'warning' },
+        { id: 3, message: 'Database backup completed', time: '3 hours ago', type: 'success' },
+        { id: 4, message: '2 patient feedback received', time: '4 hours ago', type: 'info' },
+        { id: 5, message: 'Appointment cancellation rate increased', time: '5 hours ago', type: 'error' },
+      ]);
     } catch (err) {
       setAnnouncements([
         { id: 1, message: 'System maintenance scheduled for tonight', time: '1 hour ago', type: 'info' },
@@ -320,23 +334,37 @@ export const AdminDashboard = () => {
 
   const fetchPendingApprovals = async () => {
     try {
-      const response = await adminService.getAllDoctors();
-      const pending = response.data.filter(d => !d.is_approved).map(d => ({
-        id: d.id,
-        initials: `DR`,
-        name: `Dr. ${d.first_name} ${d.last_name}`,
-        role: d.specialization || 'Doctor',
-        time: `Applied ${new Date(d.created_at).toLocaleDateString()}`,
-        type: 'doctor'
-      }));
-      setPendingApprovals(pending.slice(0, 4));
+      const response = await adminService.pendingApprovals();
+      const approvals = response.data.data || {};
+      const pending = [
+        ...(approvals.doctors || []).map((item) => ({
+          id: item.id,
+          initials: 'DR',
+          name: item.full_name,
+          role: item.speciality || 'Doctor',
+          time: `Applied ${new Date(item.registered_at).toLocaleDateString()}`,
+          type: 'doctor',
+        })),
+        ...(approvals.lab_technicians || []).map((item) => ({
+          id: item.id,
+          initials: 'LT',
+          name: item.full_name,
+          role: 'Lab Technician',
+          time: `Applied ${new Date(item.registered_at).toLocaleDateString()}`,
+          type: 'lab_technician',
+        })),
+        ...(approvals.operators || []).map((item) => ({
+          id: item.id,
+          initials: 'OP',
+          name: item.full_name,
+          role: 'System Operator',
+          time: `Applied ${new Date(item.registered_at).toLocaleDateString()}`,
+          type: 'operator',
+        })),
+      ];
+      setPendingApprovals(pending.length ? pending.slice(0, 4) : fallbackPendingApprovals);
     } catch (err) {
-      setPendingApprovals([
-        { id: 1, initials: 'DR', name: 'Dr. Robert Chen', role: 'Cardiology Specialist', time: 'Applied 2 days ago', type: 'doctor' },
-        { id: 2, initials: 'NS', name: 'Nurse Sarah Wilson', role: 'Emergency Department', time: 'Applied 1 day ago', type: 'nurse' },
-        { id: 3, initials: 'OP', name: 'Michael Brown', role: 'System Operator', time: 'Applied 3 days ago', type: 'operator' },
-        { id: 4, initials: 'DR', name: 'Dr. Lisa Parker', role: 'Pediatrician', time: 'Applied 5 hours ago', type: 'doctor' },
-      ]);
+      setPendingApprovals(fallbackPendingApprovals);
     }
   };
 

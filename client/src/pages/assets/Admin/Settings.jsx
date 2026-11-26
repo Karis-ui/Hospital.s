@@ -96,7 +96,7 @@ export const SystemSettings = ()=>{
       setLoading(true);
       try{
         const res = await adminService.getSettings();
-        if(res.data.status === 'suucess'){
+        if(res.data.status === 'success'){
           setSettings(res.data.data);
         }
       }catch(err){
