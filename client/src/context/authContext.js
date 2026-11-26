@@ -13,6 +13,17 @@ export const AuthProvider = ({ children }) => {
         const loadUser = () => {
             const storedUser = authService.getCurrentUser();
             if (storedUser) {
+                const userType = storedUser.user_type || storedUser.role;
+                const isLegacyAdmin = !userType && storedUser.admin_level;
+                if (
+                    storedUser.is_approved === false ||
+                    storedUser.is_active === false ||
+                    (isLegacyAdmin && storedUser.is_approved !== true)
+                ) {
+                    authService.logout();
+                    setLoading(false);
+                    return;
+                }
                 console.log('✅ User loaded from storage:', storedUser);
                 setUser(storedUser);
             } else {

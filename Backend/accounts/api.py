@@ -199,7 +199,7 @@ class HospitalAdminLogin(APIView):
             return Response({
                 'status':'error',
                 'message':'Email and password required'
-            },status==status.HTTP_400_BAD_REQUEST)
+            },status=status.HTTP_400_BAD_REQUEST)
         
         try:
             user = User.objects.get(email=email)
@@ -207,10 +207,15 @@ class HospitalAdminLogin(APIView):
                 raise User.DoesNotExist
             
             if not hasattr(user,'hospital_admin'):
-                return Response({'status':'success','message':'Unautjorized for this page'},status=status.HTTP_403_FORBIDDEN)
+                return Response({'status':'error','message':'Unauthorized for this page'},status=status.HTTP_403_FORBIDDEN)
+            if not user.is_active or not user.is_approved:
+                return Response({
+                    'status':'error',
+                    'message':'Admin account is pending approval or inactive'
+                },status=status.HTTP_403_FORBIDDEN)
             if not user.hospital_admin.is_active:
                 return Response({
-                    'status':'error','messgae':'Admin account is inactive'
+                    'status':'error','message':'Admin account is inactive'
                 },status=403)
             refresh = RefreshToken.for_user(user)
 
@@ -225,6 +230,9 @@ class HospitalAdminLogin(APIView):
                         'email': user.email,
                         'full_name': user.hospital_admin.full_name,
                         'admin_level': user.hospital_admin.admin_level,
+                        'user_type': user.user_type,
+                        'is_approved': user.is_approved,
+                        'is_active': user.is_active,
                     }
                 }
             })
