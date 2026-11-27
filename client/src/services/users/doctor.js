@@ -9,7 +9,7 @@ export const doctorSevice = {
     appointmentView: (id) => api.get(`doctors/appointment/${id}/view/`),
     updateAppointment: (id, data) => api.put(`doctors/appointment/${id}/view/`, data),
     myPatients: () => api.get('doctors/my/patients/'),
-    statistics: () => api.get('doctors/statistics/'),
+    statistics: (period = 'month') => api.get('doctors/statistics/', { params: { period } }),
     patientDetail: (id) => api.get(`doctors/patient/detail/${id}/`),
     report: () => api.get('doctors/reports/'),
     sendToPatient: (id, data) => api.post(`doctors/send/to/patient/${id}/`, data),

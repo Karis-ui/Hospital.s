@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -6,11 +6,6 @@ import {
   Paper,
   Typography,
   Avatar,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
   Badge,
   IconButton,
   Button,
@@ -29,7 +24,10 @@ import {
   Menu,
   MenuItem,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   InputAdornment,
+  LinearProgress,
   Tooltip,
   Zoom,
   Fade,
@@ -38,30 +36,20 @@ import {
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import {
-  Dashboard as DashboardIcon,
   CalendarToday as CalendarIcon,
   People as PeopleIcon,
   Medication as PrescriptionIcon,
   Description as MedicalIcon,
-  Assessment as ReportsIcon,
   Message as MessageIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
   Notifications as NotificationsIcon,
   Add as AddIcon,
-  Pause as PauseIcon,
   Visibility as ViewIcon,
-  FilePresent as RecordsIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
   AccessTime as TimeIcon,
-  TrendingUp as TrendingUpIcon,
-  Person as PersonIcon,
   Schedule as ScheduleIcon,
   LocalHospital as HospitalIcon,
-  Favorite as HeartIcon,
   Biotech as LabIcon,
-  Print as PrintIcon,
   EventNote as FollowUpIcon,
   ArrowForward as ArrowForwardIcon,
   Star as StarIcon,
@@ -69,6 +57,9 @@ import {
   WorkspacePremium as PremiumIcon,
   Search as SearchIcon,
   RocketSharp as TrophyIcon,
+  BarChart as BarChartIcon,
+  FilterList as FilterIcon,
+  LocalPharmacy as PharmacyIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/authContext';
@@ -83,36 +74,6 @@ const goldTheme = {
   text: { primary: '#FFFFFF', secondary: '#C0C0C0', gold: '#D4AF37' },
   status: { waiting: '#FFA500', inProgress: '#D4AF37', completed: '#4CAF50', scheduled: '#2196F3', emergency: '#F44336' },
 };
-
-const Sidebar = styled(Box)(({ theme }) => ({
-  width: 280,
-  background: 'linear-gradient(180deg, #1A1A1A 0%, #2A2A2A 100%)',
-  color: goldTheme.text.primary,
-  position: 'fixed',
-  height: '100vh',
-  overflowY: 'auto',
-  borderRight: `2px solid ${goldTheme.primary.main}`,
-  boxShadow: `5px 0 25px rgba(212, 175, 55, 0.15)`,
-  zIndex: 1200,
-  transition: 'all 0.3s ease',
-  '&::-webkit-scrollbar': { width: '8px' },
-  '&::-webkit-scrollbar-track': { background: 'rgba(255,255,255,0.05)' },
-  '&::-webkit-scrollbar-thumb': { background: goldTheme.primary.main, borderRadius: '4px' },
-}));
-
-const DoctorAvatar = styled(Avatar)(({ theme }) => ({
-  width: 120,
-  height: 120,
-  margin: '0 auto 20px',
-  background: `linear-gradient(135deg, ${goldTheme.primary.main}, ${goldTheme.primary.dark})`,
-  border: `4px solid ${goldTheme.primary.main}`,
-  boxShadow: `0 10px 25px rgba(212, 175, 55, 0.3)`,
-  fontSize: '3rem',
-  fontWeight: 700,
-  color: '#1A1A1A',
-  transition: 'all 0.3s ease',
-  '&:hover': { transform: 'scale(1.05)', boxShadow: `0 15px 35px rgba(212, 175, 55, 0.4)` },
-}));
 
 const StatCard = styled(Card)(({ theme }) => ({
   background: 'linear-gradient(135deg, #2A2A2A 0%, #333333 100%)',
@@ -189,7 +150,7 @@ const NotificationBadge = styled(Badge)(({ theme }) => ({
 
 export const DoctorDashboard = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -199,14 +160,16 @@ export const DoctorDashboard = () => {
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
-  const [processingId, setProcessingId] = useState(null);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('week');
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
+  const [clinicalWorklistError, setClinicalWorklistError] = useState('');
+  const [scheduleFilter, setScheduleFilter] = useState('All');
+  const [patientSearch, setPatientSearch] = useState('');
+  const [clinicalWorklist, setClinicalWorklist] = useState({ prescriptions: [], labRequests: [] });
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchNotifications();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await doctorService.getDashboard();
@@ -238,9 +201,9 @@ export const DoctorDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await coreService.getNotifications();
       setNotifications(Array.isArray(response.data) ? response.data : []);
@@ -248,7 +211,50 @@ export const DoctorDashboard = () => {
       console.error('Failed to load doctor notifications:', err);
       setNotifications([]);
     }
-  };
+  }, []);
+
+  const fetchAnalytics = useCallback(async (period) => {
+    setAnalyticsLoading(true);
+    setAnalyticsError('');
+    try {
+      const response = await doctorService.statistics(period);
+      setAnalyticsData(response.data?.data || response.data);
+    } catch (err) {
+      console.error('Failed to load dashboard analytics:', err);
+      setAnalyticsError('Analytics are temporarily unavailable.');
+      setAnalyticsData(null);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  const fetchClinicalWorklist = useCallback(async () => {
+    setClinicalWorklistError('');
+    try {
+      const [prescriptionsResponse, labsResponse] = await Promise.all([
+        doctorService.prescriptions(),
+        doctorService.getlabResult(),
+      ]);
+      const prescriptions = prescriptionsResponse.data?.data
+        || prescriptionsResponse.data
+        || [];
+      setClinicalWorklist({
+        prescriptions: Array.isArray(prescriptions) ? prescriptions : [],
+        labRequests: Array.isArray(labsResponse.data) ? labsResponse.data : [],
+      });
+    } catch (err) {
+      console.error('Failed to load clinical worklist:', err);
+      setClinicalWorklistError('Clinical activity could not be refreshed.');
+      setClinicalWorklist({ prescriptions: [], labRequests: [] });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+    fetchNotifications();
+    fetchAnalytics('week');
+    fetchClinicalWorklist();
+  }, [fetchDashboardData, fetchNotifications, fetchAnalytics, fetchClinicalWorklist]);
 
   const handleSearch = async (e) => {
     if (e.key === 'Enter' && searchTerm.trim()) {
@@ -275,27 +281,30 @@ export const DoctorDashboard = () => {
 
   const handleViewAppointment = async (appointmentId) => {
     try {
-      setProcessingId(appointmentId);
       await doctorService.appointmentView(appointmentId);
       toast.success('Appointment fetched successfully');
       fetchDashboardData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to fetch appointment');
-    } finally {
-      setProcessingId(null);
     }
   };
 
   const handleQuickAction = (id,action) => {
     switch (action) {
+      case 'prescription':
       case 'prescriptions':
         navigate('/doctor/prescriptions');
         break;
       case 'record':
-        navigate(`/doctor/patients/${id}/Medical-records`);
+        navigate(id
+          ? `/doctor/patients/${id}/Medical-records`
+          : '/doctor/patients-details');
         break;
       case 'lab':
         navigate('/doctor/lab/new');
+        break;
+      case 'followup':
+        navigate('/doctor/appointments');
         break;
       case 'profile':
         navigate('/doctor/profile');
@@ -311,11 +320,6 @@ export const DoctorDashboard = () => {
 
   const handleNotificationClose = () => {
     setNotificationAnchor(null);
-  };
-
-  const handleLogout = () => {
-    logout();
-    toast.info('Logged out successfully');
   };
 
   const getNotificationIcon = (type) => {
@@ -361,74 +365,48 @@ export const DoctorDashboard = () => {
   const todayAppointments = dashboardData?.appointments?.today || [];
   const recentPatients = dashboardData?.patients?.recent || [];
   const upcomingAppointments = dashboardData?.appointments?.upcoming || [];
+  const analyticsSummary = analyticsData?.summary || {};
+  const statusBreakdown = analyticsData?.status_breakdown || [];
+  const filteredTodayAppointments = todayAppointments.filter((appointment) => (
+    scheduleFilter === 'All'
+    || appointment.status?.toLowerCase() === scheduleFilter.toLowerCase()
+  ));
+  const filteredPatients = recentPatients.filter((appointment) => {
+    const patientName = appointment.patient_name || '';
+    const query = patientSearch.trim().toLowerCase();
+    return !query
+      || patientName.toLowerCase().includes(query)
+      || String(appointment.patient_id || '').includes(query);
+  });
+  const nextAppointments = [...upcomingAppointments]
+    .sort((first, second) => (
+      `${first.appointment_date} ${first.appointment_time}`.localeCompare(
+        `${second.appointment_date} ${second.appointment_time}`
+      )
+    ))
+    .slice(0, 5);
+  const trendPoints = analyticsData?.trends || [];
+  const trendBuckets = analyticsPeriod === 'week'
+    ? trendPoints.map((point) => ({
+      label: new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short' }),
+      count: point.count,
+    }))
+    : trendPoints.reduce((buckets, point) => {
+      const date = new Date(`${point.date}T00:00:00`);
+      const key = analyticsPeriod === 'month'
+        ? `Week ${Math.ceil(date.getDate() / 5)}`
+        : date.toLocaleDateString(undefined, { month: 'short' });
+      const current = buckets.find((bucket) => bucket.label === key);
+      if (current) current.count += point.count;
+      else buckets.push({ label: key, count: point.count });
+      return buckets;
+    }, []);
+  const maxTrendCount = Math.max(1, ...trendBuckets.map((point) => point.count));
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <Box sx={{ display: 'flex', bgcolor: '#1A1A1A', minHeight: '100vh', color: goldTheme.text.primary }}>
-      <Sidebar>
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <DoctorAvatar>
-            {getInitials(doctor.first_name, doctor.last_name)}
-          </DoctorAvatar>
-
-          <Typography variant="h5" sx={{ fontWeight: 700, color: goldTheme.primary.main, mb: 0.5 }}>
-            Dr. {doctor.first_name} {doctor.last_name}
-          </Typography>
-
-          <Chip
-            icon={<PremiumIcon />}
-            label={doctor.specialization || 'Physician'}
-            sx={{ background: alpha(goldTheme.primary.main, 0.1), color: goldTheme.primary.main, border: `1px solid ${goldTheme.primary.main}`, fontWeight: 600, mb: 2 }}
-          />
-
-          <Typography variant="body2" sx={{ color: goldTheme.text.secondary, mb: 2 }}>
-            <HospitalIcon sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-            ID: DR-{doctor.id?.toString().padStart(4, '0') || '0000'}
-          </Typography>
-        </Box>
-
-        <Divider sx={{ borderColor: alpha(goldTheme.primary.main, 0.2) }} />
-
-        <List sx={{ px: 2, py: 2 }}>
-          {[
-            { icon: <DashboardIcon />, text: 'Dashboard', active: true, path: '/doctor/dashboard' },
-            { icon: <CalendarIcon />, text: 'Appointments', badge: todayAppointments.length, path: '/doctor/appointments' },
-            { icon: <PeopleIcon />, text: 'My Patients', path: '/doctor/patients' },
-            { icon: <PrescriptionIcon />, text: 'Prescriptions', path: '/doctor/prescriptions' },
-            { icon: <MedicalIcon />, text: 'Medical Records', path: '/doctor/records' },
-            { icon: <ReportsIcon />, text: 'Reports', path: '/doctor/reports' },
-            { icon: <MessageIcon />, text: 'Messages', badge: 3, path: '/doctor/messages' },
-            { icon: <SettingsIcon />, text: 'Settings', path: '/doctor/settings' },
-          ].map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                onClick={() => navigate(item.path)}
-                sx={{
-                  borderRadius: 2,
-                  color: item.active ? goldTheme.primary.main : goldTheme.text.secondary,
-                  bgcolor: item.active ? alpha(goldTheme.primary.main, 0.1) : 'transparent',
-                  '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.15), color: goldTheme.primary.main },
-                }}
-              >
-                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: item.active ? 600 : 400 }} />
-                {item.badge ? (
-                  <Chip label={item.badge} size="small" sx={{ bgcolor: goldTheme.primary.main, color: '#1A1A1A', fontWeight: 700, fontSize: '0.75rem', height: 20 }} />
-                ) : item.badge === 0 ? null : null}
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-
-        <Box sx={{ position: 'absolute', bottom: 20, left: 0, right: 0, px: 3 }}>
-          <GoldButton fullWidth startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ mb: 2 }}>
-            Logout
-          </GoldButton>
-        </Box>
-      </Sidebar>
-
-      <Box sx={{ flexGrow: 1, ml: '280px', p: 4 }}>
+    <Box sx={{ bgcolor: '#1A1A1A', minHeight: '100vh', color: goldTheme.text.primary, p: { xs: 2, md: 4 } }}>
         {fallbackNotice && (
           <Alert severity="warning" sx={{ mb: 3 }}>
             {fallbackNotice}
@@ -446,7 +424,7 @@ export const DoctorDashboard = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <TextField
                 placeholder="Search patients..."
                 variant="outlined"
@@ -481,8 +459,8 @@ export const DoctorDashboard = () => {
                 </IconButton>
               </Tooltip>
 
-              <GoldButton startIcon={<AddIcon />} onClick={() => navigate('/doctor/appointments/new')}>
-                New Appointment
+              <GoldButton startIcon={<AddIcon />} onClick={() => navigate('/doctor/appointments')}>
+                Manage Appointments
               </GoldButton>
             </Box>
           </Box>
@@ -515,13 +493,13 @@ export const DoctorDashboard = () => {
           <Grid item xs={12} md={8}>
             <Slide direction="right" in timeout={1000}>
               <div>
-                <GlassCard sx={{ p: 3, mb: 3 }}>
+                <GlassCard id="today-schedule" sx={{ p: 3, mb: 3, scrollMarginTop: 24 }}>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: goldTheme.primary.main, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <StarIcon /> Today's Schedule
                   </Typography>
 
                   <Box sx={{ maxHeight: 400, overflow: 'auto', mb: 2 }}>
-                    {todayAppointments.length > 0 ? todayAppointments.map((apt, index) => (
+                    {filteredTodayAppointments.length > 0 ? filteredTodayAppointments.map((apt, index) => (
                       <Box
                         key={apt.id}
                         sx={{
@@ -551,7 +529,9 @@ export const DoctorDashboard = () => {
                       </Box>
                     )) : (
                       <Typography sx={{ textAlign: 'center', py: 4, color: goldTheme.text.secondary }}>
-                        No appointments scheduled for today
+                        {todayAppointments.length
+                          ? `No ${scheduleFilter.toLowerCase()} appointments today`
+                          : 'No appointments scheduled for today'}
                       </Typography>
                     )}
                   </Box>
@@ -675,7 +655,7 @@ export const DoctorDashboard = () => {
                     <ScheduleIcon /> Upcoming Appointments
                   </Typography>
 
-                  {upcomingAppointments.length > 0 ? upcomingAppointments.slice(0, 4).map((apt) => (
+                  {upcomingAppointments.length > 0 ? nextAppointments.slice(0, 4).map((apt) => (
                     <Box
                       key={apt.id}
                       sx={{ p: 2, mb: 1, borderRadius: 2, bgcolor: alpha(goldTheme.primary.main, 0.05), border: `1px solid ${alpha(goldTheme.primary.main, 0.1)}`, transition: 'all 0.3s ease', '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.1), transform: 'translateX(5px)' } }}
@@ -684,7 +664,7 @@ export const DoctorDashboard = () => {
                         <Box>
                           <Typography sx={{ fontWeight: 600 }}>{apt.patient_name}</Typography>
                           <Typography variant="caption" sx={{ color: goldTheme.text.secondary }}>
-                            {formatDate(apt.date)} • {apt.time}
+                            {formatDate(apt.appointment_date)} • {apt.appointment_time}
                           </Typography>
                         </Box>
                         <Chip
@@ -741,7 +721,313 @@ export const DoctorDashboard = () => {
             </Slide>
           </Grid>
         </Grid>
-      </Box>
+        <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Grid item xs={12} lg={7}>
+            <GlassCard sx={{ p: 3, height: '100%' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                <Box>
+                  <Typography variant="h5" sx={{ color: goldTheme.primary.main, fontWeight: 700 }}>
+                    <BarChartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Practice activity
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: goldTheme.text.secondary, mt: 0.5 }}>
+                    Appointment volume over the selected period
+                  </Typography>
+                </Box>
+                <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={analyticsPeriod}
+                  onChange={(event, period) => {
+                    if (period) {
+                      setAnalyticsPeriod(period);
+                      fetchAnalytics(period);
+                    }
+                  }}
+                  aria-label="Analytics period"
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      color: goldTheme.text.secondary,
+                      borderColor: alpha(goldTheme.primary.main, 0.3),
+                    },
+                    '& .Mui-selected': {
+                      color: `${goldTheme.primary.main} !important`,
+                      bgcolor: `${alpha(goldTheme.primary.main, 0.12)} !important`,
+                    },
+                  }}
+                >
+                  <ToggleButton value="week">Week</ToggleButton>
+                  <ToggleButton value="month">Month</ToggleButton>
+                  <ToggleButton value="year">Year</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              {analyticsError && <Alert severity="warning" sx={{ mb: 2 }}>{analyticsError}</Alert>}
+              {analyticsLoading ? (
+                <CircularProgress size={24} sx={{ color: goldTheme.primary.main, my: 4 }} />
+              ) : trendBuckets.length ? (
+                <Box
+                  role="img"
+                  aria-label={`Appointment activity for the selected ${analyticsPeriod}`}
+                  sx={{ display: 'flex', alignItems: 'flex-end', gap: { xs: 0.5, sm: 1 }, height: 190, pt: 2 }}
+                >
+                  {trendBuckets.map((point) => (
+                    <Tooltip key={point.label} title={`${point.label}: ${point.count} appointments`}>
+                      <Box sx={{ flex: 1, minWidth: 0, textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                        <Typography variant="caption" sx={{ color: goldTheme.text.secondary, mb: 0.5 }}>
+                          {point.count}
+                        </Typography>
+                        <Box
+                          sx={{
+                            width: '100%',
+                            minHeight: point.count ? 8 : 3,
+                            height: `${Math.max(3, (point.count / maxTrendCount) * 70)}%`,
+                            borderRadius: '6px 6px 2px 2px',
+                            background: `linear-gradient(180deg, ${goldTheme.primary.light}, ${goldTheme.primary.dark})`,
+                            transition: 'height 300ms ease',
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ color: goldTheme.text.secondary, mt: 0.75, whiteSpace: 'nowrap' }}>
+                          {point.label}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  ))}
+                </Box>
+              ) : (
+                <Alert severity="info" sx={{ mt: 2 }}>No appointment activity recorded in this period.</Alert>
+              )}
+              <Divider sx={{ my: 2, borderColor: alpha(goldTheme.primary.main, 0.15) }} />
+              <Typography variant="body2" sx={{ color: goldTheme.text.secondary }}>
+                {analyticsSummary.total_appointments || 0} appointments · {analyticsSummary.patients || 0} patients · {analyticsSummary.completion_rate || 0}% completed
+              </Typography>
+            </GlassCard>
+          </Grid>
+
+          <Grid item xs={12} lg={5}>
+            <GlassCard sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h5" sx={{ color: goldTheme.primary.main, fontWeight: 700, mb: 0.5 }}>
+                <FilterIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Appointment status
+              </Typography>
+              <Typography variant="body2" sx={{ color: goldTheme.text.secondary, mb: 2 }}>
+                Counts use the selected period; choose a status to filter today&apos;s schedule
+              </Typography>
+              <Button
+                fullWidth
+                variant={scheduleFilter === 'All' ? 'contained' : 'outlined'}
+                onClick={() => setScheduleFilter('All')}
+                sx={{ mb: 1, justifyContent: 'space-between', textTransform: 'none' }}
+              >
+                All statuses <Chip size="small" label={todayAppointments.length} />
+              </Button>
+              {statusBreakdown.length ? statusBreakdown.map((item) => (
+                <Button
+                  key={item.status}
+                  fullWidth
+                  variant={scheduleFilter.toLowerCase() === item.status.toLowerCase() ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    setScheduleFilter(item.status);
+                    document.getElementById('today-schedule')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  sx={{ mb: 1, justifyContent: 'space-between', textTransform: 'capitalize' }}
+                >
+                  {item.status} <Chip size="small" label={item.count} />
+                </Button>
+              )) : (
+                <Alert severity="info">No appointment statuses to summarize yet.</Alert>
+              )}
+            </GlassCard>
+          </Grid>
+
+          <Grid item xs={12} lg={6}>
+            <GlassCard sx={{ p: 3, height: '100%' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Box>
+                  <Typography variant="h5" sx={{ color: goldTheme.primary.main, fontWeight: 700 }}>
+                    <PeopleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Patient launchpad
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: goldTheme.text.secondary }}>
+                    Find and open a patient from your recent appointments
+                  </Typography>
+                </Box>
+                <Button onClick={() => navigate('/doctor/patients-details')} endIcon={<ArrowForwardIcon />}>
+                  All patients
+                </Button>
+              </Box>
+              <TextField
+                fullWidth
+                size="small"
+                value={patientSearch}
+                onChange={(event) => setPatientSearch(event.target.value)}
+                placeholder="Search recent patients by name or ID"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+                }}
+                sx={{ mb: 2 }}
+              />
+              <Box sx={{ display: 'grid', gap: 1 }}>
+                {filteredPatients.length ? filteredPatients.slice(0, 5).map((appointment) => (
+                  <Button
+                    key={appointment.id}
+                    onClick={() => navigate(`/doctor/patients-details/${appointment.patient_id}`)}
+                    sx={{
+                      justifyContent: 'space-between',
+                      color: goldTheme.text.primary,
+                      bgcolor: alpha(goldTheme.primary.main, 0.06),
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.13) },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <PatientAvatar sx={{ width: 36, height: 36 }}>
+                        {getInitials(appointment.patient_name?.split(' ')[0], appointment.patient_name?.split(' ').slice(1).join(' '))}
+                      </PatientAvatar>
+                      <Box sx={{ textAlign: 'left' }}>
+                        <Typography>{appointment.patient_name || `Patient #${appointment.patient_id}`}</Typography>
+                        <Typography variant="caption" sx={{ color: goldTheme.text.secondary }}>
+                          {appointment.purpose || 'Appointment'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <ArrowForwardIcon fontSize="small" />
+                  </Button>
+                )) : (
+                  <Alert severity="info">
+                    {patientSearch ? 'No recent patient matches that search.' : 'Recent patient activity will appear here.'}
+                  </Alert>
+                )}
+              </Box>
+            </GlassCard>
+          </Grid>
+
+          <Grid item xs={12} lg={6}>
+            <GlassCard sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h5" sx={{ color: goldTheme.primary.main, fontWeight: 700, mb: 0.5 }}>
+                <HospitalIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Clinical activity
+              </Typography>
+              <Typography variant="body2" sx={{ color: goldTheme.text.secondary, mb: 2 }}>
+                Open your prescription and laboratory workflows
+              </Typography>
+              {clinicalWorklistError && (
+                <Alert severity="warning" sx={{ mb: 2 }}>{clinicalWorklistError}</Alert>
+              )}
+              <Grid container spacing={2}>
+                {[
+                  {
+                    label: 'Prescriptions',
+                    value: clinicalWorklist.prescriptions.length,
+                    icon: <PharmacyIcon />,
+                    path: '/doctor/prescriptions',
+                  },
+                  {
+                    label: 'Lab requests',
+                    value: clinicalWorklist.labRequests.length,
+                    icon: <LabIcon />,
+                    path: '/doctor/lab/new',
+                  },
+                ].map((item) => (
+                  <Grid item xs={12} sm={6} key={item.label}>
+                    <Button
+                      fullWidth
+                      onClick={() => navigate(item.path)}
+                      sx={{
+                        minHeight: 132,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                        color: goldTheme.text.primary,
+                        bgcolor: alpha(goldTheme.primary.main, 0.07),
+                        border: `1px solid ${alpha(goldTheme.primary.main, 0.18)}`,
+                        '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.14) },
+                      }}
+                    >
+                      {item.icon}
+                      <Typography variant="h4" fontWeight={700}>{item.value}</Typography>
+                      <Typography>{item.label}</Typography>
+                    </Button>
+                  </Grid>
+                ))}
+              </Grid>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ color: goldTheme.text.secondary, mb: 1 }}>
+                  Appointment completion
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(100, Math.max(0, analyticsSummary.completion_rate || 0))}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    bgcolor: alpha('#fff', 0.1),
+                    '& .MuiLinearProgress-bar': { bgcolor: goldTheme.primary.main },
+                  }}
+                />
+              </Box>
+            </GlassCard>
+          </Grid>
+
+          <Grid item xs={12}>
+            <GlassCard sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                <Box>
+                  <Typography variant="h5" sx={{ color: goldTheme.primary.main, fontWeight: 700 }}>
+                    <FollowUpIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Follow-up planner
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: goldTheme.text.secondary }}>
+                    Upcoming scheduled visits, ordered by date and time
+                  </Typography>
+                </Box>
+                <Button onClick={() => navigate('/doctor/appointments')} endIcon={<ArrowForwardIcon />}>
+                  Open appointment list
+                </Button>
+              </Box>
+              {nextAppointments.length ? (
+                <Grid container spacing={2}>
+                  {nextAppointments.map((appointment) => (
+                    <Grid item xs={12} sm={6} md={4} key={appointment.id}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          height: '100%',
+                          bgcolor: alpha(goldTheme.primary.main, 0.04),
+                          color: goldTheme.text.primary,
+                          borderColor: alpha(goldTheme.primary.main, 0.2),
+                        }}
+                      >
+                        <CardContent>
+                          <Typography fontWeight={700}>
+                            {appointment.patient_name || `Patient #${appointment.patient_id}`}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: goldTheme.text.secondary, my: 1 }}>
+                            {formatDate(appointment.appointment_date)} · {appointment.appointment_time}
+                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <StatusChip
+                              label={appointment.status}
+                              status={appointment.status?.toLowerCase()}
+                              size="small"
+                            />
+                            <Button
+                              size="small"
+                              onClick={() => navigate(`/doctor/patients-details/${appointment.patient_id}`)}
+                            >
+                              Patient details
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert severity="info">There are no upcoming visits to plan for.</Alert>
+              )}
+            </GlassCard>
+          </Grid>
+        </Grid>
 
       <Menu
         anchorEl={notificationAnchor}
