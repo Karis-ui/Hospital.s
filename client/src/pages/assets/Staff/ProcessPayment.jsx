@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -17,45 +17,30 @@ import {
   Step,
   StepLabel,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Divider,
-  RadioGroup,
-  Radio,
-  FormControlLabel,
   FormLabel,
   IconButton,
-  Tooltip,
   useTheme,
   alpha,
   Fade,
-  Slide,
-  Zoom,
   Collapse,
   LinearProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
-  Email as EmailIcon,
   ArrowBack as ArrowBackIcon,
   Money as MoneyIcon,
   CreditCard as CardIcon,
   AccountBalance as BankIcon,
-  Receipt as ReceiptIcon,
   Print as PrintIcon,
   Download as DownloadIcon,
   CheckCircle as CheckIcon,
-  QrCode as QrCodeIcon,
   Security as SecurityIcon,
   Payment as PaymentIcon,
-  Verified as VerifiedIcon,
-  Fingerprint as FingerprintIcon,
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { OperatorService } from '../../../services/users/operator';
 import { formatCurrency, formatDate } from '../../../formatters';
-import { billingTheme } from '../../../theme/billingTheme';
 
 const PaymentCard = styled(Card)(({ theme, selected }) => ({
   cursor: 'pointer',
@@ -79,48 +64,63 @@ export const ProcessPayment = () => {
   const { billId } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const [processing, setProcessing] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [bill, setBill] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
   const [amountReceived, setAmountReceived] = useState('');
   const [change, setChange] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [receiptData, setReceiptData] = useState('');
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '' });
   const [bankDetails, setBankDetails] = useState({ account: '', bank: '', reference: '' });
 
-  useEffect(() => {
-    fetchBillDetails();
+  const fetchBillDetails = useCallback(async () => {
+    if (!billId) return;
+    setLoading(true);
+    try {
+      const response = await OperatorService.getBillDetail(billId);
+      const billData = response.data?.data?.bill;
+      if (!billData) {
+        throw new Error('The bill response did not contain a bill.');
+      }
+      setBill(billData);
+      setAmountReceived(String(billData.balance ?? billData.amount ?? 0));
+      setError('');
+    } catch (err) {
+      console.error('Failed to fetch bill:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load bill details');
+      setBill(null);
+    } finally {
+      setLoading(false);
+    }
   }, [billId]);
+
+  useEffect(() => {
+    if (!billId) {
+      setError('Select a bill from Bills before processing payment.');
+      setLoading(false);
+      return;
+    }
+    fetchBillDetails();
+  }, [billId, fetchBillDetails]);
 
   useEffect(() => {
     if (amountReceived && bill) {
       const received = parseFloat(amountReceived);
-      const due = bill.balance || bill.amount;
+      const due = bill.balance ?? bill.amount;
       setChange(received > due ? received - due : 0);
     }
   }, [amountReceived, bill]);
 
-  const fetchBillDetails = async () => {
-    setLoading(true);
-    try {
-      const response = await OperatorService.getbillDetail(billId);
-      setBill(response.data);
-      setAmountReceived(response.data.balance?.toString() || response.data.amount.toString());
-    } catch (err) {
-      console.error('Failed to fetch bill:', err);
-      setError(err.response?.data?.message || 'Failed to load bill details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleProcessPayment = async () => {
-    const due = bill?.balance || bill?.amount;
+    const due = bill?.balance ?? bill?.amount;
     const received = parseFloat(amountReceived);
+    if (!Number.isFinite(received) || received <= 0) {
+      setError('Enter a valid payment amount.');
+      return;
+    }
     if (received < due) {
       setError(`Amount received (${formatCurrency(received)}) is less than amount due (${formatCurrency(due)})`);
       console.error('Error', 'Insufficient amount received');
@@ -133,19 +133,18 @@ export const ProcessPayment = () => {
         amount_received: received, payment_method: paymentMethod, change: change, notes: `Payment processed via ${paymentMethod.toUpperCase()}`,
       };
 
-      if (paymentMethod === 'card') {
+      if (paymentMethod === 'Credit Card') {
         paymentData.card_details = {
           last_four: cardDetails.number.slice(-4), expiry: cardDetails.expiry
         };
-      } else if (paymentMethod === 'bank') {
+      } else if (paymentMethod === 'Cheque') {
         paymentData.bank_details = {
           acccoun_last_four: bankDetails.account.slice(-4),
           bank_name: bankDetails.bank,
           reference: bankDetails.reference,
         };
       }
-      const response = await OperatorService.processpayment(billId, paymentData);
-      setReceiptData(response.data.receipt);
+      await OperatorService.processPayment(billId, paymentData);
       setActiveStep(2);
       setSuccess(true);
       console.log('Success', 'Payment processed successfully');
@@ -205,11 +204,11 @@ export const ProcessPayment = () => {
       <Box sx={{ p: 3 }}>
         <Alert
           severity="error"
-          action={
+          action={billId ? (
             <Button color="inherit" size="small" onClick={fetchBillDetails}>
               Retry
             </Button>
-          }
+          ) : undefined}
         >
           {error}
         </Alert>
@@ -274,7 +273,7 @@ export const ProcessPayment = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <IconButton onClick={() => navigate(`/operator/process-payment`)} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+        <IconButton onClick={() => navigate('/operator/bills')} sx={{ mr: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
@@ -365,9 +364,9 @@ export const ProcessPayment = () => {
                 <FormLabel component="legend">Select Payment Method</FormLabel>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   {[
-                    { value: 'card', label: 'Credit/Debit Card', icon: <CardIcon />, color: theme.palette.info.main },
-                    { value: 'cash', label: 'Cash', icon: <MoneyIcon />, color: theme.palette.success.main },
-                    { value: 'bank', label: 'Bank Transfer', icon: <BankIcon />, color: theme.palette.warning.main },
+                    { value: 'Credit Card', label: 'Credit Card', icon: <CardIcon />, color: theme.palette.info.main },
+                    { value: 'Cash', label: 'Cash', icon: <MoneyIcon />, color: theme.palette.success.main },
+                    { value: 'Cheque', label: 'Cheque', icon: <BankIcon />, color: theme.palette.warning.main },
                   ].map((method) => (
                     <Grid item xs={12} sm={4} key={method.value}>
                       <PaymentCard
@@ -407,7 +406,7 @@ export const ProcessPayment = () => {
                 </Fade>
               )}
 
-              <Collapse in={paymentMethod === 'card'}>
+              <Collapse in={paymentMethod === 'Credit Card'}>
                 <Box sx={{ mt: 2 }}>
                   <TextField
                     fullWidth
@@ -448,7 +447,7 @@ export const ProcessPayment = () => {
               </Collapse>
 
               {/* Bank Details */}
-              <Collapse in={paymentMethod === 'bank'}>
+              <Collapse in={paymentMethod === 'Cheque'}>
                 <Box sx={{ mt: 2 }}>
                   <TextField
                     fullWidth

@@ -386,22 +386,13 @@ export const OperatorDashboard = () => {
   const handleMarkAsPaid = async (billId) => {
     const confirmed = await confirm({
       title: 'Mark Bill as Paid',
-      message: 'Are you sure you want to mark the same.',
+      message: 'Continue to payment details for this bill?',
       type: 'success',
-      confirmText: 'Approve',
+      confirmText: 'Continue',
     });
     if (confirmed) {
-      try {
-        setProcessingId(billId);
-        await OperatorService.processpayment(billId);
-        toast.success(`Bill marked as paid`);
-        fetchBills();
-        fetchAnalytics();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to mark as paid');
-      } finally {
-        setProcessingId(null);
-      }
+      navigate(`/operator/process-payment/${billId}`);
+      toast.info('Complete the payment details to mark this bill as paid.');
     }
   };
 
@@ -438,20 +429,27 @@ export const OperatorDashboard = () => {
   };
 
   const handleViewBill = (billId) => {
-    navigate(`/operator/detail-view`);
+    navigate(`/operator/detail-view/${billId}`);
   };
 
   const handlePrintBill = async (billId) => {
     try {
       const response = await OperatorService.printReceipt(billId);
-      window.open(`/receipt/print/${billId}/`, '_blank');
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt_${billId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       toast.error('Failed to print bill');
     }
   };
 
   const handleViewReceipt = (billId) => {
-    navigate(`/operator/receipt`);
+    navigate(`/operator/receipt/${billId}`);
   };
 
   const handleGenerateInvoice = async (billId) => {

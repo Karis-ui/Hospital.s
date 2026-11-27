@@ -1,6 +1,6 @@
 from core.models import Notification
 from Hospital import settings
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db.models import Q
 from Admin.API import logger
 from datetime import datetime
@@ -13,18 +13,18 @@ from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
 from core.models import Patient,Bill,OperatorField
 from datetime import timedelta
 import calendar
+from xml.sax.saxutils import escape
 from django.db.models import Avg, Count, Sum
 import os
 from io import BytesIO
 from django.http import HttpResponse
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image,Table,TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import letter
 from django.http import FileResponse
 from reportlab.lib.pagesizes import A4
-from core.util.email_service import send_email,EmailMessage
-from core.util.pdf_generator import generate_pdf
+from core.util.email_service import EmailMessage
 from core.util.profile_photo import profile_photo_response
 from system.utils import get_system_settings
 from rest_framework import status
@@ -474,9 +474,18 @@ class BillDetailAPIView(APIView):
                 id=bill_id
             )
             serializer = BillSerializer(bill, context={'request': request})
+            bill_data = serializer.data
+            bill_data.update({
+                'billNumber': f'INV-{bill.id}',
+                'patientName': f'{bill.patient.first_name} {bill.patient.last_name}'.strip(),
+                'status': bill.payment_status.lower(),
+                'total': float(bill.amount),
+                'paidAmount': float(bill.amount_received),
+                'balance': max(float(bill.amount) - float(bill.amount_received), 0),
+            })
             
             context = {
-                'bill': serializer.data,
+                'bill': bill_data,
                 'can_process_payment': bill.payment_status != 'Cleared',
                 'can_print_receipt': bill.payment_status == 'Cleared' and bill.is_receipt_available,
                 'days_since_created': (timezone.now().date() - bill.created_at.date()).days,
@@ -628,8 +637,6 @@ class ProcessPaymentAPIView(APIView):
             
             amount_received = request.data.get('amount_received')
             payment_method = request.data.get('payment_method', 'Cash')
-            reference_no = request.data.get('reference_no', '')
-            notes = request.data.get('notes', '')
             
             if not amount_received:
                 return Response({
@@ -638,46 +645,62 @@ class ProcessPaymentAPIView(APIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             try:
-                amount_received = float(amount_received)
-            except ValueError:
+                amount_received = Decimal(str(amount_received))
+            except (InvalidOperation, TypeError, ValueError):
                 return Response({
                     'status': 'error',
                     'message': 'Invalid amount format'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
-            if amount_received < float(bill.amount):
+
+            if not amount_received.is_finite() or amount_received <= 0:
                 return Response({
                     'status': 'error',
-                    'message': f'Amount received ({amount_received}) is less than bill amount ({bill.amount})',
-                    'shortage': float(bill.amount) - amount_received
+                    'message': 'Amount received must be a positive number'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
-            change = amount_received - float(bill.amount) if amount_received > float(bill.amount) else 0
+
+            amount_due = max(Decimal(bill.amount) - Decimal(bill.amount_received), Decimal('0'))
+            if amount_received < amount_due:
+                return Response({
+                    'status': 'error',
+                    'message': f'Amount received ({amount_received}) is less than amount due ({amount_due})',
+                    'shortage': float(amount_due - amount_received)
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            valid_payment_methods = {choice[0] for choice in Bill._meta.get_field('payment_method').choices}
+            if payment_method not in valid_payment_methods:
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid payment method'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            change = amount_received - amount_due
             bill.payment_status = 'Cleared'
             bill.clearance_date = timezone.now()
             bill.is_receipt_available = True
             bill.payment_method = payment_method
-            bill.payment_reference = reference_no
-            bill.payment_notes = notes
-            bill.amount_received = amount_received
-            bill.processed_by = request.user
+            bill.amount_received = Decimal(bill.amount_received) + amount_received
+            bill.is_paid = True
             bill.save()
             
             settings = get_system_settings()
             if settings and settings.email_enabled and bill.patient.user and bill.patient.user.email:
-                send_email(
-                    subject="Payment Confirmed - Receipt Available",
-                    to_email=bill.patient.user.email,
-                    template_name="email/bill_cleared.html",
-                    context={
-                        "patient_name": bill.patient.first_name,
-                        "bill_id": bill.id,
-                        "amount": bill.amount,
-                        "amount_paid": amount_received,
-                        "change": change,
-                        "date": timezone.now().strftime("%Y-%m-%d %H:%M"),
-                    }
-                )
+                try:
+                    email = EmailMessage(
+                        subject="Payment Confirmed - Receipt Available",
+                        body=(
+                            f"Dear {bill.patient.first_name},\n\n"
+                            f"Payment for bill #{bill.id} has been received. "
+                            f"Amount paid: {amount_received}. "
+                            "Your receipt is available from your account."
+                        ),
+                        to=[bill.patient.user.email],
+                    )
+                    email.send()
+                except Exception:
+                    logger.error(
+                        f'Payment processed, but receipt email failed for bill #{bill.id}',
+                        exc_info=True,
+                    )
             
             serializer = BillSerializer(bill, context={'request': request})
             
@@ -687,10 +710,9 @@ class ProcessPaymentAPIView(APIView):
                 'data': {
                     'bill': serializer.data,
                     'transaction': {
-                        'amount_received': amount_received,
-                        'change': change,
+                        'amount_received': float(amount_received),
+                        'change': float(change),
                         'payment_method': payment_method,
-                        'reference_no': reference_no,
                         'processed_at': timezone.now().isoformat(),
                         'processed_by': request.user.get_full_name() or request.user.username
                     }
@@ -784,7 +806,7 @@ class PrintReceiptAPIView(APIView):
     def get(self, request, bill_id):
         try:
             bill = get_object_or_404(
-                Bill.objects.select_related('patient__user', 'processed_by'), 
+                Bill.objects.select_related('patient__user'),
                 id=bill_id
             )
             
@@ -800,26 +822,39 @@ class PrintReceiptAPIView(APIView):
                     'message': 'Receipt not available for this bill'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            context = {
-                'bill': bill,
-                'patient': bill.patient,
-                'hospital_name': 'SmartCare Hospital',
-                'hospital_address': '123 Healthcare Ave, Medical City',
-                'hospital_phone': '+1 (555) 123-4567',
-                'hospital_email': 'billing@smartcare.com',
-                'receipt_no': f'RCP-{bill.id:06d}-{bill.clearance_date.strftime("%Y%m")}',
-                'generated_by': request.user.get_full_name() or request.user.username,
-                'generated_at': timezone.now(),
-                'amount_in_words': self.number_to_words(float(bill.amount)),
-            }
-            
-            pdf_content = generate_pdf("billoperator/receipt.html", context)
-            
-            if pdf_content is None:
-                return Response({
-                    'status': 'error',
-                    'message': 'PDF generation failed'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            receipt_number = f'RCP-{bill.id:06d}'
+            buffer = BytesIO()
+            document = SimpleDocTemplate(buffer, pagesize=A4)
+            styles = getSampleStyleSheet()
+            details = [
+                [Paragraph('<b>Receipt Number</b>', styles['Normal']), Paragraph(escape(receipt_number), styles['Normal'])],
+                [Paragraph('<b>Bill Number</b>', styles['Normal']), Paragraph(f'INV-{bill.id}', styles['Normal'])],
+                [Paragraph('<b>Patient</b>', styles['Normal']), Paragraph(escape(f'{bill.patient.first_name} {bill.patient.last_name}'.strip()), styles['Normal'])],
+                [Paragraph('<b>Patient Email</b>', styles['Normal']), Paragraph(escape(bill.patient.email or 'N/A'), styles['Normal'])],
+                [Paragraph('<b>Payment Date</b>', styles['Normal']), Paragraph(escape(bill.clearance_date.isoformat() if bill.clearance_date else 'N/A'), styles['Normal'])],
+                [Paragraph('<b>Payment Method</b>', styles['Normal']), Paragraph(escape(bill.payment_method or 'N/A'), styles['Normal'])],
+                [Paragraph('<b>Processed By</b>', styles['Normal']), Paragraph(escape(request.user.get_full_name() or request.user.username), styles['Normal'])],
+            ]
+            table = Table(details, colWidths=[2 * inch, 4.5 * inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.whitesmoke),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            document.build([
+                Paragraph('SmartCare Hospital', styles['Title']),
+                Paragraph('PAYMENT RECEIPT', styles['Heading2']),
+                Spacer(1, 0.25 * inch),
+                table,
+                Spacer(1, 0.25 * inch),
+                Paragraph(f'<b>Total Paid:</b> {bill.amount_received:.2f}', styles['Normal']),
+                Paragraph(f'<b>Notes:</b> {escape(bill.notes or "N/A")}', styles['Normal']),
+            ])
+            pdf_content = buffer.getvalue()
             
             if bill.patient.user and bill.patient.user.email:
                 try:
@@ -830,8 +865,11 @@ class PrintReceiptAPIView(APIView):
                     )
                     email.attach(f"receipt_{bill_id}.pdf", pdf_content, "application/pdf")
                     email.send()
-                except Exception as e:
-                    print(f"Email sending failed: {e}")
+                except Exception:
+                    logger.error(
+                        f'Receipt generated, but email failed for bill #{bill.id}',
+                        exc_info=True,
+                    )
             
             response = HttpResponse(pdf_content, content_type='application/pdf')
             response['Content-Disposition'] = f'inline; filename="receipt_{bill_id}.pdf"'
@@ -869,13 +907,15 @@ class ViewReceiptAPIView(APIView):
             receipt_data = {
                 'receipt_number': f'RCP-{bill.id:06d}',
                 'bill_id': bill.id,
+                'status': bill.payment_status,
                 'patient_name': f"{bill.patient.first_name} {bill.patient.last_name}",
                 'patient_email': bill.patient.email,
                 'patient_phone': bill.patient.phone,
                 'amount': float(bill.amount),
                 'payment_method': bill.payment_method,
                 'payment_date': bill.clearance_date.isoformat() if bill.clearance_date else None,
-                'processed_by': bill.processed_by.get_full_name() if bill.processed_by else 'System',
+                'processed_by': 'Not recorded',
+                'notes': bill.notes,
                 'items': serializer.data.get('items', []),
             }
             

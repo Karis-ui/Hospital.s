@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -10,44 +10,23 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   useTheme,
   alpha,
-  Avatar,
   Chip,
   Stack,
   Tooltip,
-  Card,
-  CardContent,
   styled
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Print as PrintIcon,
-  Download as DownloadIcon,
-  Email as EmailIcon,
-  Share as ShareIcon,
-  Receipt as ReceiptIcon,
-  CheckCircle as CheckIcon,
   LocalHospital as HospitalIcon,
-  QrCode as QrCodeIcon,
-  MedicalServices as MedicalIcon,
-  Science as LabIcon,
-  Medication as MedicationIcon,
-  LocalHospital as WardIcon,
   Person as PersonIcon,
-  CalendarToday as CalendarIcon,
   AttachMoney as MoneyIcon,
   CreditCard as CardIcon,
   AccountBalance as BankIcon,
   PhoneAndroid as MpesaIcon,
   Business as InsuranceIcon,
-  ReceiptLong as ReceiptLongIcon,
   Description as DescriptionIcon,
   Verified as VerifiedIcon,
   Payment as PaymentIcon,
@@ -125,28 +104,47 @@ export const ReceiptView = () => {
   const [receipt, setReceipt] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchReceipt();
-  }, [billId]);
-
-  const fetchReceipt = async () => {
+  const fetchReceipt = useCallback(async () => {
+    if (!billId) return;
     setLoading(true);
     try {
       const response = await OperatorService.viewReceipt(billId);
-      setReceipt(response.data);
+      const receiptData = response.data?.data;
+      if (!receiptData) {
+        throw new Error('The receipt response did not contain receipt data.');
+      }
+      setReceipt(receiptData);
+      setError('');
     } catch (err) {
-      setError('Failed to load receipt');
+      setError(err.response?.data?.message || err.message || 'Failed to load receipt');
+      setReceipt(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [billId]);
+
+  useEffect(() => {
+    if (!billId) {
+      setError('Select a bill from Bills to view its receipt.');
+      setLoading(false);
+      return;
+    }
+    fetchReceipt();
+  }, [billId, fetchReceipt]);
 
   const handlePrint = async () => {
     try {
       const response = await OperatorService.printReceipt(billId);
-      window.print();
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `receipt_${billId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Failed to print receipt');
+      setError(err.response?.data?.message || 'Failed to download receipt');
     }
   };
 
@@ -162,17 +160,6 @@ export const ReceiptView = () => {
     }
   };
 
-  const getServiceIcon = (category) => {
-    switch (category) {
-      case 'Consultation': return <MedicalIcon fontSize='small' />;
-      case 'Lab': return <LabIcon fontSize='small' />;
-      case 'Medication': return <MedicalIcon fontSize='small' />;
-      case 'Ward': return <WardIcon fontSize='small' />;
-      case 'Procedure': return <MedicalIcon fontSize='small' />;
-      default: return <ReceiptIcon fontSize='small' />
-    }
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} thickness={4} /></Box>
@@ -181,17 +168,22 @@ export const ReceiptView = () => {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert security='error'>{error}</Alert>
+        <Alert severity="error">{error}</Alert>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/operator/bills')}
+          sx={{ mt: 2 }}
+        >
+          Back to Bills
+        </Button>
       </Box>
     );
   }
 
-  const hasInsurance = receipt?.insurance && receipt.insurance.coveredAmount > 0;
-
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, background: theme.palette.background.gradient, minHeight: '100vh' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, maxWidth: 800, mx: 'auto' }}>
-        <IconButton onClick={() => navigate(`/bill/detailView/${billId}`)} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+        <IconButton onClick={() => navigate(`/operator/detail-view/${billId}`)} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
           <ArrowBackIcon />
         </IconButton>
         <Stack direction="row" spacing={1}>
@@ -212,16 +204,7 @@ export const ReceiptView = () => {
           <ReceiptHeader>
             <HospitalIcon sx={{ fontSize: 48, mb: 1 }} />
             <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
-              {receipt?.hospitalInfo?.name || 'SmartCare Hospital'}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              {receipt?.hospitalInfo?.address}
-            </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
-              Tel: {receipt?.hospitalInfo?.phone} | Email: {receipt?.hospitalInfo?.email}
-            </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-              Tax ID: {receipt?.hospitalInfo?.taxId} | License: {receipt?.hospitalInfo?.license}
+              SmartCare Hospital
             </Typography>
           </ReceiptHeader>
 
@@ -231,7 +214,7 @@ export const ReceiptView = () => {
                 PATIENT PAYMENT RECEIPT
               </Typography>
               <StatusBadge
-                label={receipt?.status}
+                label={receipt?.status || 'Cleared'}
                 status={receipt?.status}
                 size="small"
                 sx={{ mt: 1 }}
@@ -243,19 +226,19 @@ export const ReceiptView = () => {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={6}>
                 <Typography variant="caption" color="textSecondary">Receipt Number</Typography>
-                <Typography variant="body1" sx={{ fontWeight: 600 }}>{receipt?.receiptNumber}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>{receipt?.receipt_number}</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="caption" color="textSecondary">Bill Number</Typography>
-                <Typography variant="body1">{receipt?.billNumber}</Typography>
+                <Typography variant="body1">INV-{receipt?.bill_id}</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="caption" color="textSecondary">Receipt Date</Typography>
-                <Typography variant="body1">{formatDate(receipt?.billing?.paymentDate)} at {receipt?.billing?.paymentTime}</Typography>
+                <Typography variant="body1">{formatDate(receipt?.payment_date)}</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="caption" color="textSecondary">Generated By</Typography>
-                <Typography variant="body1">{receipt?.generatedBy}</Typography>
+                <Typography variant="body1">{receipt?.processed_by}</Typography>
               </Grid>
             </Grid>
 
@@ -267,152 +250,28 @@ export const ReceiptView = () => {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="caption" color="textSecondary">Patient Name</Typography>
-                <Typography variant="body2">{receipt?.patientName}</Typography>
+                <Typography variant="body2">{receipt?.patient_name}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="textSecondary">Patient ID</Typography>
-                <Typography variant="body2">{receipt?.patientId}</Typography>
+                <Typography variant="caption" color="textSecondary">Patient Email</Typography>
+                <Typography variant="body2">{receipt?.patient_email || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="caption" color="textSecondary">Phone</Typography>
-                <Typography variant="body2">{receipt?.patientPhone}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="caption" color="textSecondary">Address</Typography>
-                <Typography variant="body2">{receipt?.patientAddress}</Typography>
+                <Typography variant="body2">{receipt?.patient_phone || 'N/A'}</Typography>
               </Grid>
             </Grid>
 
-            {receipt?.admissionInfo && (
-              <>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <HospitalIcon fontSize="small" /> ADMISSION INFORMATION
-                </Typography>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="textSecondary">Department</Typography>
-                    <Typography variant="body2">{receipt?.admissionInfo?.department}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="textSecondary">Ward/Bed</Typography>
-                    <Typography variant="body2">{receipt?.admissionInfo?.ward}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="textSecondary">Admission Date</Typography>
-                    <Typography variant="body2">{formatDate(receipt?.admissionInfo?.admissionDate)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="textSecondary">Discharge Date</Typography>
-                    <Typography variant="body2">{formatDate(receipt?.admissionInfo?.dischargeDate) || 'Ongoing'}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="textSecondary">Attending Doctor</Typography>
-                    <Typography variant="body2">{receipt?.admissionInfo?.attendingDoctor}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="textSecondary">Referring Doctor</Typography>
-                    <Typography variant="body2">{receipt?.admissionInfo?.referringDoctor || 'N/A'}</Typography>
-                  </Grid>
-                </Grid>
-              </>
-            )}
-
             <Divider sx={{ mb: 3 }} />
 
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <MedicalIcon fontSize="small" /> SERVICES & CHARGES
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Service/Item</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700 }}>Qty</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>Unit Price</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {receipt?.items?.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {getServiceIcon(item.category)}
-                          <Box>
-                            <Typography variant="body2">{item.description}</Typography>
-                            {item.doctor && (
-                              <Typography variant="caption" color="textSecondary">
-                                Dr. {item.doctor} • {formatDate(item.date)}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell align="center">{item.quantity}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.unitPrice)}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.total)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
             <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.02), borderRadius: 2 }}>
-              <InfoRow>
-                <Typography variant="body2">Subtotal</Typography>
-                <Typography variant="body2">{formatCurrency(receipt?.billing?.subtotal)}</Typography>
-              </InfoRow>
-              {receipt?.billing?.discount > 0 && (
-                <InfoRow>
-                  <Typography variant="body2">Discount</Typography>
-                  <Typography variant="body2" color="success.main">-{formatCurrency(receipt?.billing?.discount)}</Typography>
-                </InfoRow>
-              )}
-              <InfoRow>
-                <Typography variant="body2">Tax (VAT)</Typography>
-                <Typography variant="body2">{formatCurrency(receipt?.billing?.tax)}</Typography>
-              </InfoRow>
               <InfoRow sx={{ borderBottom: '2px solid', borderColor: 'primary.main', pt: 1 }}>
-                <Typography variant="h6">TOTAL AMOUNT</Typography>
+                <Typography variant="h6">TOTAL AMOUNT PAID</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                  {formatCurrency(receipt?.billing?.total)}
+                  {formatCurrency(receipt?.amount)}
                 </Typography>
               </InfoRow>
             </Box>
-
-            {hasInsurance && (
-              <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.info.main, 0.05), borderRadius: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <InsuranceIcon fontSize="small" /> INSURANCE DETAILS
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="textSecondary">Provider</Typography>
-                    <Typography variant="body2">{receipt?.insurance?.provider}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="textSecondary">Policy Number</Typography>
-                    <Typography variant="body2">{receipt?.insurance?.policyNumber}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="textSecondary">Coverage</Typography>
-                    <Typography variant="body2">{receipt?.insurance?.coverage}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="textSecondary">Covered Amount</Typography>
-                    <Typography variant="body2" color="success.main">{formatCurrency(receipt?.insurance?.coveredAmount)}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="textSecondary">Patient Responsibility</Typography>
-                    <Typography variant="body2" color="warning.main">{formatCurrency(receipt?.insurance?.patientResponsibility)}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="textSecondary">Claim Status</Typography>
-                    <Chip label={receipt?.insurance?.claimStatus} size="small" color="info" />
-                  </Grid>
-                </Grid>
-              </Box>
-            )}
 
             <Box sx={{ mt: 3, p: 2, bgcolor: alpha(theme.palette.success.main, 0.05), borderRadius: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -422,24 +281,14 @@ export const ReceiptView = () => {
                 <Grid item xs={6}>
                   <Typography variant="caption" color="textSecondary">Payment Method</Typography>
                   <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {getPaymentIcon(receipt?.billing?.paymentMethod)}
-                    {receipt?.billing?.paymentMethod}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Reference Number</Typography>
-                  <Typography variant="body2">{receipt?.billing?.paymentReference}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Amount Paid</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                    {formatCurrency(receipt?.billing?.amountPaid)}
+                    {getPaymentIcon(receipt?.payment_method)}
+                    {receipt?.payment_method || 'N/A'}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="caption" color="textSecondary">Balance Due</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: receipt?.billing?.balance > 0 ? 'warning.main' : 'success.main' }}>
-                    {formatCurrency(receipt?.billing?.balance || 0)}
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                    {formatCurrency(0)}
                   </Typography>
                 </Grid>
               </Grid>
@@ -463,7 +312,7 @@ export const ReceiptView = () => {
                 This is a computer-generated receipt and does not require a signature.
               </Typography>
               <Typography variant="caption" color="textSecondary" display="block">
-                For inquiries regarding this bill, please contact Billing Department at {receipt?.hospitalInfo?.phone}
+                Bill number: INV-{receipt?.bill_id}
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
                 <VerifiedIcon sx={{ fontSize: 16, color: 'success.main' }} />

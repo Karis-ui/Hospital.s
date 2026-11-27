@@ -287,8 +287,10 @@ function App() {
                   <Route path="/operator/transactions" element={<TransactionList />} />
                   <Route path="/operator/search" element={<StafffSearch />} />
                   <Route path="/operator/process-payment" element={<ProcessPayment />} />
+                  <Route path="/operator/process-payment/:billId" element={<ProcessPayment />} />
                   <Route path="/operator/patients" element={<PatientList />} />
                   <Route path="/operator/receipt" element={<ReceiptView />} />
+                  <Route path="/operator/receipt/:billId" element={<ReceiptView />} />
                 </Route>
               </Route>
 

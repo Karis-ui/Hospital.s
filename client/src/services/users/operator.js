@@ -25,11 +25,11 @@ const validateTransaction = (t) => {
 export const OperatorService = {
     getDashboard: () => api.get(`operator/dashboard/`),
 
-    processPayment: (id) =>
-        api.post(`operator/process/payment/${id}/`),
+    processPayment: (id, data) =>
+        api.post(`operator/process/payment/${id}/`, data),
 
     printReceipt: (id) =>
-        api.get(`operator/receipt/print/${id}/`),
+        api.get(`operator/receipt/print/${id}/`, { responseType: 'blob' }),
 
     viewReceipt: (id) =>
         api.get(`operator/view/receipt/${id}/`),

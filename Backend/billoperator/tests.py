@@ -127,3 +127,90 @@ class OperatorReadApiTests(APITestCase):
 
         analytics = self.client.get(reverse('billing_analytics')).data['data']
         self.assertEqual(analytics['summary']['totalBills'], 1)
+
+    def test_bill_detail_includes_fields_used_by_payment_form(self):
+        patient_user = get_user_model().objects.create_user(
+            username='billing-detail-patient',
+            email='billing-detail-patient@example.com',
+            password='test-password',
+            phone='1234567893',
+            user_type='patient',
+        )
+        patient = Patient.objects.create(
+            user=patient_user,
+            first_name='Detail',
+            last_name='Patient',
+            gender='Female',
+            phone='1234567893',
+            email='billing-detail-patient@example.com',
+            address='Test address',
+        )
+        bill = Bill.objects.create(
+            patient=patient,
+            amount_received=25,
+            amount=125,
+            notes='Test bill',
+        )
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.get(reverse('bill_detail', kwargs={'bill_id': bill.id}))
+
+        self.assertEqual(response.status_code, 200)
+        bill_data = response.data['data']['bill']
+        self.assertEqual(bill_data['billNumber'], f'INV-{bill.id}')
+        self.assertEqual(bill_data['patientName'], 'Detail Patient')
+        self.assertEqual(bill_data['total'], 125)
+        self.assertEqual(bill_data['paidAmount'], 25)
+        self.assertEqual(bill_data['balance'], 100)
+
+    def test_process_payment_clears_remaining_balance_and_receipt_uses_model_fields(self):
+        patient_user = get_user_model().objects.create_user(
+            username='billing-payment-patient',
+            email='billing-payment-patient@example.com',
+            password='test-password',
+            phone='1234567894',
+            user_type='patient',
+        )
+        patient = Patient.objects.create(
+            user=patient_user,
+            first_name='Payment',
+            last_name='Patient',
+            gender='Female',
+            phone='1234567894',
+            email='billing-payment-patient@example.com',
+            address='Test address',
+        )
+        bill = Bill.objects.create(
+            patient=patient,
+            amount_received=25,
+            amount=125,
+            notes='Test bill',
+        )
+        self.client.force_authenticate(user=self.operator)
+
+        payment_response = self.client.post(
+            reverse('process_payment', kwargs={'bill_id': bill.id}),
+            {'amount_received': 100, 'payment_method': 'Cash'},
+            format='json',
+        )
+        bill.refresh_from_db()
+
+        self.assertEqual(payment_response.status_code, 200, payment_response.data)
+        self.assertEqual(bill.payment_status, 'Cleared')
+        self.assertEqual(bill.amount_received, 125)
+        self.assertTrue(bill.is_paid)
+
+        receipt_response = self.client.get(
+            reverse('view_receipt', kwargs={'bill_id': bill.id})
+        )
+        self.assertEqual(receipt_response.status_code, 200)
+        self.assertEqual(receipt_response.data['data']['bill_id'], bill.id)
+        self.assertEqual(receipt_response.data['data']['patient_name'], 'Payment Patient')
+        self.assertEqual(receipt_response.data['data']['processed_by'], 'Not recorded')
+
+        pdf_response = self.client.get(
+            reverse('print_receipt', kwargs={'bill_id': bill.id})
+        )
+        self.assertEqual(pdf_response.status_code, 200)
+        self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_response.content.startswith(b'%PDF'))
