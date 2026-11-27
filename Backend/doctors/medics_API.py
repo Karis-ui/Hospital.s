@@ -12,8 +12,13 @@ class DoctorPatientMedicalRecordsAPIView(APIView):
     permission_classes = [IsAuthenticated, IsDoctor]
     
     def get(self, request, patient_id):
-        doctor = get_object_or_404(Doctor, user=request.user)
-        patient = get_object_or_404(Patient, id=patient_id)
+        doctor = Doctor.objects.filter(user=request.user).first()
+        patient = Patient.objects.filter(id=patient_id).first()
+        if doctor is None or patient is None:
+            return Response({
+                'patient': None,
+                'records': [],
+            }, status=status.HTTP_200_OK)
         
         has_treated = Appointment.objects.filter(
             doctor=doctor,
@@ -25,7 +30,7 @@ class DoctorPatientMedicalRecordsAPIView(APIView):
                 'error': 'You have not treated this patient'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        records = MedicalRecords.objects.filter(patient=patient).order_by('-recorded_date')
+        records = MedicalRecords.objects.filter(patient=patient).order_by('-created_at')
         
         return Response({
             'patient': {
@@ -41,6 +46,8 @@ class DoctorPatientMedicalRecordsAPIView(APIView):
     
     
 class CreateMedicalRecord(APIView):
+    permission_classes = [IsAuthenticated, IsDoctor]
+
     def post(self, request, patient_id):
         doctor = get_object_or_404(Doctor, user=request.user)
         patient = get_object_or_404(Patient, id=patient_id)
@@ -58,12 +65,7 @@ class CreateMedicalRecord(APIView):
         serializer = MedicalRecordSerializer(data=request.data)
         
         if serializer.is_valid():
-            serializer.save(
-                patient=patient,
-                doctor=doctor,
-                created_by=request.user,
-                recorded_date=timezone.now().date()
-            )
+            serializer.save(patient=patient, doctor=doctor)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -72,8 +74,13 @@ class DoctorPatientVitalsAPIView(APIView):
     permission_classes = [IsAuthenticated, IsDoctor]
     
     def get(self, request, patient_id):
-        doctor = get_object_or_404(Doctor, user=request.user)
-        patient = get_object_or_404(Patient, id=patient_id)
+        doctor = Doctor.objects.filter(user=request.user).first()
+        patient = Patient.objects.filter(id=patient_id).first()
+        if doctor is None or patient is None:
+            return Response({
+                'patient': None,
+                'vitals': [],
+            }, status=status.HTTP_200_OK)
         
         has_treated = Appointment.objects.filter(
             doctor=doctor,
@@ -101,6 +108,8 @@ class DoctorPatientVitalsAPIView(APIView):
     
     
 class CreatePatientVitals(APIView):
+    permission_classes = [IsAuthenticated, IsDoctor]
+
     def post(self, request, patient_id):
         doctor = get_object_or_404(Doctor, user=request.user)
         patient = get_object_or_404(Patient, id=patient_id)
@@ -115,15 +124,10 @@ class CreatePatientVitals(APIView):
                 'error': 'You have not treated this patient'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = VitalSignSerialzer(data=request.data)
+        serializer = VitalSignSerializer(data=request.data)
         
         if serializer.is_valid():
-            serializer.save(
-                patient=patient,
-                doctor=doctor,
-                created_by=request.user,
-                recorded_date=timezone.now().date()
-            )
+            serializer.save(patient=patient, recorded_by=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

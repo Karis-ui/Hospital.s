@@ -38,7 +38,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from Hospital.Api.permissions import IsDoctor
-from Hospital.Api.serializers import  DoctorSerializer,LabReportSerializer,LabRequestSerializer,PatientSerializer,AppointmentSerializer,PrescriptionSerializer
+from Hospital.Api.serializers import DoctorSerializer, LabReportSerializer, LabRequestSerializer, PatientSerializer, AppointmentSerializer, PrescriptionSerializer, ReportSerializer
 from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 from reportlab.lib.pagesizes import A4
@@ -111,91 +111,99 @@ class PatientPdf(APIView):
 
 class DoctorView(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
-    def get(self,request,report_id):
-        report = get_object_or_404(Report,id=report_id)
-        if report.doctor.user != request.user:
-            return Response({
-                'status': 'error',
-                'Message': 'Not Authorized'
-            },status=status.HTTP_401_UNAUTHORIZED)
-            
+    def get(self,request):
+        doctor = Doctor.objects.filter(user=request.user).first()
+        if doctor is None:
+            return Response({}, status=status.HTTP_200_OK)
+        return Response(
+            DoctorSerializer(doctor, context={'request': request}).data,
+            status=status.HTTP_200_OK,
+        )
+
 class DoctorDashboard(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
-        try:
-            doctor = Doctor.objects.select_related('user').get(user=request.user)
-            if not request.user.is_approved:
-                return Response({
-                    'status': 'pending',
-                    'message': 'Your account is pending approval',
-                    'data': {
-                        'is_approved': False,
-                        'specialization': doctor.speciality,
-                        'department': doctor.department
-                    }
-                },status=status.HTTP_200_OK)
-            
-            today_appointments = Appointment.objects.filter(created_at=datetime.today())
-            total_appointments = Appointment.objects.filter(doctor=doctor)
-            completed_today = Appointment.objects.filter(doctor=doctor,appointment_date=datetime.today(),status='Completed') 
-            waiting = Appointment.objects.filter(appointment_date=datetime.today(),status='Requested')
-            total_patients = Patient.objects.filter(doctor=doctor).values('patient').distinct().count()
-            cancelled = Appointment.objects.filter(doctor=doctor,status='cancelled')
-            patient_list = Patient.objects.filter(id__in=total_patients)
-            pending_prescriptions = Prescription.objects.filter(doctor=doctor,status='pending').count()
-            week_days =[]
-            appointment_counts = []
-            for i in range(7):
-                day = datetime.today() - timedelta(days=6-i)
-                count = Appointment.objects.filter(
-                    doctor=doctor,appointment_date=datetime.today()
-                ).count()
-                week_days.append(day.strftime('%a'))
-                appointment_counts.append(count)
-                
-            today_serializer = AppointmentSerializer(today_appointments,many=True,context={'request':request})
-            upcoming_serializer = AppointmentSerializer(waiting,many=True,context={'request':request})
-            patient_serializer = PatientSerializer(patient_list,many=True,context={'request':request})
-            doctor_serializer = DoctorSerializer(doctor,many=True,context={'request':request})
-            return Response({
-                'status': 'success',
-                'data': {
-                    'doctor': doctor_serializer.data,
-                    'is_approved': request.user.is_approved,
-                    'statistics': {
-                        'total_patients': total_patients,
-                        'total_appointments': total_appointments.count(),
-                        'completed_appointments_today': completed_today,
-                        'cancelled_appointments': cancelled,
-                        'pending_prescriptions': pending_prescriptions,
-                        'today_appointments_count': today_appointments.count(),
-                    },
-                    'appointments': {
-                        'today': today_serializer.data,
-                        'upcoming': upcoming_serializer.data,
-                    },
-                    'recent_patients': patient_serializer.data,
-                    'chart_data': {
-                        'labels': week_days,
-                        'values': appointment_counts
-                    },
-                    'current_time': timezone.now().isoformat(),
-                }
-            }, status=status.HTTP_200_OK)
-        except Doctor.DoesNotExist:
-            return Response({
-                'status': 'Error','message': 'Doctor profile missing!'
-            },status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({
-                'status': 'error',
-                'message': str(e)
-            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        today = timezone.localdate()
+        week_dates = [today - timedelta(days=6 - index) for index in range(7)]
+        empty_dashboard = {
+            'doctor': None,
+            'is_approved': request.user.is_approved,
+            'statistics': {
+                'today_appointments': 0,
+                'completed_today': 0,
+                'waiting': 0,
+                'total_patients': 0,
+                'total_appointments': 0,
+                'pending_prescriptions': 0,
+            },
+            'appointments': {'today': [], 'upcoming': []},
+            'patients': {'recent': []},
+            'chart_data': {
+                'labels': [day.strftime('%a') for day in week_dates],
+                'values': [0] * len(week_dates),
+            },
+            'current_time': timezone.now().isoformat(),
+        }
+        doctor = Doctor.objects.select_related('user').filter(user=request.user).first()
+        if doctor is None:
+            return Response({'status': 'success', 'data': empty_dashboard}, status=status.HTTP_200_OK)
+
+        appointments = Appointment.objects.filter(doctor=doctor).select_related('patient')
+        today_appointments = appointments.filter(appointment_date=today)
+        upcoming_appointments = appointments.filter(
+            appointment_date__gte=today,
+        ).exclude(status__in=['Completed', 'Cancelled'])
+        patient_ids = appointments.values_list('patient_id', flat=True).distinct()
+        recent_appointments = appointments.order_by(
+            '-appointment_date', '-appointment_time'
+        )[:5]
+
+        chart_counts = [
+            appointments.filter(appointment_date=day).count()
+            for day in week_dates
+        ]
+        empty_dashboard.update({
+            'doctor': {
+                **DoctorSerializer(doctor, context={'request': request}).data,
+                'first_name': doctor.user.first_name,
+                'last_name': doctor.user.last_name,
+            },
+            'appointments': {
+                'today': AppointmentSerializer(
+                    today_appointments, many=True, context={'request': request}
+                ).data,
+                'upcoming': AppointmentSerializer(
+                    upcoming_appointments, many=True, context={'request': request}
+                ).data,
+            },
+            'patients': {
+                'recent': AppointmentSerializer(
+                    recent_appointments, many=True, context={'request': request}
+                ).data,
+            },
+            'statistics': {
+                'today_appointments': today_appointments.count(),
+                'completed_today': today_appointments.filter(status='Completed').count(),
+                'waiting': today_appointments.filter(status='Requested').count(),
+                'total_patients': patient_ids.count(),
+                'total_appointments': appointments.count(),
+                'pending_prescriptions': Prescription.objects.filter(
+                    doctor=doctor, status='active'
+                ).count(),
+            },
+            'chart_data': {
+                'labels': [day.strftime('%a') for day in week_dates],
+                'values': chart_counts,
+            },
+        })
+        return Response({'status': 'success', 'data': empty_dashboard}, status=status.HTTP_200_OK)
 
 class GetDoctorProfile(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
-        doctor_profile = get_object_or_404(Doctor, user=request.user)
+        doctor_profile = Doctor.objects.filter(user=request.user).first()
+        if doctor_profile is None:
+            return Response({}, status=status.HTTP_200_OK)
         serializer = DoctorSerializer(doctor_profile, context={'request': request})
         return Response(serializer.data)
 
@@ -281,6 +289,49 @@ class AppointmentView(APIView):
     def get_set(self):
         doctor = Doctor.objects.get(user=self.request.user)
         return Appointment.objects.filter(doctor=doctor).select_related('patient')
+
+    def get(self, request, pk):
+        appointment = Appointment.objects.filter(
+            pk=pk, doctor__user=request.user
+        ).select_related('doctor__user', 'patient').first()
+        if appointment is None:
+            return Response(
+                {'status': 'empty', 'data': None},
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            AppointmentSerializer(appointment, context={'request': request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+    def put(self, request, pk):
+        appointment = Appointment.objects.filter(
+            pk=pk, doctor__user=request.user
+        ).first()
+        if appointment is None:
+            return Response(
+                {'status': 'empty', 'data': None},
+                status=status.HTTP_200_OK,
+            )
+        requested_status = request.data.get('status', 'Completed')
+        valid_statuses = {value for value, _ in Appointment.status_choices}
+        normalized_status = next(
+            (value for value in valid_statuses if value.lower() == str(requested_status).lower()),
+            None,
+        )
+        if normalized_status is None:
+            return Response(
+                {'status': 'error', 'message': 'Invalid appointment status.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        appointment.status = normalized_status
+        appointment.save(update_fields=['status'])
+        return Response({
+            'status': 'success',
+            'data': AppointmentSerializer(
+                appointment, context={'request': request}
+            ).data,
+        }, status=status.HTTP_200_OK)
     
     @action(detail=True,methods=['put'],url_path='confirmed')
     def confirm_appointment(self,request,pk):
@@ -306,101 +357,113 @@ class AppointmentView(APIView):
 class MyPatients(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
-        doctor_profile = Doctor.objects.filter(user=request.user).first()
-        appointments = Appointment.objects.filter(doctor__user=request.user,status='Completed')
-        patient_id = appointments.values_list('patient_id',flat=True).distinct()
-        patients = Patient.objects.filter(id__in=patient_id)
-        
-        return Response({
-            'status': 'success',
-            'data': {
-                'doctor_profile': doctor_profile,
-                'appointments': appointments,
-                'patients': patients,
-            }
-        },status=status.HTTP_200_OK)
+        doctor = Doctor.objects.filter(user=request.user).first()
+        if doctor is None:
+            return Response([], status=status.HTTP_200_OK)
+        patient_ids = Appointment.objects.filter(
+            doctor=doctor
+        ).values_list('patient_id', flat=True).distinct()
+        patients = Patient.objects.filter(id__in=patient_ids).order_by(
+            'first_name', 'last_name'
+        )
+        return Response(
+            PatientSerializer(patients, many=True, context={'request': request}).data,
+            status=status.HTTP_200_OK,
+        )
 
 class PrescriptionView(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
-    def get(self,request,patient_id):
-        doctor_profile = Doctor.objects.filter(user=request.user).first()
-        prescriptions = Prescription.objects.filter(doctor__user=request.user)
-        patients = Prescription.objects.filter(id__in=patient_id)
-        
-        return Response({
-            'status': 'success',
-            'data': {
-                'doctor_profile': doctor_profile,
-                'prescriptions': prescriptions,
-                'patients': patients,
-            }
-        },status=status.HTTP_200_OK)
+    def get(self,request):
+        doctor = Doctor.objects.filter(user=request.user).first()
+        if doctor is None:
+            return Response([], status=status.HTTP_200_OK)
+        prescriptions = Prescription.objects.filter(
+            doctor=doctor
+        ).select_related('patient').order_by('-prescribed_at')
+        return Response(
+            PrescriptionSerializer(prescriptions, many=True).data,
+            status=status.HTTP_200_OK,
+        )
 
 class DoctorStatistics(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
-        try:
-            doctor = Doctor.objects.get(user=request.user)
-            period = request.query_params.get('peroid','month')
-            today = timezone.now().date()
-            
-            if period == 'week':
-                start_date = today - timedelta(days=7)
-            elif period == 'month':
-                start_date = today - timedelta(days=30)
-            elif period == 'year':
-                start_date = today - timedelta(days=365)
-            else:
-                start_date = today - timedelta(days=30)
-                
-            appointments = Appointment.objects.filter(doctor=doctor,appointment_date__gte=start_date)
-            patients = appointments.values('patient').distinct().count()
-            status_breakdown = appointments.values('status').annotate(count=Count('id'))
-            
-            trends = []
-            while start_date <= today:
-                count = appointments.filter(appointment_date=start_date).count()
-                trends.append({
-                    'date': start_date.isoformat(), 'count': count
-                })
-                start_date += timedelta(days=1)
-                
-                prescription = Prescription.objects.filter(doctor=doctor,prescribed_at__gte=start_date).count()
-                lab_requests = labRequest.objects.filter(doctor=doctor,created_at__gte=start_date).count()
-                
-                return Response({
-                    'status': 'success',
-                    'data': {
-                        'period': {
-                            'from': start_date.isoformat(),
-                            'to': today.isoformat(),
-                            'days': (today-start_date).days + 1
-                        },
-                        'summary': {
-                            'total_appointments': appointments.count(),
-                            'patients': patients,
-                            'prescriptions': prescription,
-                            'lab_requests': lab_requests,
-                            'completion_rate': round(
-                                (appointments.filter(status='completed').count())
-                                if appointments.count() > 0 else 0,2
-                            )
-                        },
-                        'status_breakdown': list(status_breakdown),
-                        'trends': trends,
-                    }
-                },status=status.HTTP_200_OK)
-        except Doctor.DoesNotExist:
-            return Response({
-                'Message': 'Doctor profile missing!'
-            },status=status.HTTP_404_NOT_FOUND)
+        doctor = Doctor.objects.filter(user=request.user).first()
+        today = timezone.localdate()
+        period = request.query_params.get('period', request.query_params.get('peroid', 'month'))
+        days = {'week': 7, 'month': 30, 'year': 365}.get(period, 30)
+        from_date = today - timedelta(days=days - 1)
+
+        if doctor is None:
+            appointments = Appointment.objects.none()
+            prescriptions = Prescription.objects.none()
+            lab_requests = labRequest.objects.none()
+        else:
+            appointments = Appointment.objects.filter(
+                doctor=doctor, appointment_date__gte=from_date, appointment_date__lte=today
+            )
+            prescriptions = Prescription.objects.filter(
+                doctor=doctor, prescribed_at__date__gte=from_date,
+                prescribed_at__date__lte=today,
+            )
+            lab_requests = labRequest.objects.filter(
+                doctor=doctor, created_at__date__gte=from_date,
+                created_at__date__lte=today,
+            )
+
+        appointment_counts = {
+            entry['appointment_date']: entry['count']
+            for entry in appointments.values('appointment_date').annotate(count=Count('id'))
+        }
+        trends = [
+            {
+                'date': (from_date + timedelta(days=offset)).isoformat(),
+                'count': appointment_counts.get(from_date + timedelta(days=offset), 0),
+            }
+            for offset in range(days)
+        ]
+        total_appointments = appointments.count()
+        return Response({
+            'status': 'success',
+            'data': {
+                'period': {
+                    'from': from_date.isoformat(),
+                    'to': today.isoformat(),
+                    'days': days,
+                },
+                'summary': {
+                    'total_appointments': total_appointments,
+                    'patients': appointments.values('patient_id').distinct().count(),
+                    'prescriptions': prescriptions.count(),
+                    'lab_requests': lab_requests.count(),
+                    'completion_rate': round(
+                        appointments.filter(status='Completed').count() * 100 / total_appointments,
+                        2,
+                    ) if total_appointments else 0,
+                },
+                'status_breakdown': list(
+                    appointments.values('status').annotate(count=Count('id'))
+                ),
+                'trends': trends,
+            },
+        }, status=status.HTTP_200_OK)
 
 class PatientDetail(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
-    def get(self,request,patient_id):
+    def get(self,request,bill_id):
         try:
-            patient = get_object_or_404(Patient,id=patient_id)
-            doctor = Doctor.objects.get(user=request.user)
+            patient = Patient.objects.filter(id=bill_id).first()
+            if patient is None:
+                return Response(
+                    {'status': 'empty', 'data': None},
+                    status=status.HTTP_200_OK,
+                )
+            doctor = Doctor.objects.filter(user=request.user).first()
+            if doctor is None:
+                return Response(
+                    {'status': 'empty', 'data': None},
+                    status=status.HTTP_200_OK,
+                )
             
             has_appointment = Appointment.objects.filter(doctor=doctor,patient=patient).exists()
             if not has_appointment:
@@ -409,34 +472,32 @@ class PatientDetail(APIView):
                 },status=status.HTTP_403_FORBIDDEN)
             
             appointments = Appointment.objects.filter(doctor=doctor,patient=patient).order_by('-appointment_date')
-            prescriptions = Prescription.objects.filter(doctor=doctor,patient=patient).order_by('-created_at')
+            prescriptions = Prescription.objects.filter(
+                doctor=doctor, patient=patient
+            ).order_by('-prescribed_at')
             lab_requests = labRequest.objects.filter(doctor=doctor,patient=patient).order_by('-created_at')
             appointment_serializer = AppointmentSerializer(appointments,many=True,context={'request':request})
             prescription_serializer = PrescriptionSerializer(prescriptions,many=True,context={'request':request})
             
             stats = {
                 'total_visits': appointments.count(),
-                'last_visit': appointments.first().appointment_date if appointments.exists else None,
+                'last_visit': appointments.first().appointment_date if appointments.exists() else None,
                 'total_prescriptions': prescriptions.count(),
                 'active_prescriptions': prescriptions.filter(is_active=True).count(),
                 'pending_requests': lab_requests.filter(status='requested').count(),
             }
             return Response({
-                'data':{
-                    'patient':{
-                        'id': patient_id,
-                        'first_name': patient.first_name,
-                        'last_name': patient.last_name,
-                        'gender': patient.gender,
-                        'age': patient.age,
-                        'phone': patient.phone,
-                        'email': patient.email,
-                        'address': patient.address,
-                    },
-                    'statistics': stats,
-                    'appointments': appointment_serializer.data,
-                    'prescriptions': prescription_serializer.data,
-                }
+                'id': patient.id,
+                'first_name': patient.first_name,
+                'last_name': patient.last_name,
+                'gender': patient.gender,
+                'age': patient.age,
+                'phone': patient.phone,
+                'email': patient.email,
+                'address': patient.address,
+                'statistics': stats,
+                'appointments': appointment_serializer.data,
+                'prescriptions': prescription_serializer.data,
             },status=status.HTTP_200_OK)
         except Doctor.DoesNotExist:
             return Response({
@@ -453,22 +514,14 @@ class PatientDetail(APIView):
 class Reports(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
-        try:
-            doctor = Doctor.objects.filter(user=request.user)
-            pending_reports = Report.objects.filter(doctor=doctor,is_sent_to_patient=False)
-            sent_reports = Report.objects.filter(doctor=doctor,is_sent_to_patient=True)
-            context = {
-                'doctor':doctor,'pending_reports':pending_reports,'sent_reports':sent_reports
-            }
-            return Response({
-                'statys': 'success',
-                'Message': 'Fetched successfully'
-            },status=status.HTTP_200_OK)
-        except Report.DoesNotExist:
-            return Response({
-                'statys': 'error',
-                'Message': 'Report missing'
-            },status=status.HTTP_404_NOT_FOUND)
+        doctor = Doctor.objects.filter(user=request.user).first()
+        reports = Report.objects.none() if doctor is None else Report.objects.filter(
+            doctor=doctor
+        ).order_by('-created_at')
+        return Response({
+            'status': 'success',
+            'data': ReportSerializer(reports, many=True, context={'request': request}).data,
+        }, status=status.HTTP_200_OK)
 
 class Appointments(APIView):
     permission_classes = [IsAuthenticated, IsDoctor]
@@ -539,47 +592,50 @@ class SendReportToPatient(APIView):
 class LabRequests(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
+        doctor = Doctor.objects.filter(user=request.user).first()
+        lab_requests = labRequest.objects.none() if doctor is None else (
+            labRequest.objects.filter(doctor=doctor)
+            .select_related('patient')
+            .order_by('-created_at')
+        )
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            lab_requests = lab_requests.filter(status=status_filter)
+
+        patient_id = request.query_params.get('patient')
+        if patient_id:
+            lab_requests = lab_requests.filter(patient_id=patient_id)
         try:
-            doctor = Doctor.objects.get(user=request.user)
-            lab_requsets = labRequest.objects.filter(doctor=doctor).select_related('patient').order_by('-created_at')
-            
-            status_filter = request.quer_params.get('status')
-            if status_filter:
-                lab_requsets = lab_requsets.filter(status=status_filter)
-            
-            patient = request.query_params.get('patient')
-            if status_filter:
-                patient = lab_requsets.filter(patient=patient)
-            page = int(request.quer_params.get('page',1))
-            page_size = int(request.query_params.get('page_size',20))  
-            
-            paginator = Paginator(lab_requsets,page_size)
-            current_page = paginator.get_page(page)
-            
-            serializers = LabRequestSerializer(current_page,many=True,context={'request':request})
-            return Response({
-                'status': 'success',
-                'data': {
-                    'lab_requests': serializers.data,
-                    'total': paginator.count,
-                    'pagination':{
-                        'current_page': page,
-                        'page_size': page_size,
-                        'total_size': paginator.num_pages,
-                    }
-                }
-            },status=status.HTTP_200_OK)
-        except Doctor.DoesNotExist:
-            return Response({
-                'status': 'success',
-                'Message': 'Doctor profile missing!'
-            },status=status.HTTP_404_NOT_FOUND)
+            page = max(int(request.query_params.get('page', 1)), 1)
+            page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
+        except ValueError:
+            page, page_size = 1, 20
+        paginator = Paginator(lab_requests, page_size)
+        current_page = paginator.get_page(page)
+        serialized = LabRequestSerializer(
+            current_page, many=True, context={'request': request}
+        )
+        return Response({
+            'status': 'success',
+            'data': {
+                'lab_requests': serialized.data,
+                'total': paginator.count,
+                'pagination': {
+                    'current_page': page,
+                    'page_size': page_size,
+                    'total_size': paginator.num_pages,
+                },
+            },
+        }, status=status.HTTP_200_OK)
     def post(self,request):
         try:
             doctor = Doctor.objects.get(user=request.user)
             patient_id = request.data.get('patient_id')
             test_type = request.data.get('test_type')
-            notes = request.data.get('instruction','')
+            test_name = request.data.get('test_name')
+            notes = request.data.get(
+                'notes', request.data.get('instructions', request.data.get('instruction', ''))
+            )
             priority = request.data.get('priority','normal')
             
             if not patient_id:
@@ -590,15 +646,30 @@ class LabRequests(APIView):
                 return Response({
                     'Message': 'Test type required'
                 },status=status.HTTP_400_BAD_REQUEST)
+            if test_type not in dict(labRequest.TEST_CHOICES):
+                return Response({
+                    'Message': 'Unsupported test type'
+                },status=status.HTTP_400_BAD_REQUEST)
+            if priority == 'stat':
+                priority = 'urgent'
+            if priority not in {'normal', 'urgent'}:
+                return Response({
+                    'Message': 'Priority must be normal or urgent'
+                }, status=status.HTTP_400_BAD_REQUEST)
             patient = get_object_or_404(Patient,id=patient_id)
+            if not Appointment.objects.filter(doctor=doctor, patient=patient).exists():
+                return Response({
+                    'Message': 'You do not have an appointment with this patient'
+                }, status=status.HTTP_403_FORBIDDEN)
             
             lab_request = labRequest.objects.create(
                 doctor=doctor,
                 patient=patient,
                 test_type=test_type,
+                test_name=test_name,
                 notes=notes,
                 urgency=priority,
-                status='requested'
+                status='requested',
             )
             serializer = LabRequestSerializer(lab_request,context={'request': request})
             return Response({
@@ -620,31 +691,56 @@ class LabRequests(APIView):
 class DoctorSearch(APIView):
     permission_classes = [IsAuthenticated,IsDoctor]
     def get(self,request):
-        doctor = request.user.doctor_profile
+        doctor = Doctor.objects.filter(user=request.user).first()
         query = request.GET.get('q','')
         patient_id = request.GET.get('patient_id')
-        
-        results = {}
+        if doctor is None:
+            return Response({
+                'status': 'success',
+                'data': {'patients': [], 'appointments': [], 'lab_requests': [], 'reports': []},
+            }, status=status.HTTP_200_OK)
+
         patients = Patient.objects.filter(appointments__doctor=doctor).distinct()
         if patient_id:
             patients = patients.filter(id=patient_id)
-        
-        for patient in patients:
-            prescriptions = Prescription.objects.filter(patient=patient,doctor=doctor).filter(
-                Q(medication__icontains=query)|
-                Q(instructions__icontains=query)
+        if query:
+            patients = patients.filter(
+                Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
+                | Q(email__icontains=query)
             )
-            lab_requests = labRequest.objects.filter(patient=patient, doctor=doctor).filter(
-                Q(test_name__icontains=query)|
-                Q(instructions__icontains=query)
+        appointments = Appointment.objects.filter(doctor=doctor).select_related('patient')
+        if query:
+            appointments = appointments.filter(
+                Q(patient__first_name__icontains=query)
+                | Q(patient__last_name__icontains=query)
+                | Q(purpose__icontains=query)
             )
-            
-            if prescriptions.exists() or lab_requests.exists():
-                results[f'patient_{patient.id}'] = {
-                    'patient_name': patient.first_name,
-                    'prescriptions': PrescriptionSerializer(prescriptions,many=True).data,
-                    'lab_request': LabRequestSerializer(lab_requests,many=True).data
-                }
-            return Response({
-                'query': query, 'total_patients': len(results), 'results': results
-            })
+        lab_requests = labRequest.objects.filter(doctor=doctor).select_related('patient')
+        if query:
+            lab_requests = lab_requests.filter(
+                Q(test_type__icontains=query) | Q(test_name__icontains=query)
+            )
+        reports = Report.objects.filter(doctor=doctor).select_related('patient')
+        if query:
+            reports = reports.filter(
+                Q(patient__first_name__icontains=query)
+                | Q(patient__last_name__icontains=query)
+            )
+        return Response({
+            'status': 'success',
+            'data': {
+                'patients': PatientSerializer(
+                    patients, many=True, context={'request': request}
+                ).data,
+                'appointments': AppointmentSerializer(
+                    appointments, many=True, context={'request': request}
+                ).data,
+                'lab_requests': LabRequestSerializer(
+                    lab_requests, many=True, context={'request': request}
+                ).data,
+                'reports': ReportSerializer(
+                    reports, many=True, context={'request': request}
+                ).data,
+            },
+        }, status=status.HTTP_200_OK)

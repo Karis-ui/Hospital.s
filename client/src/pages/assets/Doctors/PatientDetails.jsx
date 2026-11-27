@@ -223,8 +223,19 @@ export const PatientDetails = () => {
   const fetchPatientData = async () => {
     try {
       setLoading(true);
+      setError('');
+      if (!id) {
+        const patientsResponse = await doctorSevice.myPatients();
+        setPatients(patientsResponse.data || []);
+        setPatient(null);
+        setAppointments([]);
+        setLabResults([]);
+        return;
+      }
+
       const patientResponse = await doctorSevice.patientDetail(id);
-      setPatient(patientResponse.data);
+      const patientData = patientResponse.data?.data ?? patientResponse.data;
+      setPatient(patientData?.patient ?? patientData);
 
       const appointmentResponse = await doctorSevice.getAllAppointments();
       const patientAppointments = appointmentResponse.data.filter(apt => apt.patient_id === parseInt(id));
@@ -305,18 +316,16 @@ export const PatientDetails = () => {
   };
 
   const getAllPatients = async () => {
-    setLoading(true);
-    if (patients.length !== 0) {
-      try {
-        const res = doctorSevice.myPatients();
-        setPatients(res.data());
-        toast.success('All Patients fetched successfully');
-      } catch (err) {
-        toast.error('An error occurred...', err);
-      }
-      finally { setLoading(false); }
-    } else {
-      toast.info('No patients yet...');
+    try {
+      setLoading(true);
+      const response = await doctorSevice.myPatients();
+      setPatients(response.data || []);
+      setError('');
+    } catch (err) {
+      console.error('Failed to fetch patient list:', err);
+      setError('Unable to load your patient list.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -352,10 +361,47 @@ export const PatientDetails = () => {
       </Box>
     );
   }
+  if (!id) {
+    return (
+      <Box sx={{ p: { xs: 2, md: 3 } }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
+          My Patients
+        </Typography>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {patients.length === 0 ? (
+          <Alert severity="info">No patients are currently linked to your appointments.</Alert>
+        ) : (
+          <Grid container spacing={2}>
+            {patients.map((item) => (
+              <Grid item xs={12} sm={6} md={4} key={item.id}>
+                <Card
+                  onClick={() => navigate(`/doctor/patients-details/${item.id}`)}
+                  sx={{ cursor: 'pointer', height: '100%' }}
+                >
+                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar>{getInitials(item.first_name, item.last_name)}</Avatar>
+                    <Box>
+                      <Typography fontWeight={600}>
+                        {item.full_name || `${item.first_name} ${item.last_name}`}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {item.email || 'Patient'}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
+    );
+  }
+
   if (error || !patient) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity='error' action={<Button color='inherit' size='small' onClick={getAllPatients}>Back to Patients.</Button>}>{error || 'Patient not found'}</Alert>
+        <Alert severity={error ? 'error' : 'info'} action={<Button color='inherit' size='small' onClick={() => navigate('/doctor/patients-details')}>Back to Patients.</Button>}>{error || 'Patient record is unavailable.'}</Alert>
       </Box>
     );
   }

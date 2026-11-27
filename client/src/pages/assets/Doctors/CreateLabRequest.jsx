@@ -306,7 +306,7 @@ export const CreateLabRequest = () => {
   const [requestData, setRequestData] = useState({
     diagnosis: '',
     clinicalNotes: '',
-    priority: 'routine',
+    priority: 'normal',
     isUrgent: false,
     fasting: false,
     collectionDate: new Date(),
@@ -375,7 +375,7 @@ export const CreateLabRequest = () => {
       toast.error('Please select a patient.');
       return;
     }
-    if (activeStep === 1 && !selectedTests.length === 0) {
+    if (activeStep === 1 && selectedTests.length === 0) {
       toast.error('Please select at least one test.');
       return;
     }
@@ -391,20 +391,30 @@ export const CreateLabRequest = () => {
     }
   }
   const handleSendRequest = async () => {
+    if (!selectedPatient || selectedTests.length === 0) {
+      toast.error('Select a patient and at least one test.');
+      return;
+    }
+
     setSending(true);
     try {
-      const labRequest = {
-        doctor_id: user?.id,
-        doctor_name: `Dr. ${user?.full_name}`,
-        patient_id: selectedPatient.id,
-        patient_name: `${selectedPatient.first_name} ${selectedPatient.last_name}`,
-        date: new Date().toISOString(),
-        diagnosis: requestData.diagnosis,
-        instructions: requestData.instructions,
-        is_urgent: requestData.priority === 'urgent' || requestData.priority === 'stat',
-        is_active: requestData.is_active
-      };
-      await doctorSevice.createLabRequest(labRequest);
+      for (const test of selectedTests) {
+        const categoryType = {
+          Biochemistry: 'blood',
+          Microbiology: 'other',
+          Immunology: 'blood',
+          Urinalysis: 'urine',
+        };
+        const testType = categoryType[test.category]
+          || (test.name.toLowerCase().includes('urine') ? 'urine' : 'other');
+        await doctorSevice.createLabRequest({
+          patient_id: selectedPatient.id,
+          test_type: testType,
+          test_name: test.name,
+          notes: test.instructions || requestData.instructions,
+          priority: requestData.priority === 'stat' ? 'urgent' : requestData.priority,
+        });
+      }
       toast.success('Lab request sent sucessfully.');
       setTimeout(() => navigate('/doctor/lab/new'), 2000);
     } catch (err) {

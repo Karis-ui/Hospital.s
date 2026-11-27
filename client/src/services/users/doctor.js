@@ -1,35 +1,44 @@
 import api from "../api";
 
+const withData = (response, data) => ({ ...response, data });
+
 export const doctorSevice = {
-    getDashboard: () => api.get(`doctor/dashboard/`),
-    patientPdf: (id) => api.get(`doctor/patient/pdf/${id}/`),
-    doctorView: () => api.get(`doctors/get/profile/`),
-    appointmentView: (id) => api.get(`doctor/appointment/${id}/view/`),
-    updateAppointment: (id) => api.put(`doctor/appointment/${id}/view/`),
-    myPatients: () => api.get(`doctor/my/patients/`),
-    statistics: () => api.get(`doctors/statistics/`),
-    patientDetail: (id) => api.get(`doctor/patient/detail/${id}/`),
-    report: () => api.get(`doctor/reports/`),
-    sendToPatient: (id) => api.post(`doctor/send/to/patient/${id}/`),
-    getlabResult: (id) => api.get(`doctor/lab/requests/${id}/`),
-    createLabRequest: () => api.post(`doctor/lab/requests/`,),
-    updateProfile: () => api.put(`doctor/update/profile/`),
-    uploadPhoto: (formData) => api.post(`doctors/update/profile/upload-photo/`, formData),
-    deletePhoto: () => api.delete(`doctor/update/profile/delete-photo/`),
-    getDoctorProfile: () => api.get(`doctors/get/profile/`),
-    getDoctorProfilePhoto: (cacheKey) => api.get(`doctors/get/profile/photo/`, {
+    getDashboard: () => api.get('doctors/dashboard/'),
+    patientPdf: (id) => api.get(`doctors/patient/pdf/${id}/`, { responseType: 'blob' }),
+    doctorView: () => api.get('doctors/get/profile/'),
+    appointmentView: (id) => api.get(`doctors/appointment/${id}/view/`),
+    updateAppointment: (id, data) => api.put(`doctors/appointment/${id}/view/`, data),
+    myPatients: () => api.get('doctors/my/patients/'),
+    statistics: () => api.get('doctors/statistics/'),
+    patientDetail: (id) => api.get(`doctors/patient/detail/${id}/`),
+    report: () => api.get('doctors/reports/'),
+    sendToPatient: (id, data) => api.post(`doctors/send/to/patient/${id}/`, data),
+    getlabResult: async (id) => {
+        const response = await api.get('doctors/lab/requests/', {
+            params: id ? { patient: id } : {},
+        });
+        return withData(response, response.data?.data?.lab_requests || []);
+    },
+    createLabRequest: (data) => api.post('doctors/lab/requests/', data),
+    updateProfile: (data) => api.put('doctors/update/profile/', data),
+    uploadPhoto: (formData) => api.post('doctors/update/profile/upload-photo/', formData),
+    deletePhoto: () => api.delete('doctors/update/profile/delete-photo/'),
+    getDoctorProfile: () => api.get('doctors/get/profile/'),
+    getDoctorProfilePhoto: (cacheKey) => api.get('doctors/get/profile/photo/', {
         responseType: 'blob',
         params: { _: cacheKey },
     }),
-    prescriptions: () => api.get(`doctor/prescriptions/`),
-    searchItems: () => api.get(`doctor/search/`),
-    getAllAppointments: () => api.get(`appointment/list/`),
-    rescheduleAppointments: (id) => api.get(`doctor/appointments/${id}/reschedule/`),
-
-    getPatientMedicalRecords: (id) => api.get(`doctor/get/${id}/medical-records/`),
-    addPatientMedicalrecords: (id, data) => api.post(`doctor/create/${id}/medical-records/`, data),
-    getPatientVitals: (id) => api.get(`doctor/get/${id}/vital-views/`),
-    addPatientVital: (id, data) => api.post(`doctor/create/${id}/vital-views/`, data),
+    prescriptions: () => api.get('doctors/prescriptions/'),
+    searchItems: (query) => api.get('doctors/search/', { params: { q: query } }),
+    getAllAppointments: async () => {
+        const response = await api.get('appointment/list/');
+        return withData(response, response.data?.data?.appointments || []);
+    },
+    rescheduleAppointments: (id, data) => api.put(`appointments/${id}/reschedule/`, data),
+    getPatientMedicalRecords: (id) => api.get(`doctors/get/${id}/medical-records/`),
+    addPatientMedicalrecords: (id, data) => api.post(`doctors/create/${id}/medical-records/`, data),
+    getPatientVitals: (id) => api.get(`doctors/get/${id}/vital-views/`),
+    addPatientVital: (id, data) => api.post(`doctors/create/${id}/vital-views/`, data),
 };
 
 export default doctorSevice;

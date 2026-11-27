@@ -49,7 +49,6 @@ import {
   Logout as LogoutIcon,
   Notifications as NotificationsIcon,
   Add as AddIcon,
-  PlayArrow as StartIcon,
   Pause as PauseIcon,
   Visibility as ViewIcon,
   FilePresent as RecordsIcon,
@@ -194,6 +193,7 @@ export const DoctorDashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fallbackNotice, setFallbackNotice] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
@@ -210,12 +210,31 @@ export const DoctorDashboard = () => {
     try {
       setLoading(true);
       const response = await doctorService.getDashboard();
-      setDashboardData(response.data);
+      setDashboardData(response.data?.data || response.data);
       setError('');
+      setFallbackNotice('');
     } catch (err) {
       console.error('Failed to fetch dashboard:', err);
-      setError(err.response?.data?.message || 'Failed to load dashboard');
-      toast.error('Failed to load dashboard');
+      if ([401, 403].includes(err.response?.status)) {
+        setError(err.response?.data?.message || 'You are not authorized to view this dashboard.');
+        return;
+      }
+      setDashboardData({
+        doctor: user || {},
+        statistics: {
+          today_appointments: 0,
+          completed_today: 0,
+          waiting: 0,
+          total_patients: 0,
+          total_appointments: 0,
+          pending_prescriptions: 0,
+        },
+        appointments: { today: [], upcoming: [] },
+        patients: { recent: [] },
+        chart_data: { labels: [], values: [] },
+      });
+      setFallbackNotice('Live dashboard data is unavailable. Showing an empty placeholder until the server responds.');
+      setError('');
     } finally {
       setLoading(false);
     }
@@ -224,14 +243,10 @@ export const DoctorDashboard = () => {
   const fetchNotifications = async () => {
     try {
       const response = await coreService.getNotifications();
-      setNotifications(response.data);
+      setNotifications(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      setNotifications([
-        { id: 1, type: 'lab', message: 'Lab results for Patient #456 are ready', time: '10 min ago', read: false },
-        { id: 2, type: 'appointment', message: 'New appointment scheduled for tomorrow', time: '1 hour ago', read: false },
-        { id: 3, type: 'warning', message: 'Patient #789 missed follow-up', time: '2 hours ago', read: false },
-        { id: 4, type: 'message', message: 'New message from admin', time: '3 hours ago', read: false },
-      ]);
+      console.error('Failed to load doctor notifications:', err);
+      setNotifications([]);
     }
   };
 
@@ -240,29 +255,21 @@ export const DoctorDashboard = () => {
       try {
         setSearchLoading(true);
         const results = await doctorService.searchItems(searchTerm);
+        const searchResults = results.data?.data || {};
+        const resultCount = Object.values(searchResults).reduce(
+          (total, items) => total + (Array.isArray(items) ? items.length : 0),
+          0
+        );
         navigate('/doctor/search', {
-          state: { query: searchTerm, results: results.data }
+          state: { query: searchTerm, results: searchResults }
         });
         setSearchTerm('');
-        toast.success(`Found ${results.data.length} results`);
+        toast.success(`Found ${resultCount} results`);
       } catch (err) {
         toast.error('Search failed');
       } finally {
         setSearchLoading(false);
       }
-    }
-  };
-
-  const handleAppointments = async (appointmentId) => {
-    try {
-      setProcessingId(appointmentId);
-      await doctorService.updateAppointment(appointmentId);
-      toast.success('Appointment completed');
-      fetchDashboardData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to complete appointment');
-    } finally {
-      setProcessingId(null);
     }
   };
 
@@ -277,10 +284,6 @@ export const DoctorDashboard = () => {
     } finally {
       setProcessingId(null);
     }
-  };
-
-  const handleViewPatient = async (patientId) => {
-    await doctorService.patientDetail(patientId);
   };
 
   const handleQuickAction = (id,action) => {
@@ -426,6 +429,11 @@ export const DoctorDashboard = () => {
       </Sidebar>
 
       <Box sx={{ flexGrow: 1, ml: '280px', p: 4 }}>
+        {fallbackNotice && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            {fallbackNotice}
+          </Alert>
+        )}
         <Fade in timeout={1000}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
             <Box>
@@ -526,7 +534,7 @@ export const DoctorDashboard = () => {
                           transition: 'all 0.3s ease',
                           '&:hover': { transform: 'translateX(5px)', boxShadow: `0 5px 15px ${alpha(apt.color || goldTheme.primary.main, 0.3)}` },
                         }}
-                        onClick={handleViewAppointment}
+                        onClick={() => handleViewAppointment(apt.id)}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Box sx={{ width: 4, height: 40, bgcolor: apt.color || goldTheme.primary.main, borderRadius: 2 }} />
@@ -535,7 +543,7 @@ export const DoctorDashboard = () => {
                               {apt.patient_name} - {apt.reason || 'Consultation'}
                             </Typography>
                             <Typography variant="caption" sx={{ color: goldTheme.text.secondary }}>
-                              {apt.time} • Dr. {apt.doctor_name}
+                              {apt.time || apt.appointment_time} • Dr. {apt.doctor_name}
                             </Typography>
                           </Box>
                           <Chip label="View" size="small" sx={{ bgcolor: alpha(apt.color || goldTheme.primary.main, 0.2), color: apt.color || goldTheme.primary.main, border: `1px solid ${apt.color || goldTheme.primary.main}` }} />
@@ -574,19 +582,26 @@ export const DoctorDashboard = () => {
                           <TableRow key={patient.id} sx={{ '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.05) } }}>
                             <TableCell>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <PatientAvatar>{getInitials(patient.first_name, patient.last_name)}</PatientAvatar>
+                                <PatientAvatar>
+                                  {getInitials(
+                                    patient.first_name || patient.patient_name?.split(' ')[0],
+                                    patient.last_name || patient.patient_name?.split(' ').slice(1).join(' ')
+                                  )}
+                                </PatientAvatar>
                                 <Box>
-                                  <Typography sx={{ fontWeight: 600 }}>{patient.first_name} {patient.last_name}</Typography>
+                                  <Typography sx={{ fontWeight: 600 }}>
+                                    {patient.patient_name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim()}
+                                  </Typography>
                                   <Typography variant="caption" sx={{ color: goldTheme.text.secondary }}>
-                                    {patient.reason || patient.complaint || 'Check-up'}
+                                    {patient.purpose || patient.reason || patient.complaint || 'Consultation'}
                                   </Typography>
                                 </Box>
                               </Box>
                             </TableCell>
-                            <TableCell>{patient.time || '--:--'}</TableCell>
+                            <TableCell>{patient.time || patient.appointment_time || '--:--'}</TableCell>
                             <TableCell>
                               <Chip
-                                label={patient.type || 'Consultation'}
+                                label={patient.type || patient.purpose || 'Consultation'}
                                 size="small"
                                 sx={{ bgcolor: alpha(patient.type === 'Emergency' ? '#F44336' : goldTheme.primary.main, 0.1), color: patient.type === 'Emergency' ? '#F44336' : goldTheme.primary.main }}
                               />
@@ -599,32 +614,10 @@ export const DoctorDashboard = () => {
                               />
                             </TableCell>
                             <TableCell>
-                              {patient.status?.toLowerCase() === 'waiting' && (
-                                <Button
-                                  size="small"
-                                  startIcon={<StartIcon />}
-                                  onClick={() => handleAppointments(patient.appointment_id)}
-                                  disabled={processingId === patient.appointment_id}
-                                  sx={{ color: goldTheme.primary.main, borderColor: goldTheme.primary.main, '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.1) } }}
-                                >
-                                  {processingId === patient.appointment_id ? 'Starting...' : 'Start'}
-                                </Button>
-                              )}
-                              {patient.status?.toLowerCase() === 'in-progress' && (
-                                <Button
-                                  size="small"
-                                  startIcon={<CheckIcon />}
-                                  onClick={() => handleAppointments(patient.appointment_id)}
-                                  disabled={processingId === patient.appointment_id}
-                                  sx={{ color: goldTheme.status.completed }}
-                                >
-                                  Complete
-                                </Button>
-                              )}
                               <Button
                                 size="small"
                                 startIcon={<ViewIcon />}
-                                onClick={() => handleViewPatient(patient.id)}
+                                onClick={() => navigate(`/doctor/patients-details/${patient.patient_id}`)}
                                 sx={{ color: goldTheme.primary.main, ml: 1 }}
                               >
                                 View

@@ -228,7 +228,7 @@ function App() {
                 <Route element={<AppLayout />}>
                   <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
                   <Route path="/doctor/appointments" element={<DoctorAppointmentList />} />
-                  <Route path="/doctor/patients-details" element={<PatientDetails />} />
+                  <Route path="/doctor/patients-details/:id?" element={<PatientDetails />} />
                   <Route path="/doctor/patients/:id/Medical-records" element={<PatientMedicalRecords />} />
                   <Route path="/doctor/prescriptions" element={<WritePrescription />} />
                   <Route path="/doctor/lab/new" element={<CreateLabRequest />} />
