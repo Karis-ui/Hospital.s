@@ -23,6 +23,8 @@ export const OperatorProfile = () => {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState('');
+  const [profileErrorSeverity, setProfileErrorSeverity] = useState('error');
   const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(OperatorService.getStaffPhoto, profile?.staff_photo);
   const [formData, setFormData] = useState({});
   const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
@@ -41,11 +43,24 @@ export const OperatorProfile = () => {
   const fetchProfile = async () => {
     try {
       const response = await OperatorService.getStaffProfile();
-      if (response.data.status === 'success') {
-        setProfile(response.data.data);
-        setFormData(response.data.data);
+      if (response.data.status !== 'success') {
+        throw new Error(response.data.message || 'The profile could not be loaded.');
       }
+      if (!response.data.data) {
+        setProfile(null);
+        setFormData({});
+        setProfileError('No billing operator profile is linked to this account.');
+        setProfileErrorSeverity('warning');
+        return;
+      }
+      setProfile(response.data.data);
+      setFormData(response.data.data);
+      setProfileError('');
+      setProfileErrorSeverity('error');
     } catch (error) {
+      console.error('Failed to load billing operator profile:', error);
+      setProfileError(error.response?.data?.message || error.message || 'Failed to load profile');
+      setProfileErrorSeverity('error');
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
@@ -113,6 +128,16 @@ export const OperatorProfile = () => {
     );
   }
 
+  if (!profile) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity={profileErrorSeverity}>
+          {profileError || 'The billing operator profile is unavailable.'}
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 3, bgcolor: platinumTheme.background.default, minHeight: '100vh' }}>
       <PremiumHeader>
@@ -147,9 +172,9 @@ export const OperatorProfile = () => {
             >
               Change profile photo
             </Button>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>{profile?.full_name || 'Operator User'}</Typography>
-            <Typography variant="body2" sx={{ color: platinumTheme.text.secondary, mb: 1 }}>@{profile?.username}</Typography>
-            <Chip label="Bill Operator" icon={<VerifiedIcon />} sx={{ mb: 2, bgcolor: alpha(platinumTheme.accent.teal, 0.1), color: platinumTheme.accent.teal }} />
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>{profile.full_name || 'Name not recorded'}</Typography>
+            <Typography variant="body2" sx={{ color: platinumTheme.text.secondary, mb: 1 }}>@{profile.username || 'Username not recorded'}</Typography>
+            <Chip label={profile.user_type === 'operator' ? 'Bill Operator' : profile.user_type || 'Role not recorded'} icon={<VerifiedIcon />} sx={{ mb: 2, bgcolor: alpha(platinumTheme.accent.teal, 0.1), color: platinumTheme.accent.teal }} />
             <Divider sx={{ my: 2 }} />
             <Stack spacing={1}>
               <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditing(true)} fullWidth>Edit Profile</Button>
@@ -165,27 +190,27 @@ export const OperatorProfile = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="textSecondary">Full Name</Typography>
-                  {editing ? <TextField fullWidth size="small" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} /> : <Typography variant="body1">{profile?.full_name || 'N/A'}</Typography>}
+                  {editing ? <TextField fullWidth size="small" value={formData.full_name || ''} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} /> : <Typography variant="body1">{profile.full_name || 'Not recorded'}</Typography>}
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="textSecondary">Username</Typography>
-                  {editing ? <TextField fullWidth size="small" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} /> : <Typography variant="body1">@{profile?.username}</Typography>}
+                  {editing ? <TextField fullWidth size="small" value={formData.username || ''} disabled /> : <Typography variant="body1">@{profile.username || 'Not recorded'}</Typography>}
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="textSecondary">Email</Typography>
-                  {editing ? <TextField fullWidth size="small" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /> : <Typography variant="body1">{profile?.email}</Typography>}
+                  {editing ? <TextField fullWidth size="small" type="email" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /> : <Typography variant="body1">{profile.email || 'Not recorded'}</Typography>}
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="textSecondary">Phone Number</Typography>
-                  {editing ? <TextField fullWidth size="small" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /> : <Typography variant="body1">{profile?.phone || 'Not provided'}</Typography>}
+                  {editing ? <TextField fullWidth size="small" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /> : <Typography variant="body1">{profile.phone || 'Not recorded'}</Typography>}
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="textSecondary">Department</Typography>
-                  <Typography variant="body1">Billing Department</Typography>
+                  <Typography variant="body1">{profile.department || 'Not recorded'}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="caption" color="textSecondary">Shift</Typography>
-                  <Chip label={profile?.shift_time || 'Day Shift'} size="small" icon={<ScheduleIcon />} />
+                  <Chip label={profile.shift_time || 'Not recorded'} size="small" icon={<ScheduleIcon />} />
                 </Grid>
               </Grid>
 
@@ -203,16 +228,16 @@ export const OperatorProfile = () => {
               <SectionTitle variant="h6">Work Information</SectionTitle>
               <Stack spacing={2}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="textSecondary">Employee ID</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{profile?.employee_id || 'OP-001'}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="textSecondary">Join Date</Typography>
-                  <Typography variant="body2">{profile?.date_joined ? new Date(profile.date_joined).toLocaleDateString() : 'N/A'}</Typography>
+                  <Typography variant="body2">{profile.date_joined ? new Date(profile.date_joined).toLocaleDateString() : 'Not recorded'}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant="body2" color="textSecondary">Status</Typography>
-                  <Chip label={profile?.is_active ? 'Active' : 'Inactive'} size="small" color={profile?.is_active ? 'success' : 'error'} />
+                  <Chip
+                    label={profile.is_active === true ? 'Active' : profile.is_active === false ? 'Inactive' : 'Not recorded'}
+                    size="small"
+                    color={profile.is_active === true ? 'success' : profile.is_active === false ? 'error' : 'default'}
+                  />
                 </Box>
               </Stack>
             </CardContent>

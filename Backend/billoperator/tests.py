@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
-from core.models import Bill, Patient
+from core.models import Bill, OperatorField, Patient
 
 
 class OperatorReadApiTests(APITestCase):
@@ -66,6 +66,31 @@ class OperatorReadApiTests(APITestCase):
         )
         self.client.force_authenticate(user=patient)
         self.assertEqual(self.client.get(dashboard_url).status_code, 403)
+
+    def test_operator_profile_uses_fields_from_operator_and_user_models(self):
+        OperatorField.objects.create(
+            user=self.operator,
+            full_name='Billing Operator',
+            email='billing-profile@example.com',
+            department='Billing Department',
+            shift_time='Morning',
+            phone_number='0712345678',
+            license_number='',
+        )
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.get(reverse('get_profile'))
+        profile = response.data['data']
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile['full_name'], 'Billing Operator')
+        self.assertEqual(profile['email'], 'billing-profile@example.com')
+        self.assertEqual(profile['phone'], '0712345678')
+        self.assertEqual(profile['department'], 'Billing Department')
+        self.assertEqual(profile['shift_time'], 'Morning')
+        self.assertEqual(profile['date_joined'], self.operator.date_joined)
+        self.assertTrue(profile['is_active'])
+        self.assertNotIn('employee_id', profile)
 
     def test_operator_read_endpoints_return_actual_bill_data(self):
         patient_user = get_user_model().objects.create_user(
