@@ -5,12 +5,6 @@ import {
   Grid,
   Paper,
   Typography,
-  Avatar,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
   Badge,
   IconButton,
   Button,
@@ -47,18 +41,13 @@ import {
 import { styled, alpha } from '@mui/material/styles';
 import { DataGrid } from '@mui/x-data-grid';
 import {
-  Dashboard as DashboardIcon,
   Receipt as ReceiptIcon,
   ReceiptLong as GenerateBillIcon,
   PendingActions as PendingIcon,
   CheckCircle as PaidIcon,
   Warning as OverdueIcon,
-  People as PeopleIcon,
-  Assessment as ReportsIcon,
   Send as SendIcon,
   Calculate as InsuranceIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
   Notifications as NotificationsIcon,
   Add as AddIcon,
   Search as SearchIcon,
@@ -104,34 +93,6 @@ const emeraldTheme = {
   background: { default: '#f5f7fb', paper: '#ffffff', elevated: '#f8fafc', dark: '#1e293b' },
   text: { primary: '#2c3e50', secondary: '#7f8c8d', disabled: '#bdc3c7', light: '#ffffff' },
 };
-
-const Sidebar = styled(Box)(({ theme }) => ({
-  width: 280,
-  background: `linear-gradient(180deg, ${emeraldTheme.primary.dark} 0%, #1a252f 100%)`,
-  color: emeraldTheme.text.light,
-  position: 'fixed',
-  height: '100vh',
-  overflowY: 'auto',
-  boxShadow: `5px 0 25px ${alpha(emeraldTheme.primary.dark, 0.3)}`,
-  zIndex: 1200,
-  '&::-webkit-scrollbar': { width: '8px' },
-  '&::-webkit-scrollbar-track': { background: alpha(emeraldTheme.text.light, 0.1) },
-  '&::-webkit-scrollbar-thumb': { background: emeraldTheme.primary.main, borderRadius: '4px' },
-}));
-
-const OperatorAvatar = styled(Avatar)(({ theme }) => ({
-  width: 100,
-  height: 100,
-  margin: '0 auto 15px',
-  background: `linear-gradient(135deg, ${emeraldTheme.primary.main}, ${emeraldTheme.primary.dark})`,
-  border: `4px solid ${alpha(emeraldTheme.text.light, 0.3)}`,
-  boxShadow: `0 10px 25px ${alpha(emeraldTheme.primary.main, 0.3)}`,
-  fontSize: '2.5rem',
-  fontWeight: 700,
-  color: emeraldTheme.text.light,
-  transition: 'all 0.3s ease',
-  '&:hover': { transform: 'scale(1.05)', boxShadow: `0 15px 35px ${alpha(emeraldTheme.primary.main, 0.4)}` },
-}));
 
 const StatCard = styled(Card)(({ theme, status }) => ({
   background: emeraldTheme.background.paper,
@@ -196,7 +157,7 @@ const TransactionItem = styled(Box)(({ theme }) => ({
 
 export const OperatorDashboard = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { confirm, ConfirmDialogComponent } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -298,11 +259,6 @@ export const OperatorDashboard = () => {
   const calculateTotal = () => {
     const total = billItems.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
     setTotalAmount(total);
-  };
-
-  const handleLogout = () => {
-    logout();
-    toast.info('Logged out successfully');
   };
 
   const handleNotificationClick = (event) => {
@@ -716,80 +672,7 @@ export const OperatorDashboard = () => {
 
   return (
     <Box sx={{ display: 'flex', bgcolor: emeraldTheme.background.default, minHeight: '100vh' }}>
-      <Sidebar>
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <OperatorAvatar>
-            {operator.full_name.split(' ').map(n => n[0]).join('').toUpperCase() || 'OP'}
-          </OperatorAvatar>
-
-          <Typography variant="h5" sx={{ fontWeight: 700, color: emeraldTheme.text.light, mb: 0.5 }}>
-            {operator.full_name}
-          </Typography>
-
-          <Chip icon={<MoneyIcon />} label="Billing Department"
-            sx={{
-              background: alpha(emeraldTheme.primary.main, 0.2), color: emeraldTheme.primary.light,
-              border: `1px solid ${emeraldTheme.primary.light}`, fontWeight: 600, mb: 2
-            }}
-          />
-
-          <Typography variant="caption" sx={{ color: alpha(emeraldTheme.text.light, 0.7), display: 'block' }}>
-            ID: OP-{operator.id?.toString().padStart(5, '0') || '00001'}
-          </Typography>
-        </Box>
-
-        <Divider sx={{ borderColor: alpha(emeraldTheme.text.light, 0.1) }} />
-
-        <List sx={{ px: 2, py: 2 }}>
-          <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemButton selected sx={{
-              borderRadius: 2, color: emeraldTheme.text.light,
-              bgcolor: alpha(emeraldTheme.primary.main, 0.2), '&:hover': { bgcolor: alpha(emeraldTheme.primary.main, 0.3) }
-            }}>
-              <ListItemIcon sx={{ color: emeraldTheme.primary.light, minWidth: 40 }}><DashboardIcon /></ListItemIcon>
-              <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 600 }} />
-            </ListItemButton>
-          </ListItem>
-
-          {[
-            { icon: <GenerateBillIcon />, text: 'Generate Bill', path: '/operator/bills/new' },
-            { icon: <PendingIcon />, text: 'Pending Bills', badge: stats.pendingBills, path: '/operator/bills/pending' },
-            { icon: <PaidIcon />, text: 'Paid Bills', path: '/operator/bills/paid' },
-            { icon: <PeopleIcon />, text: 'Patients', path: '/operator/patients' },
-            { icon: <ReportsIcon />, text: 'Reports', path: '/operator/reports' },
-            { icon: <AnalyticsIcon />, text: 'Analytics', path: '/operator/analytics' },
-            { icon: <SettingsIcon />, text: 'Settings', path: '/operator/settings' },
-          ].map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton onClick={() => navigate(item.path)} sx={{
-                borderRadius: 2, color: alpha(emeraldTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(emeraldTheme.text.light, 0.1), color: emeraldTheme.text.light }
-              }}>
-                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-                {item.badge ? (
-                  <Chip label={item.badge} size="small" sx={{
-                    bgcolor: emeraldTheme.accent.red, color: emeraldTheme.text.light,
-                    fontWeight: 600, fontSize: '0.7rem', height: 20
-                  }} />
-                ) : null}
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-
-        <Box sx={{ position: 'absolute', bottom: 20, left: 0, right: 0, px: 3 }}>
-          <Button fullWidth variant="contained" startIcon={<LogoutIcon />} onClick={handleLogout}
-            sx={{
-              bgcolor: alpha(emeraldTheme.text.light, 0.1), color: emeraldTheme.text.light,
-              '&:hover': { bgcolor: emeraldTheme.accent.red }
-            }}>
-            Logout
-          </Button>
-        </Box>
-      </Sidebar>
-
-      <Box sx={{ flexGrow: 1, ml: '280px', p: 4 }}>
+      <Box sx={{ flexGrow: 1, p: 4 }}>
         <Fade in timeout={1000}>
           <Paper elevation={0} sx={{
             p: 3, mb: 4, display: 'flex', justifyContent: 'space-between',
