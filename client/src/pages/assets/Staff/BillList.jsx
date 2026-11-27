@@ -240,14 +240,25 @@ const BillList = () => {
 
   useEffect(() => {
     filterBills();
-    calculateStats();
   }, [bills, searchTerm, statusFilter]);
 
   const fetchBills = async () => {
     setLoading(true);
     try {
       const response = await OperatorService.getBills();
-      setBills(response.data || []);
+      const billList = response.data?.data?.bills;
+      if (!Array.isArray(billList)) {
+        throw new Error('The bills response did not contain a bill list.');
+      }
+
+      setBills(billList.map((bill) => {
+        const status = String(bill.status || bill.payment_status || 'pending').trim().toLowerCase();
+        return {
+          ...bill,
+          status: status === 'cleared' ? 'paid' : status,
+          amount: Number(bill.amount) || 0,
+        };
+      }));
     } catch (err) {
       console.error('Failed to fetch bills:', err);
       toast.error('Failed to load bills');
@@ -258,30 +269,32 @@ const BillList = () => {
   };
 
   const filterBills = () => {
-    let filtered = [...bills];
-    if (searchTerm) {
-      filtered = filtered.filter(b =>
-        (b.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (b.patientName || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(b => b.status === statusFilter);
-    }
-    setFilteredBills(filtered);
-    setPage(1);
-  };
+    const query = searchTerm.trim().toLowerCase();
+    const filtered = bills.filter((bill) => {
+      const matchesSearch = !query ||
+        String(bill.billNumber || '').toLowerCase().includes(query) ||
+        String(bill.patientName || '').toLowerCase().includes(query);
+      const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
 
-  const calculateStats = () => {
-    const total = filteredBills.length;
-    const totalAmount = filteredBills.reduce((s, b) => s + (b.amount || 0), 0);
-    const paid = filteredBills.filter(b => b.status === 'paid').length;
-    const paidAmount = filteredBills.filter(b => b.status === 'paid').reduce((s, b) => s + (b.amount || 0), 0);
-    const pending = filteredBills.filter(b => b.status === 'pending').length;
-    const pendingAmount = filteredBills.filter(b => b.status === 'pending').reduce((s, b) => s + (b.amount || 0), 0);
-    const overdue = filteredBills.filter(b => b.status === 'overdue').length;
-    const overdueAmount = filteredBills.filter(b => b.status === 'overdue').reduce((s, b) => s + (b.amount || 0), 0);
-    setStats({ total, totalAmount, paid, paidAmount, pending, pendingAmount, overdue, overdueAmount });
+    setFilteredBills(filtered);
+    const billsByStatus = (status) => filtered.filter((bill) => bill.status === status);
+    const sumAmount = (items) => items.reduce((sum, bill) => sum + bill.amount, 0);
+    const paidBills = billsByStatus('paid');
+    const pendingBills = billsByStatus('pending');
+    const overdueBills = billsByStatus('overdue');
+    setStats({
+      total: filtered.length,
+      totalAmount: sumAmount(filtered),
+      paid: paidBills.length,
+      paidAmount: sumAmount(paidBills),
+      pending: pendingBills.length,
+      pendingAmount: sumAmount(pendingBills),
+      overdue: overdueBills.length,
+      overdueAmount: sumAmount(overdueBills),
+    });
+    setPage(1);
   };
 
   const handleViewBill = (billId) => {
