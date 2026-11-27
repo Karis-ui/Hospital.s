@@ -5,7 +5,7 @@ import api from "../api";
  * @property {number} id
  * @property {number} bill
  * @property {number} amount
- * @property {'Pending'|'Completed'|'Overdue'} payment_status
+ * @property {'Pending'|'Cleared'|'Overdue'} payment_status
  * @property {'Cash'|'Credit Card'|'Debit Card'|'M-Pesa'|'Cheque'|'Insurance'} payment_method
  * @property {string} timestamp
  * @property {string} status
@@ -16,9 +16,9 @@ import api from "../api";
 
 const validateTransaction = (t) => {
     if (typeof t.id !== "number") throw new Error("Invalid id");
-    if (!["Pending", "Completed", "Overdue"].includes(t.payment_status))
+    if (!["Pending", "Cleared", "Overdue"].includes(t.payment_status))
         throw new Error("Invalid payment_status");
-    if (typeof t.amount !== "number") throw new Error("Invalid amount");
+    if (!Number.isFinite(Number(t.amount))) throw new Error("Invalid amount");
     return true;
 };
 
@@ -77,7 +77,21 @@ export const OperatorService = {
         });
 
         const transactions = response.data?.data?.transactions || [];
-        transactions.forEach(validateTransaction);
+        const normalizedTransactions = transactions.map((transaction) => {
+            validateTransaction(transaction);
+            return {
+                ...transaction,
+                amount: Number(transaction.amount),
+                status: transaction.status || transaction.payment_status,
+            };
+        });
+        response.data = {
+            ...response.data,
+            data: {
+                ...response.data.data,
+                transactions: normalizedTransactions,
+            },
+        };
 
         return response;
     },

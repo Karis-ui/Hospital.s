@@ -293,26 +293,24 @@ export const LabDashboard = () => {
     try {
       setLoading(true);
       const response = await labServices.getDashboard();
-      setDashboardData(response.data);
+      const data = response.data.data || {};
+      setDashboardData(data);
 
-      setTestQueue(response.data.testQueue || []);
-      setCriticalResults(response.data.criticalResults || []);
-      setRecentResults(response.data.recentResults || []);
-      setEquipment(response.data.equipment || []);
+      setTestQueue(data.testQueue || []);
+      setCriticalResults(data.criticalResults || []);
+      setRecentResults(data.recentResults || []);
+      setEquipment(data.equipment || []);
 
       setError('');
     } catch (err) {
       console.error('Failed to fetch lab data:', err);
       setError(err.response?.data?.message || 'Failed to load laboratory data');
       toast.error('Failed to load laboratory data');
-
-      setTestQueue([
-        { id: 1, type: 'blood', patient: 'John Smith', patientId: 'P-1234', test: 'CBC Test', doctor: 'Dr. Sarah Johnson', department: 'Hematology', waitTime: '45 minutes' },
-        { id: 2, type: 'urine', patient: 'Maria Garcia', patientId: 'P-5678', test: 'Urine Analysis', doctor: 'Dr. Michael Chen', department: 'Biochemistry', waitTime: '30 minutes' },
-      ]);
-      setCriticalResults([
-        { id: 1, type: 'blood', patient: 'John Smith', age: 58, test: 'High Troponin', severity: 'critical', time: '15 minutes ago' },
-      ]);
+      setDashboardData(null);
+      setTestQueue([]);
+      setCriticalResults([]);
+      setRecentResults([]);
+      setEquipment([]);
     } finally {
       setLoading(false);
     }
@@ -321,9 +319,9 @@ export const LabDashboard = () => {
   const fetchLiveUpdates = async () => {
     try {
       const response = await labServices.getDashboard();
-      setDashboardData(prev => ({ ...prev, ...response.data }));
+      setDashboardData(response.data.data || {});
     } catch (err) {
-      console.log('Live update failed');
+      console.error('Live update failed:', err);
     }
   };
 
@@ -501,43 +499,24 @@ export const LabDashboard = () => {
   };
 
   const stats = dashboardData?.statistics || {
-    totalTests: testQueue.length + recentResults.length || 156,
-    pendingTests: testQueue.length || 23,
-    completedTests: recentResults.filter(r => r.status === 'completed').length || 128,
-    criticalResults: criticalResults.length || 5,
-    avgProcessingTime: '2.5 hours',
-    completionRate: 82,
+    totalTests: 0,
+    pendingTests: 0,
+    completedTests: 0,
+    criticalResults: 0,
+    avgProcessingTime: 'Not available',
+    completionRate: 0,
   };
 
   const volumeChartData = {
-    labels: dashboardData?.chartLabels || ['6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM'],
-    datasets: dashboardData?.volumeData || [
-      {
-        label: 'Tests Processed',
-        data: [12, 25, 38, 45, 32, 28, 15],
-        borderColor: labTheme.secondary.main,
-        backgroundColor: alpha(labTheme.secondary.main, 0.1),
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-      },
-      {
-        label: 'Tests Received',
-        data: [15, 30, 42, 50, 38, 25, 18],
-        borderColor: labTheme.accent.success,
-        backgroundColor: alpha(labTheme.accent.success, 0.1),
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-      },
-    ],
+    labels: dashboardData?.chartLabels || [],
+    datasets: dashboardData?.volumeData || [],
   };
 
   const categoryChartData = {
-    labels: dashboardData?.categoryLabels || ['Hematology', 'Biochemistry', 'Microbiology', 'Pathology', 'Radiology', 'Other'],
+    labels: dashboardData?.categoryLabels || [],
     datasets: [
       {
-        data: dashboardData?.categoryData || [35, 25, 15, 10, 10, 5],
+        data: dashboardData?.categoryData || [],
         backgroundColor: [
           labTheme.accent.hematology,
           labTheme.accent.biochemistry,
@@ -598,11 +577,11 @@ export const LabDashboard = () => {
     );
   }
 
-  const labTech = dashboardData?.technician || user || {
-    name: user?.first_name + ' ' + user?.last_name || 'Lab Technician',
+  const labTech = dashboardData?.technician || {
+    name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.username || 'Lab Technician',
     role: 'Lab Technician',
     isSupervisor: user?.is_supervisor || false,
-    id: user?.id || 'LT-7890',
+    id: user?.id,
   };
 
   return (
@@ -796,9 +775,9 @@ export const LabDashboard = () => {
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { status: 'primary', label: 'Total Tests Today', value: stats.totalTests, icon: <FlaskIcon />, trend: '+12%' },
+            { status: 'primary', label: 'Total Tests', value: stats.totalTests, icon: <FlaskIcon /> },
             { status: 'warning', label: 'Pending Tests', value: stats.pendingTests, icon: <PendingIcon />, suffix: `Avg: ${stats.avgProcessingTime}` },
-            { status: 'success', label: 'Completed Today', value: stats.completedTests, icon: <CompletedIcon />, suffix: `${stats.completionRate}% rate` },
+            { status: 'success', label: 'Completed Tests', value: stats.completedTests, icon: <CompletedIcon />, suffix: `${stats.completionRate}% rate` },
             { status: 'danger', label: 'Critical Results', value: stats.criticalResults, icon: <CriticalIcon />, suffix: 'Needs attention' },
           ].map((stat, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
@@ -921,6 +900,11 @@ export const LabDashboard = () => {
                   </Box>
 
                   <Box sx={{ maxHeight: 350, overflowY: 'auto' }}>
+                    {testQueue.length === 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        No tests are currently waiting in the queue.
+                      </Typography>
+                    )}
                     {testQueue.map((item) => (
                       <Box key={item.id} sx={{
                         display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
@@ -967,6 +951,11 @@ export const LabDashboard = () => {
                   </Box>
 
                   <Box sx={{ maxHeight: 350, overflowY: 'auto' }}>
+                    {criticalResults.length === 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        No critical results require attention.
+                      </Typography>
+                    )}
                     {criticalResults.map((item) => (
                       <Box key={item.id} sx={{
                         display: 'flex', alignItems: 'center', p: 2, mb: 1, borderRadius: 2,
@@ -1031,6 +1020,13 @@ export const LabDashboard = () => {
               </Typography>
 
               <Grid container spacing={2}>
+                {equipment.length === 0 && (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary">
+                      No equipment inventory data is available.
+                    </Typography>
+                  </Grid>
+                )}
                 {equipment.map((item, index) => (
                   <Grid item xs={12} sm={6} md={4} key={index}>
                     <EquipmentItem status={item.status === 'operational' ? 'success' : item.status === 'warning' ? 'warning' : 'danger'}>
@@ -1082,6 +1078,13 @@ export const LabDashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
+                    {recentResults.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">
+                          No test results are available yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {recentResults.map((result) => (
                       <TableRow key={result.id} hover>
                         <TableCell><Typography variant="body2" sx={{ fontWeight: 600, color: labTheme.primary.main }}>{result.id}</Typography></TableCell>

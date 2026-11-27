@@ -3,18 +3,17 @@ from Hospital import settings
 from decimal import Decimal
 from django.db.models import Q
 from Admin.API import logger
-from django.db.models import QuerySet
 from datetime import datetime
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadhandler import load_handler
-from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 from django.utils import (timezone)
 from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
 from core.models import Patient,Bill,OperatorField
 from datetime import timedelta
 import calendar
-from django.db.models import Count, Sum
+from django.db.models import Avg, Count, Sum
 import os
 from io import BytesIO
 from django.http import HttpResponse
@@ -39,68 +38,101 @@ from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 
 class OperatorDashboardAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     def get(self, request):
         try:
-            operator = OperatorField.objects.get(user=request.user)
-            total_bills = Bill.objects.count()
-            pending_bills = Bill.objects.filter(payment_status='Pending').count()
-            cleared_bills = Bill.objects.filter(payment_status='Cleared').count()
-            cancelled_bills = Bill.objects.filter(payment_status='Cancelled').count()
-            
+            operator = OperatorField.objects.filter(user=request.user).first()
+            bills = Bill.objects.select_related('patient').order_by('-created_at')
+            total_bills = bills.count()
+            pending_bills = bills.filter(payment_status='Pending').count()
+            cleared_bills = bills.filter(payment_status='Cleared').count()
+            overdue_bills = bills.filter(payment_status='Overdue').count()
+
             today = timezone.now().date()
-            today_revenue = Bill.objects.filter(
-                created_at__date=today, 
-                payment_status='Cleared'
+            cleared_bills_queryset = bills.filter(payment_status='Cleared')
+            today_cleared = cleared_bills_queryset.filter(created_at__date=today)
+            today_revenue = today_cleared.aggregate(
+                total=Sum('amount')
+            )['total'] or 0
+            today_bills = bills.filter(created_at__date=today).count()
+            monthly_revenue = cleared_bills_queryset.filter(
+                created_at__month=today.month,
+                created_at__year=today.year,
             ).aggregate(total=Sum('amount'))['total'] or 0
-            
-            today_bills = Bill.objects.filter(created_at__date=today).count()
-            recent_bills = Bill.objects.select_related(
-                'patient', 'doctor'
-            ).order_by('-created_at')[:10]
+            recent_bills = bills[:10]
+
+            payment_totals = {
+                item['payment_method']: float(item['total'] or 0)
+                for item in cleared_bills_queryset.values('payment_method').annotate(
+                    total=Sum('amount')
+                )
+            }
+            total_collection = float(
+                cleared_bills_queryset.aggregate(total=Sum('amount'))['total'] or 0
+            )
+            outstanding_balance = float(
+                bills.filter(payment_status__in=['Pending', 'Overdue']).aggregate(
+                    total=Sum('amount')
+                )['total'] or 0
+            )
+
             last_7_days = []
             revenue_data = []
             for i in range(6, -1, -1):
                 date = today - timedelta(days=i)
-                revenue = Bill.objects.filter(
-                    created_at__date=date,
-                    payment_status='Cleared'
+                revenue = cleared_bills_queryset.filter(
+                    created_at__date=date
                 ).aggregate(total=Sum('amount'))['total'] or 0
                 last_7_days.append(date.strftime('%Y-%m-%d'))
                 revenue_data.append(float(revenue))
-            
-            current_month = today.month
-            current_year = today.year
-            monthly_revenue = Bill.objects.filter(
-                created_at__month=current_month,
-                created_at__year=current_year,
-                payment_status='Cleared'
-            ).aggregate(total=Sum('amount'))['total'] or 0
-            
+
+            recent_transactions = [{
+                'id': bill.id,
+                'billNo': f'BILL-{bill.id}',
+                'patient': f'{bill.patient.first_name} {bill.patient.last_name}'.strip(),
+                'amount': float(bill.amount),
+                'status': bill.payment_status,
+                'method': bill.payment_method,
+                'time': bill.created_at.isoformat(),
+            } for bill in recent_bills]
+
             recent_bills_serializer = BillSerializer(
-                recent_bills, 
-                many=True, 
+                recent_bills,
+                many=True,
                 context={'request': request}
             )
-            operator_serializer = OperatorSerializer(
-                operator, 
-                context={'request': request}
+            operator_data = (
+                OperatorSerializer(operator, context={'request': request}).data
+                if operator else None
             )
-            
+
             return Response({
                 'status': 'success',
                 'data': {
-                    'operator': operator_serializer.data,
+                    'operator': operator_data,
                     'statistics': {
                         'total_bills': total_bills,
                         'pending_bills': pending_bills,
                         'cleared_bills': cleared_bills,
-                        'cancelled_bills': cancelled_bills,
+                        'overdue_bills': overdue_bills,
                         'today_bills': today_bills,
-                        'today_revenue': today_revenue,
-                        'monthly_revenue': monthly_revenue,
+                        'today_revenue': float(today_revenue),
+                        'monthly_revenue': float(monthly_revenue),
+                        'todayCollection': float(today_revenue),
+                        'billsPaidToday': today_cleared.count(),
+                        'pendingBills': pending_bills,
+                        'overdueBills': overdue_bills,
+                    },
+                    'summary': {
+                        'totalBills': total_bills,
+                        'totalCollection': total_collection,
+                        'cashPayments': payment_totals.get('Cash', 0),
+                        'cardPayments': payment_totals.get('Credit Card', 0) + payment_totals.get('Debit Card', 0),
+                        'insuranceClaims': payment_totals.get('Insurance', 0),
+                        'outstandingBalance': outstanding_balance,
                     },
                     'recent_bills': recent_bills_serializer.data,
+                    'recent_transactions': recent_transactions,
                     'chart_data': {
                         'labels': last_7_days,
                         'values': revenue_data,
@@ -108,22 +140,18 @@ class OperatorDashboardAPIView(APIView):
                     'timestamp': timezone.now().isoformat(),
                 }
             }, status=status.HTTP_200_OK)
-            
-        except OperatorField.DoesNotExist:
-            return Response({
-                'status': 'error',
-                'message': 'Operator profile not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
+            logger.error(f'Operator dashboard error: {str(e)}', exc_info=True)
             return Response({
                 'status': 'error',
-                'message': str(e)
+                'message': 'An error occurred while fetching the operator dashboard',
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 class TransactionList(APIView):
     permission_classes = [IsAuthenticated,IsOperator]
     VALID_STATES = ['Pending','Cleared','Overdue']
-    VALID_PAYMENT_METHODS = ['Cash','Credit Card','Debit Card','M-Pesa','Cheque']
+    VALID_PAYMENT_METHODS = ['Cash','Credit Card','Debit Card','M-Pesa','Cheque','Insurance']
     
     def get(self, request):
         try:
@@ -136,15 +164,21 @@ class TransactionList(APIView):
             paginated_bills,pagination_meta = self.paginate_bills(bills,request)
             serializer = BillSerializer(paginated_bills,many=True,context={'request':request})
             
+            serialized_bills = serializer.data
             return Response({
                 'status': 'success',
                 'data': {
-                    'tranactions': serializer.data,
+                    'transactions': serialized_bills,
                     'pagination': pagination_meta,
                     'summary': summary
                 }
             }, status=status.HTTP_200_OK)
             
+        except ValueError as e:
+            return Response({
+                'status': 'error',
+                'message': str(e),
+            }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f'Transaction list error: {str(e)}',exc_info=True)
             return Response({
@@ -161,7 +195,7 @@ class TransactionList(APIView):
             logger.warning(f'Invalid status filter: {status_filter}')
             
         payment_method = request.query_params.get('payment_method','')
-        if payment_method and payment_method in self.VALID_PAYMENT_METHOD:
+        if payment_method and payment_method in self.VALID_PAYMENT_METHODS:
             queryset = queryset.filter(payment_method=payment_method)
         elif payment_method:
             logger.warning(f'Invalid Payment Method filter: {payment_method}') 
@@ -177,17 +211,18 @@ class TransactionList(APIView):
         
         if date_from:
             try:
-                date_to_obj = datetime.strptime(date_to,'%Y-%m-%d').date()
-                queryset = queryset.filter(created_at__date__gte=date_to_obj)
+                date_from_obj = datetime.strptime(date_from,'%Y-%m-%d').date()
+                queryset = queryset.filter(created_at__date__gte=date_from_obj)
             except ValueError:
                 logger.warning(f'Invalid date_from format: {date_from}')
         
         if date_to:
             try:
                 date_to_obj = datetime.strptime(date_to,'%Y-%m-%d').date()
-                queryset = queryset.filter(created_at__date__gte=date_to_obj)
+                queryset = queryset.filter(created_at__date__lte=date_to_obj)
             except ValueError:
                 logger.warning(f'Invalid date_to format: {date_to}')
+        return queryset
     
     def apply_search_filters(self,queryset,request):
         search_query = request.query_params.get('search','').strip()
@@ -221,7 +256,7 @@ class TransactionList(APIView):
             try:
                 max_val = Decimal(max_amount)
                 if max_val >= 0:
-                    queryset = queryset.filter(amount__gte=max_val)
+                    queryset = queryset.filter(amount__lte=max_val)
             except (ValueError,TypeError):
                 logger.warning(f'Invalid max_amount {max_amount}')
         return queryset
@@ -244,21 +279,14 @@ class TransactionList(APIView):
         }
         
     def paginate_bills(self,queryset,request):
-        page = int(request.query_params.get('page',1))
-        page_size = int(request.query_params.get('page_size',20))
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+            page_size = max(1, min(int(request.query_params.get('page_size', 20)), 100))
+        except (TypeError, ValueError):
+            raise ValueError('page and page_size must be positive integers')
         
         paginator = Paginator(queryset,page_size)
-        try:
-            paginated_bills = paginator.page(page)
-            if page_size < 1:
-                page_size = 20
-            if page_size > 100:
-                page_size = 100
-                
-        except PageNotAnInteger:
-            paginated_bills = paginator.page(1)
-        except EmptyPage:
-            paginated_bills = paginator.page(paginator.num_pages)
+        paginated_bills = paginator.get_page(page)
         
         pagination_meta = {
             'current_page': paginated_bills.number,
@@ -272,9 +300,11 @@ class TransactionList(APIView):
         return paginated_bills,pagination_meta
 
 class ExportTransaction(APIView):
+    permission_classes = [IsAuthenticated, IsOperator]
+
     def get(self,request):
         try:
-            export_format = request.query_params.get('format','excel')
+            export_format = request.query_params.get('format', 'csv')
             date_from = request.query_params.get('date_from')
             date_to = request.query_params.get('date_to')
             query_set = Bill.objects.select_related('patient').order_by('-created_at')
@@ -283,7 +313,7 @@ class ExportTransaction(APIView):
                 try:
                     start_date = datetime.strptime(date_from,'%Y-%m-%d').date()
                     end_date = datetime.strptime(date_to,'%Y-%m-%d').date()
-                    query_set = QuerySet.filter(created_at__date_range=[start_date,end_date])
+                    query_set = query_set.filter(created_at__date__range=[start_date,end_date])
                 except ValueError:
                     pass
             
@@ -316,20 +346,18 @@ class ExportTransaction(APIView):
                 float(bill.amount),
                 bill.payment_status,
                 bill.payment_method or '',
-                bill.created_at.strptime('%Y-%m-%d %H:%M:%S'),
-                bill.cleared_at.strptime('%Y-%m-%d %H:%M:%S'),
+                bill.created_at.isoformat(),
+                bill.clearance_date.isoformat() if bill.clearance_date else '',
                 bill.notes or '',
             ])
         return response
 
 class BillListAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     
     def get(self, request):
         try:
-            bills = Bill.objects.select_related(
-                'patient', 'doctor'
-            ).order_by('-created_at')
+            bills = Bill.objects.select_related('patient').order_by('-created_at')
             
             status_filter = request.query_params.get('status', '')
             if status_filter:
@@ -355,15 +383,17 @@ class BillListAPIView(APIView):
                     bills = bills.filter(created_at__date__lte=date_to_obj)
                 except ValueError:
                     pass
-                search_query = request.query_params.get('search', '')
+            search_query = request.query_params.get('search', '')
             if search_query:
-                bills = bills.filter(
+                search_filter = (
                     Q(patient__first_name__icontains=search_query) |
                     Q(patient__last_name__icontains=search_query) |
                     Q(patient__email__icontains=search_query) |
-                    Q(patient__phone__icontains=search_query) |
-                    Q(id__icontains=search_query)
+                    Q(patient__phone__icontains=search_query)
                 )
+                if search_query.isdigit():
+                    search_filter |= Q(id=int(search_query))
+                bills = bills.filter(search_filter)
             
             min_amount = request.query_params.get('min_amount')
             if min_amount:
@@ -373,8 +403,14 @@ class BillListAPIView(APIView):
             if max_amount:
                 bills = bills.filter(amount__lte=max_amount)
             
-            page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('page_size', 20))
+            try:
+                page = max(1, int(request.query_params.get('page', 1)))
+                page_size = max(1, min(int(request.query_params.get('page_size', 20)), 100))
+            except (TypeError, ValueError):
+                return Response({
+                    'status': 'error',
+                    'message': 'page and page_size must be positive integers',
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             paginator = Paginator(bills, page_size)
             current_page = paginator.get_page(page)
@@ -391,13 +427,23 @@ class BillListAPIView(APIView):
                 many=True, 
                 context={'request': request}
             )
+            serialized_bills = [
+                {
+                    **bill_data,
+                    'status': bill.payment_status,
+                    'patientName': f'{bill.patient.first_name} {bill.patient.last_name}'.strip(),
+                    'date': bill.created_at.date().isoformat(),
+                    'dueDate': None,
+                }
+                for bill, bill_data in zip(current_page.object_list, serializer.data)
+            ]
             
             return Response({
                 'status': 'success',
                 'data': {
-                    'bills': serializer.data,
+                    'bills': serialized_bills,
                     'pagination': {
-                        'current_page': page,
+                        'current_page': current_page.number,
                         'page_size': page_size,
                         'total_pages': paginator.num_pages,
                         'total_items': paginator.count,
@@ -420,7 +466,7 @@ class BillListAPIView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class BillDetailAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     def get(self, request, bill_id):
         try:
             bill = get_object_or_404(
@@ -507,7 +553,7 @@ class BillDetailAPIView(APIView):
 
 
 class BillCreate(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     
     def post(self, request, patient_id):
         try:
@@ -569,7 +615,7 @@ class BillCreate(APIView):
 
 
 class ProcessPaymentAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     def post(self, request, bill_id):
         try:
             bill = get_object_or_404(Bill, id=bill_id)
@@ -685,7 +731,7 @@ class SendReminder(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
 class RecordPaymentMethodAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     
     def post(self, request, bill_id):
         try:
@@ -733,7 +779,7 @@ class RecordPaymentMethodAPIView(APIView):
 
 
 class PrintReceiptAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     
     def get(self, request, bill_id):
         try:
@@ -846,7 +892,7 @@ class ViewReceiptAPIView(APIView):
 
 
 class BillingAnalyticsAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     
     def get(self, request):
         try:
@@ -873,6 +919,19 @@ class BillingAnalyticsAPIView(APIView):
                     return Response({
                         'status': 'error',
                         'message': 'date_from and date_to are required for custom period'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+                    date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response({
+                        'status': 'error',
+                        'message': 'date_from and date_to must use YYYY-MM-DD format'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                if date_from > date_to:
+                    return Response({
+                        'status': 'error',
+                        'message': 'date_from must be on or before date_to'
                     }, status=status.HTTP_400_BAD_REQUEST)
             else:
                 date_from = today - timedelta(days=30)
@@ -901,26 +960,45 @@ class BillingAnalyticsAPIView(APIView):
                 count=Count('id')
             ).order_by('-total')
             
-            revenue_by_doctor = cleared_bills.exclude(
-                doctor__isnull=True
-            ).values(
-                'doctor__user__first_name', 
-                'doctor__user__last_name',
-                'doctor__specialization'
-            ).annotate(
-                total=Sum('amount'),
-                count=Count('id')
-            ).order_by('-total')[:10]
-            
-            summary = {
-                'total_revenue': float(cleared_bills.aggregate(total=Sum('amount'))['total'] or 0),
-                'total_bills': bills.count(),
-                'cleared_bills': cleared_bills.count(),
-                'pending_bills': bills.filter(payment_status='Pending').count(),
-                'cancelled_bills': bills.filter(payment_status='Cancelled').count(),
-                'average_bill_amount': float(bills.aggregate(avg=Sum('amount')/Count('id'))['avg'] or 0),
-                'period_days': (date_to - date_from).days + 1,
+            total_revenue = float(
+                cleared_bills.aggregate(total=Sum('amount'))['total'] or 0
+            )
+            total_bills = bills.count()
+            cleared_count = cleared_bills.count()
+            pending_count = bills.filter(payment_status='Pending').count()
+            overdue_count = bills.filter(payment_status='Overdue').count()
+            average_bill_amount = float(
+                bills.aggregate(avg=Avg('amount'))['avg'] or 0
+            )
+            payment_totals = {
+                item['payment_method']: float(item['total'] or 0)
+                for item in cleared_bills.values('payment_method').annotate(
+                    total=Sum('amount')
+                )
             }
+            summary = {
+                'total_revenue': total_revenue,
+                'total_bills': total_bills,
+                'cleared_bills': cleared_count,
+                'pending_bills': pending_count,
+                'overdue_bills': overdue_count,
+                'average_bill_amount': average_bill_amount,
+                'period_days': (date_to - date_from).days + 1,
+                'totalBills': total_bills,
+                'totalCollection': total_revenue,
+                'cashPayments': payment_totals.get('Cash', 0),
+                'cardPayments': payment_totals.get('Credit Card', 0) + payment_totals.get('Debit Card', 0),
+                'insuranceClaims': payment_totals.get('Insurance', 0),
+                'outstandingBalance': float(
+                    bills.filter(payment_status__in=['Pending', 'Overdue']).aggregate(
+                        total=Sum('amount')
+                    )['total'] or 0
+                ),
+            }
+            today_cleared = Bill.objects.filter(
+                created_at__date=today,
+                payment_status='Cleared',
+            )
             
             return Response({
                 'status': 'success',
@@ -931,9 +1009,18 @@ class BillingAnalyticsAPIView(APIView):
                         'period_type': period
                     },
                     'summary': summary,
+                    'statistics': {
+                        'todayCollection': float(
+                            today_cleared.aggregate(total=Sum('amount'))['total'] or 0
+                        ),
+                        'billsPaidToday': today_cleared.count(),
+                        'pendingBills': pending_count,
+                        'overdueBills': overdue_count,
+                    },
                     'revenue_by_day': revenue_by_day,
                     'revenue_by_payment_method': list(revenue_by_method),
-                    'revenue_by_doctor': list(revenue_by_doctor),
+                    'revenue_by_doctor': [],
+                    'recent_transactions': [],
                 }
             }, status=status.HTTP_200_OK)
             
@@ -945,15 +1032,15 @@ class BillingAnalyticsAPIView(APIView):
 
 
 class BillingExportAPIView(APIView):
-    permission_classes = [IsOperator]
+    permission_classes = [IsAuthenticated, IsOperator]
     
     def get(self, request):
         try:
-            export_format = request.query_params.get('format', 'csv','pdf')
+            export_format = request.query_params.get('format', 'csv')
             date_from = request.query_params.get('date_from')
             date_to = request.query_params.get('date_to')
             
-            bills = Bill.objects.select_related('patient', 'doctor').all()
+            bills = Bill.objects.select_related('patient').all()
             
             if date_from and date_to:
                 bills = bills.filter(created_at__date__range=[date_from, date_to])
@@ -967,7 +1054,7 @@ class BillingExportAPIView(APIView):
                 
                 writer = csv.writer(response)
                 writer.writerow([
-                    'Bill ID', 'Patient Name', 'Doctor', 'Amount', 'Status',
+                    'Bill ID', 'Patient Name', 'Amount', 'Status',
                     'Payment Method', 'Created Date', 'Cleared Date', 'Description'
                 ])
                 
@@ -975,13 +1062,12 @@ class BillingExportAPIView(APIView):
                     writer.writerow([
                         bill.id,
                         f"{bill.patient.first_name} {bill.patient.last_name}",
-                        bill.doctor.user.get_full_name() if bill.doctor else 'N/A',
                         bill.amount,
                         bill.payment_status,
                         bill.payment_method or 'N/A',
                         bill.created_at.date(),
                         bill.clearance_date.date() if bill.clearance_date else 'N/A',
-                        bill.description or ''
+                        bill.notes or ''
                     ])
                 
                 return response
@@ -1027,7 +1113,6 @@ class BillingInvoice(APIView):
         data = [
             ['Invoice ID:', str(bill.id)],
             ['Patient:',bill.patient.user.first_name],
-            ['Doctor:', bill.doctor.user.get_full_name() if bill.doctor else 'N/A'],
             ['Amount:', f"${bill.amount:.2f}"],
             ['Status:', bill.payment_status],
             ['Payment Method:', bill.payment_method or 'N/A'],
@@ -1056,32 +1141,52 @@ class BillingInvoice(APIView):
 class StaffSearch(APIView):
     permission_classes = [IsAuthenticated,IsOperator]
     def get(self,request):
-        query = request.GET.get('q','')
-        
-        results = {}
-        bills = Bill.objects.filter(
-            Q(patient__first_name__icontains=query)|
-            Q(patient__last_name__icontains=query)|
-            Q(amount__icontains=query)
-        )[:20]
-        
-        results['bills'] = BillSerializer(bills,many=True).data
-        
-        patients = Patient.objects.filter(
-            Q(patient__first_name__icontains=query)|
-            Q(patient__last_name__icontains=query)|
-            Q(phone__icontains=query)|
-            Q(email__icontains=query)
-        )[:20]
-        
+        query = request.GET.get('q', '').strip()
+        if not query:
+            return Response({'status': 'success', 'query': query, 'results': []})
+
+        patient_filter = (
+            Q(patient__first_name__icontains=query) |
+            Q(patient__last_name__icontains=query) |
+            Q(patient__email__icontains=query) |
+            Q(patient__phone__icontains=query)
+        )
+        patient_search = (
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(email__icontains=query) |
+            Q(phone__icontains=query)
+        )
+        if query.isdigit():
+            patient_filter |= Q(id=int(query))
+            patient_search |= Q(id=int(query))
+
+        bill_results = [{
+            'id': bill.id,
+            'billNo': f'BILL-{bill.id}',
+            'name': f'{bill.patient.first_name} {bill.patient.last_name}'.strip(),
+            'amount': float(bill.amount),
+            'status': bill.payment_status,
+            'type': 'bill',
+        } for bill in Bill.objects.filter(patient_filter).select_related('patient')[:20]]
+        patient_results = [{
+            'id': patient.id,
+            'name': f'{patient.first_name} {patient.last_name}'.strip(),
+            'type': 'patient',
+        } for patient in Patient.objects.filter(patient_search)[:20]]
+
         return Response({
-            'query': query, 'results': results
-        }) 
+            'status': 'success',
+            'query': query,
+            'results': bill_results + patient_results,
+        })
 
 class GetStaffProfile(APIView):
     permission_classes = [IsAuthenticated,IsOperator]
     def get(self,request):
-        user = get_object_or_404(OperatorField, user=request.user)
+        user = OperatorField.objects.filter(user=request.user).first()
+        if user is None:
+            return Response({'status': 'success', 'data': None})
         profile_data = {
             'username': request.user.username,
             'full_name': user.full_name,

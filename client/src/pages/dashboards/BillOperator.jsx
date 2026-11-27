@@ -204,6 +204,7 @@ export const OperatorDashboard = () => {
   const [bills, setBills] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [notificationError, setNotificationError] = useState('');
   const [notificationAnchor, setNotificationAnchor] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -241,7 +242,7 @@ export const OperatorDashboard = () => {
     try {
       setLoading(true);
       const response = await OperatorService.getDashboard();
-      setDashboardData(response.data);
+      setDashboardData(response.data.data || {});
       setError('');
     } catch (err) {
       console.error('Failed to fetch dashboard:', err);
@@ -255,17 +256,22 @@ export const OperatorDashboard = () => {
   const fetchBills = async () => {
     try {
       const response = await OperatorService.getBills();
-      setBills(response.data);
+      const billList = response.data.data?.bills || [];
+      setBills(billList.map((bill) => ({
+        ...bill,
+        status: bill.status || bill.payment_status,
+      })));
     } catch (err) {
       console.error('Failed to fetch bills:', err);
       toast.error('Failed to load bills');
+      setBills([]);
     }
   };
 
   const fetchAnalytics = async () => {
     try {
       const response = await OperatorService.billAnalysis();
-      setAnalytics(response.data);
+      setAnalytics(response.data.data || {});
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     }
@@ -273,13 +279,19 @@ export const OperatorDashboard = () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await coreService.getNotifications();
-      setNotifications(response.data);
+      const response = await coreService.notifications();
+      const notificationList = Array.isArray(response.data) ? response.data : [];
+      setNotifications(notificationList.map((notification) => ({
+        ...notification,
+        message: notification.message || notification.title,
+        time: notification.time || notification.created_at,
+        read: notification.read !== undefined ? notification.read : notification.is_read,
+      })));
+      setNotificationError('');
     } catch (err) {
-      setNotifications([
-        { id: 1, message: 'New billing request from ICU', time: '5 min ago', type: 'info', read: false },
-        { id: 2, message: 'Insurance claim approved for Patient #1245', time: '30 min ago', type: 'success', read: false },
-      ]);
+      console.error('Failed to load operator notifications:', err);
+      setNotifications([]);
+      setNotificationError('Notifications could not be loaded.');
     }
   };
 
@@ -305,12 +317,8 @@ export const OperatorDashboard = () => {
     if (e.key === 'Enter' && searchTerm.trim()) {
       try {
         setSearchLoading(true);
-        const response = await OperatorService.searchStaff();
-        const filtered = response.data.filter(item =>
-          item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.id?.toString().includes(searchTerm) ||
-          item.billNo?.includes(searchTerm)
-        );
+        const response = await OperatorService.searchStaff(searchTerm.trim());
+        const filtered = response.data.results || [];
         setSearchResults(filtered);
 
         if (filtered.length > 0) {
@@ -827,7 +835,7 @@ export const OperatorDashboard = () => {
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { status: 'primary', label: "Today's Collection", value: stats.todayCollection, icon: <MoneyIcon />, trend: '+12%' },
+            { status: 'primary', label: "Today's Collection", value: stats.todayCollection, icon: <MoneyIcon /> },
             { status: 'success', label: 'Bills Paid Today', value: stats.billsPaidToday, icon: <PaidIcon />, suffix: 'transactions' },
             { status: 'warning', label: 'Pending Bills', value: stats.pendingBills, icon: <PendingIcon />, suffix: 'to process' },
             { status: 'danger', label: 'Overdue Bills', value: stats.overdueBills, icon: <OverdueIcon />, suffix: 'attention needed' },
@@ -847,12 +855,14 @@ export const OperatorDashboard = () => {
                       }}>
                         {stat.status === 'primary' ? formatCurrency(stat.value) : stat.value}
                       </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TrendingUpIcon sx={{ color: emeraldTheme.accent.green, fontSize: 16, mr: 0.5 }} />
-                        <Typography variant="caption" sx={{ color: emeraldTheme.accent.green }}>
-                          {stat.trend || `${stat.value} ${stat.suffix || ''}`}
-                        </Typography>
-                      </Box>
+                      {stat.suffix && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TrendingUpIcon sx={{ color: emeraldTheme.accent.green, fontSize: 16, mr: 0.5 }} />
+                          <Typography variant="caption" sx={{ color: emeraldTheme.accent.green }}>
+                            {stat.suffix}
+                          </Typography>
+                        </Box>
+                      )}
                       <Box sx={{ position: 'absolute', right: 20, bottom: 20, fontSize: 50, color: alpha(emeraldTheme.primary.main, 0.1) }}>
                         {stat.icon}
                       </Box>
@@ -1231,7 +1241,13 @@ export const OperatorDashboard = () => {
         <Box sx={{ p: 2, borderBottom: `1px solid ${alpha(emeraldTheme.primary.main, 0.1)}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>Notifications</Typography>
         </Box>
-        {notifications.map((notif) => (
+        {notifications.length === 0 ? (
+          <MenuItem disabled>
+            <Typography variant="body2" color="text.secondary">
+              {notificationError || 'No notifications available.'}
+            </Typography>
+          </MenuItem>
+        ) : notifications.map((notif) => (
           <MenuItem key={notif.id} onClick={handleClose} sx={{ py: 1.5 }}>
             <Box sx={{ display: 'flex', gap: 1.5 }}>
               <InfoIcon fontSize="small" sx={{ color: emeraldTheme.accent.blue }} />

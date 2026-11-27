@@ -6,7 +6,7 @@ class IsPatient(BasePermission):
 
 class IsLabTechnician(BasePermission):
     def has_permission(self,request,view):
-        return request.user.user_type == 'labtechnician'
+        return request.user.user_type in {'lab_technician', 'labtechnician'}
 
 class IsAdmin(BasePermission):
     def has_permission(self,request,view):
@@ -14,7 +14,7 @@ class IsAdmin(BasePermission):
     
 class IsOperator(BasePermission):
     def has_permission(self,request,view):
-        return request.user.user_type == 'operator'
+        return request.user.is_authenticated and request.user.user_type == 'operator'
 
 class IsDoctor(BasePermission):
     def has_permission(self,request,view):

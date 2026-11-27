@@ -177,11 +177,15 @@ export const RequestList = () => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await labServices.getLabRequestList({ ordering: '-created_at' });
+      const response = await labServices.getLabRequestList({ page_size: 100 });
       if (response.data.status !== 'success') {
         throw new Error('Failed to fetch requests');
       }
-      setRequests(response.data.requests || []);
+      const requestItems = response.data.requests || response.data.data || [];
+      setRequests(requestItems.map((request) => ({
+        ...request,
+        status: request.status?.toLowerCase(),
+      })));
       setStats(response.data.stats || {
         total: 0,
         requested: 0,

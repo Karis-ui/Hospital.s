@@ -178,6 +178,7 @@ export const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [profilePhotoUrl, refreshProfilePhoto] = useProfilePhoto(labServices.getProfilePhoto, profile?.photo);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState([]);
@@ -203,12 +204,15 @@ export const Profile = () => {
       if (response.data.status === 'success') {
         setProfile(response.data.data);
         setEditForm(response.data.data);
+        setProfileError('');
       } else {
         throw new Error('Failed to load profile.');
       }
     } catch (err) {
-      console.error('Something went wrong.Try again please.');
-      toast.error(err.response?.data?.message);
+      const message = err.response?.data?.message || err.message || 'Failed to load profile data.';
+      console.error('Failed to load lab technician profile:', err);
+      setProfileError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -218,7 +222,7 @@ export const Profile = () => {
   const fetchStats = async () => {
     try {
       const response = await labServices.stats();
-      if (response.data.status === 'status') {
+      if (response.data.status === 'success') {
         setStats(response.data.data);
       }
     } catch (err) {
@@ -299,7 +303,17 @@ export const Profile = () => {
   if (!profile) {
     return (
       <Box sx={{ p: 2 }}>
-        <Alert severity='error' sx={{ borderRadius: 3 }}>Failed to load profile data.</Alert>
+        {profileError ? (
+          <Alert severity='error' sx={{ borderRadius: 3 }} action={
+            <Button color="inherit" size="small" onClick={fetchProfile}>Retry</Button>
+          }>
+            {profileError}
+          </Alert>
+        ) : (
+        <Alert severity='info' sx={{ borderRadius: 3 }}>
+          No lab technician profile is configured for this account. Contact an administrator to complete your profile setup.
+        </Alert>
+        )}
       </Box>
     );
   }

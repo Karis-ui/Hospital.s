@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.serializers import json
-from django.db.models import Count
+from django.db.models import Count, Q
 from datetime import timedelta
 from django.shortcuts import get_object_or_404
 from .models import labRequest,LabReport,LabTech,TestParameter,TestProfile
@@ -31,40 +31,84 @@ class DashboardAnalytics(APIView):
     
     def get(self, request):
         today = timezone.now().date()
-        week_ago = today - timedelta(days=7)
-        month_ago = today - timedelta(days=30)
-        
-        total_requests = labRequest.objects.count()
-        pending_requests = labRequest.objects.filter(status='requested').count()
-        processing_requests = labRequest.objects.filter(status='processing').count()
-        completed_requests = labRequest.objects.filter(status='completed').count()
-        approved_requests = labRequest.objects.filter(status='approved').count()
-        
-        total_reports = LabReport.objects.count()
-        reports_today = LabReport.objects.filter(uploaded_at__date=today).count()
-        reports_week = LabReport.objects.filter(uploaded_at__date__gte=week_ago).count()
-        reports_month = LabReport.objects.filter(uploaded_at__date__gte=month_ago).count()
-        
-        pending_approvals = LabReport.objects.filter(is_approved=False).count()
-        
-        recent_reports = LabReport.objects.select_related(
-            'lab_request__patient', 'uploaded_by'
-        ).order_by('-uploaded_at')[:10]
-        
-        recent_data = []
-        for report in recent_reports:
-            recent_data.append({
-                'id': report.id,
-                'patient': f"{report.lab_request.patient.first_name} {report.lab_request.patient.last_name}",
-                'test': report.lab_request.test_name,
-                'uploaded_by': report.uploaded_by.username if report.uploaded_by else 'Unknown',
-                'uploaded_at': report.uploaded_at,
-                'is_approved': report.is_approved
-            })
-        
+        requests = labRequest.objects.select_related(
+            'patient', 'doctor__user'
+        ).order_by('-created_at')
+        reports = LabReport.objects.select_related(
+            'lab_request__patient', 'lab_request__doctor__user', 'by'
+        ).order_by('-uploaded_at')
+
+        total_requests = requests.count()
+        pending_requests = requests.filter(status__iexact='requested').count()
+        processing_requests = requests.filter(status__iexact='sample_taken').count()
+        completed_requests = requests.filter(status__iexact='ready').count()
+        total_reports = reports.count()
+        approved_requests = reports.filter(is_approved=True).count()
+        critical_reports = reports.filter(is_critical=True)
+        queue = requests.exclude(status__iexact='ready').exclude(
+            status__iexact='cancelled'
+        )[:10]
+        recent_reports = reports[:10]
+
+        def patient_name(patient):
+            return f'{patient.first_name} {patient.last_name}'.strip()
+
+        def doctor_name(doctor):
+            return doctor.user.get_full_name() or doctor.user.username
+
+        queue_data = [{
+            'id': item.id,
+            'type': item.test_type,
+            'test': item.test_name or item.test_type,
+            'patient': patient_name(item.patient),
+            'patientId': item.patient_id,
+            'doctor': doctor_name(item.doctor),
+            'department': item.test_type,
+            'waitTime': f'{max(0, int((timezone.now() - item.created_at).total_seconds() // 60))} minutes',
+            'status': item.status.lower(),
+        } for item in queue]
+        critical_data = [{
+            'id': report.id,
+            'type': report.lab_request.test_type,
+            'patient': patient_name(report.lab_request.patient),
+            'age': report.lab_request.patient.age,
+            'test': report.lab_request.test_name or report.lab_request.test_type,
+            'severity': 'critical',
+            'time': report.uploaded_at,
+        } for report in critical_reports[:10]]
+        recent_data = [{
+            'id': report.id,
+            'patient': patient_name(report.lab_request.patient),
+            'test': report.lab_request.test_name or report.lab_request.test_type,
+            'doctor': doctor_name(report.lab_request.doctor),
+            'status': report.status,
+            'time': report.uploaded_at,
+            'is_critical': report.is_critical,
+        } for report in recent_reports]
+        category_stats = list(requests.values('test_type').annotate(
+            total=Count('id')
+        ).order_by('test_type'))
+        technician = LabTech.objects.filter(user=request.user).first()
+
         return Response({
             'status': 'success',
             'data': {
+                'technician': ({
+                    'name': technician.full_name,
+                    'role': 'Lab Technician',
+                    'isSupervisor': False,
+                    'id': technician.id,
+                } if technician else None),
+                'statistics': {
+                    'totalTests': total_requests,
+                    'pendingTests': pending_requests,
+                    'completedTests': completed_requests,
+                    'criticalResults': critical_reports.count(),
+                    'avgProcessingTime': 'Not available',
+                    'completionRate': round(
+                        completed_requests / total_requests * 100
+                    ) if total_requests else 0,
+                },
                 'summary': {
                     'total_requests': total_requests,
                     'pending': pending_requests,
@@ -72,12 +116,18 @@ class DashboardAnalytics(APIView):
                     'completed': completed_requests,
                     'approved': approved_requests,
                     'total_reports': total_reports,
-                    'reports_today': reports_today,
-                    'reports_this_week': reports_week,
-                    'reports_this_month': reports_month,
-                    'pending_approvals': pending_approvals
+                    'reports_today': reports.filter(uploaded_at__date=today).count(),
+                    'pending_approvals': reports.filter(is_approved=False).count()
                 },
-                'recent_activity': recent_data
+                'testQueue': queue_data,
+                'criticalResults': critical_data,
+                'recentResults': recent_data,
+                'equipment': [],
+                'chartLabels': [],
+                'volumeData': [],
+                'categoryLabels': [item['test_type'] for item in category_stats],
+                'categoryData': [item['total'] for item in category_stats],
+                'recent_activity': recent_data,
             }
         })
 
@@ -359,41 +409,56 @@ class LabRequestListView(APIView):
         priority_filter = request.GET.get('priority')
         search_query = request.GET.get('search')
         
-        queryset = labRequest.objects.all().select_related('patient','doctor','doctor_user')
+        queryset = labRequest.objects.select_related('patient', 'doctor__user')
         
         if status_filter and status_filter != 'all':
-            queryset = queryset.filter(status=status_filter)
+            queryset = queryset.filter(status__iexact=status_filter)
         if priority_filter and priority_filter != 'all':
             queryset = queryset.filter(urgency=priority_filter)
         if search_query:
-            Q = None
-            queryset = queryset.filter(
-                Q(id__icontains=search_query)|
+            search_filter = (
                 Q(patient__first_name__icontains=search_query)|
                 Q(patient__last_name__icontains=search_query)|
-                Q(doctor__user__full_name__icontains=search_query)|
+                Q(doctor__user__first_name__icontains=search_query)|
+                Q(doctor__user__last_name__icontains=search_query)|
                 Q(test_type__icontains=search_query)
             )
+            if search_query.isdigit():
+                search_filter |= Q(id=int(search_query))
+            queryset = queryset.filter(search_filter)
 
-        queryset = queryset.order_by('-created_at')[:100]
-        
-        page_size = request.GET.get('page_size', 20)
-        page = request.GET.get('page', 1)
-        start= (page-1) * page_size
-        end = start + page_size
+        queryset = queryset.order_by('-created_at')
         total_count = queryset.count()
-        requests = queryset[start:end]
-        
-        serializer = LabRequestSerializer(queryset, many=True, context={'request': request})
+        try:
+            page_size = max(1, min(int(request.GET.get('page_size', 20)), 100))
+            page = max(1, int(request.GET.get('page', 1)))
+        except (TypeError, ValueError):
+            return Response({
+                'status': 'error',
+                'message': 'page and page_size must be positive integers',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        start = (page - 1) * page_size
+        requests = queryset[start:start + page_size]
+        serializer = LabRequestSerializer(requests, many=True, context={'request': request})
+        serialized_requests = serializer.data
         
         return Response({
             'status': 'success',
-            'data': serializer.data,
+            'data': serialized_requests,
+            'requests': serialized_requests,
+            'stats': {
+                'total': total_count,
+                'requested': queryset.filter(status__iexact='requested').count(),
+                'processing': queryset.filter(status__iexact='processing').count(),
+                'sample_taken': queryset.filter(status__iexact='sample_taken').count(),
+                'ready': queryset.filter(status__iexact='ready').count(),
+                'cancelled': queryset.filter(status__iexact='cancelled').count(),
+            },
             'pagination': {
                 'total': total_count,
                 'page': page,
                 'page_size': page_size,
-                'total_pages': (total_count + page_size - 1) // page_size
+                'total_pages': (total_count + page_size - 1) // page_size,
             }
         })
 class LabReportListView(APIView):
@@ -402,7 +467,9 @@ class LabReportListView(APIView):
         status_filter = request.GET.get('status')
         search_query = request.GET.get('search')
         
-        queryset = LabReport.objects.all().select_related('lab_request__patient','lab_request__doctor','lab_request__doctor_user')
+        queryset = LabReport.objects.select_related(
+            'lab_request__patient', 'lab_request__doctor__user', 'by'
+        )
         
         if status_filter == 'approved':
             queryset = queryset.filter(is_approved=True)
@@ -410,24 +477,27 @@ class LabReportListView(APIView):
             queryset = queryset.filter(is_approved=False)
             
         if search_query:
-            Q = None
             queryset = queryset.filter(
                 Q(lab_request__patient__first_name__icontains=search_query)|
                 Q(lab_request__patient__last_name__icontains=search_query)|
-                Q(lab_request__doctor__user__full_name__icontains=search_query)|
+                Q(lab_request__doctor__user__first_name__icontains=search_query)|
+                Q(lab_request__doctor__user__last_name__icontains=search_query)|
                 Q(lab_request__test_type__icontains=search_query)
             )
 
-        queryset = queryset.order_by('-created_at')[:100]
-        
-        page_size = request.GET.get('page_size', 20)
-        page = request.GET.get('page', 1)
-        start= (page-1) * page_size
-        end = start + page_size
+        queryset = queryset.order_by('-uploaded_at')
         total_count = queryset.count()
-        requests = queryset[start:end]
-        
-        serializer = LabReportSerializer(queryset, many=True, context={'request': request})
+        try:
+            page_size = max(1, min(int(request.GET.get('page_size', 20)), 100))
+            page = max(1, int(request.GET.get('page', 1)))
+        except (TypeError, ValueError):
+            return Response({
+                'status': 'error',
+                'message': 'page and page_size must be positive integers',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        start = (page - 1) * page_size
+        reports = queryset[start:start + page_size]
+        serializer = LabReportSerializer(reports, many=True, context={'request': request})
         
         return Response({
             'status': 'success',
@@ -436,7 +506,7 @@ class LabReportListView(APIView):
                 'total': total_count,
                 'page': page,
                 'page_size': page_size,
-                'total_pages': (total_count + page_size - 1) // page_size
+                'total_pages': (total_count + page_size - 1) // page_size,
             }
         })
         
@@ -470,13 +540,15 @@ class LabStats(APIView):
     permission_classes = [IsAuthenticated,IsLabTechnician]
     def get(self,request):
         today = timezone.now().date()
-        this_week = today - timezone.timedelta(days=7)
-        this_month = today - timezone.timedelta(days=30)
-        
-        test_tye_stats = labRequest.objects.values('test_type').annotate(
+        total_requests = labRequest.objects.count()
+        completed_requests = labRequest.objects.filter(status__iexact='ready').count()
+        pending_requests = labRequest.objects.filter(status__iexact='requested').count()
+        total_reports = LabReport.objects.count()
+        approved_reports = LabReport.objects.filter(is_approved=True).count()
+        test_type_stats = labRequest.objects.values('test_type').annotate(
             total = Count('id'),
-            completed = Count('id',filter=Q(status='ready')),
-            pending = Count('id',filter=Q(status='requested')),
+            completed = Count('id',filter=Q(status__iexact='ready')),
+            pending = Count('id',filter=Q(status__iexact='requested')),
         ).order_by('-total')
         
         monthly_trends = []
@@ -495,7 +567,7 @@ class LabStats(APIView):
             ).count()
             
             monthly_completed = labRequest.objects.filter(
-                status='ready',
+                status__iexact='ready',
                 created_at__date__gte=month_start,
                 created_at__date__lte=month_end
             ).count()
@@ -505,26 +577,31 @@ class LabStats(APIView):
                 'requests': monthly_requests,
                 'completed': monthly_completed
             })
-            Q = None
-            technician_stats = LabReport.values('by__username').annotate(
-                total_reports=Count('id'),
-                approved_reports=Count('id',filter=Q(is_approved=True)),
-                pending_reports=Count('id',filter=Q(is_approved=False))
-            ).order_by('-total_reports')
+        technician_stats = LabReport.objects.values('by__username').annotate(
+            total_reports=Count('id'),
+            approved_reports=Count('id',filter=Q(is_approved=True)),
+            pending_reports=Count('id',filter=Q(is_approved=False))
+        ).order_by('-total_reports')
             
-            return Response({
-                'status': 'success',
-                'data': {
-                    'test_type_stats': list(test_tye_stats),
-                    'monthly_trends': monthly_trends,
-                    'technician_stats': list(technician_stats)
-                }
-            })
+        return Response({
+            'status': 'success',
+            'data': {
+                'totalTests': total_requests,
+                'completedTests': completed_requests,
+                'pendingTests': pending_requests,
+                'approvalRate': round(approved_reports / total_reports * 100) if total_reports else 0,
+                'test_type_stats': list(test_type_stats),
+                'monthly_trends': monthly_trends,
+                'technician_stats': list(technician_stats)
+            }
+        })
             
 class GetLabTechProfile(APIView):
     permission_classes = [IsAuthenticated,IsLabTechnician]
     def get(self,request):
-        lab_tech = get_object_or_404(LabTech,user=request.user)
+        lab_tech = LabTech.objects.filter(user=request.user).first()
+        if lab_tech is None:
+            return Response({'status': 'success', 'data': None})
         serializer = LabTechSerializer(lab_tech, context={'request': request})
         return Response({'status': 'success', 'data': serializer.data})
 
