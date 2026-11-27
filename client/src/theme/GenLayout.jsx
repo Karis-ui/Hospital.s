@@ -396,30 +396,16 @@ export const AppLayout = () => {
     patient: { title: 'Patient Portal', accent: platinumTheme.accent.blue },
     operator: { title: 'Billing Portal', accent: platinumTheme.accent.green },
   };
-  const isOperator = effectiveRole === 'operator';
-  const currentRoleConfig = roleConfig[effectiveRole] || { title: 'SmartCare', accent: platinumTheme.accent.blue };
-  const profileName = user?.full_name ||
-    [user?.first_name, user?.last_name].filter(Boolean).join(' ') ||
-    user?.username ||
-    'User';
-  const profileInitials = isOperator
-    ? profileName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
-    : user?.first_name?.[0]?.toUpperCase() || 'U';
+  const currentRoleConfig = roleConfig[userRole] || { title: 'SmartCare', accent: platinumTheme.accent.blue };
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <>
       <div className="app-layout" style={{ display: 'flex' }}>
-        <Sidebar sx={isOperator ? {
-          background: 'linear-gradient(180deg, #198b4e 0%, #17664a 48%, #1b3030 100%)',
-          borderLeft: '8px solid #c9b037',
-          borderRight: '8px solid #198b4e',
-          boxShadow: '5px 0 25px rgba(20, 70, 50, 0.3)',
-          '&::-webkit-scrollbar-thumb': { background: '#c9b037' },
-        } : undefined}>
+        <Sidebar>
           {/* ─── Branding ─── */}
-          {!isOperator && <Box sx={{
+          <Box sx={{
             p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5,
             borderBottom: `1px solid ${alpha('#fff', 0.08)}`,
           }}>
@@ -439,55 +425,35 @@ export const AppLayout = () => {
                 {currentRoleConfig.title}
               </Typography>
             </Box>
-          </Box>}
+          </Box>
 
           {/* ─── User Profile ─── */}
-          <Box sx={{
-            px: isOperator ? 1.5 : 2.5,
-            py: 2.5,
-            textAlign: 'center',
-            borderBottom: `1px solid ${alpha('#fff', 0.08)}`,
-          }}>
+          <Box sx={{ px: 2.5, py: 2.5, textAlign: 'center', borderBottom: `1px solid ${alpha('#fff', 0.08)}` }}>
             <Avatar sx={{
-              width: isOperator ? 100 : 64,
-              height: isOperator ? 100 : 64,
-              mx: 'auto',
-              mb: isOperator ? 1.5 : 1.5,
-              background: isOperator
-                ? 'linear-gradient(135deg, #25a85f, #198b4e)'
-                : `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
-              border: `3px solid ${alpha('#fff', isOperator ? 0.35 : 0.2)}`,
+              width: 64, height: 64, mx: 'auto', mb: 1.5,
+              background: `linear-gradient(135deg, ${currentRoleConfig.accent}, ${platinumTheme.secondary.main})`,
+              border: `3px solid ${alpha('#fff', 0.2)}`,
               boxShadow: `0 8px 24px ${alpha(currentRoleConfig.accent, 0.3)}`,
-              fontSize: isOperator ? '2rem' : '1.5rem',
-              fontWeight: 700,
-              color: '#fff',
+              fontSize: '1.5rem', fontWeight: 700, color: '#fff',
               transition: 'all 0.3s ease',
               '&:hover': { transform: 'scale(1.08)', boxShadow: `0 12px 32px ${alpha(currentRoleConfig.accent, 0.5)}` },
             }}>
-              {profileInitials}
+              {user?.first_name?.[0]?.toUpperCase() || 'U'}
             </Avatar>
             <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>
-              {profileName}
+              {user?.first_name} {user?.last_name}
             </Typography>
             <Chip
-              label={isOperator ? 'Billing Department' : userRole?.replace('_', ' ')}
+              label={userRole?.replace('_', ' ')}
               size="small"
               sx={{
                 mt: 0.8,
-                bgcolor: alpha(isOperator ? '#fff' : currentRoleConfig.accent, isOperator ? 0.08 : 0.15),
-                color: isOperator ? '#8bd5a7' : currentRoleConfig.accent,
-                border: `1px solid ${alpha(isOperator ? '#8bd5a7' : currentRoleConfig.accent, 0.45)}`,
-                fontWeight: 600,
-                fontSize: '0.65rem',
-                textTransform: isOperator ? 'none' : 'uppercase',
-                letterSpacing: '0.04em',
+                bgcolor: alpha(currentRoleConfig.accent, 0.15),
+                color: currentRoleConfig.accent,
+                border: `1px solid ${alpha(currentRoleConfig.accent, 0.3)}`,
+                fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em',
               }}
             />
-            {isOperator && user?.id != null && (
-              <Typography sx={{ mt: 1.5, color: alpha('#fff', 0.75), fontSize: '0.75rem' }}>
-                ID: OP-{String(user.id).padStart(5, '0')}
-              </Typography>
-            )}
           </Box>
 
           {/* ─── Navigation Links ─── */}
@@ -532,12 +498,10 @@ export const AppLayout = () => {
                       position: 'relative',
                       overflow: 'hidden',
                       background: active
-                        ? isOperator
-                          ? 'rgba(9, 75, 50, 0.42)'
-                          : `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.2)}, ${alpha(currentRoleConfig.accent, 0.05)})`
+                        ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.2)}, ${alpha(currentRoleConfig.accent, 0.05)})`
                         : 'transparent',
                       // Gold left accent bar on active item
-                      '&::before': active && !isOperator ? {
+                      '&::before': active ? {
                         content: '""',
                         position: 'absolute',
                         left: 0, top: '20%', bottom: '20%',
@@ -550,9 +514,7 @@ export const AppLayout = () => {
                       '&:hover': {
                         color: '#fff',
                         background: active
-                          ? isOperator
-                            ? 'rgba(9, 75, 50, 0.55)'
-                            : `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.25)}, ${alpha(currentRoleConfig.accent, 0.08)})`
+                          ? `linear-gradient(90deg, ${alpha(currentRoleConfig.accent, 0.25)}, ${alpha(currentRoleConfig.accent, 0.08)})`
                           : alpha('#fff', 0.06),
                         transform: 'translateX(3px)',
                       },
@@ -588,12 +550,11 @@ export const AppLayout = () => {
                 textTransform: 'none',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: isOperator ? '#fff' : alpha(platinumTheme.accent.red, 0.8),
-                background: isOperator ? alpha('#fff', 0.1) : 'transparent',
+                color: alpha(platinumTheme.accent.red, 0.8),
                 transition: 'all 0.2s ease',
                 '&:hover': {
-                  background: isOperator ? alpha('#fff', 0.18) : alpha(platinumTheme.accent.red, 0.1),
-                  color: isOperator ? '#fff' : platinumTheme.accent.red,
+                  background: alpha(platinumTheme.accent.red, 0.1),
+                  color: platinumTheme.accent.red,
                   transform: 'translateX(3px)',
                 },
               }}
