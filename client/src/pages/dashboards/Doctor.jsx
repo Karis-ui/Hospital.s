@@ -703,7 +703,7 @@ export const DoctorDashboard = () => {
                   <Button
                     fullWidth
                     endIcon={<ArrowForwardIcon />}
-                    onClick={(navigate('/doctor/appointments'))}
+                    onClick={() => navigate('/doctor/appointments')}
                     sx={{ mt: 2, color: goldTheme.primary.main, '&:hover': { bgcolor: alpha(goldTheme.primary.main, 0.1) } }}
                   >
                     View All Appointments
