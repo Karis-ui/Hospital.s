@@ -724,7 +724,7 @@ class LoginAPIView(APIView):
                     profile = Doctor.objects.get(user=user)
                     profile_data = {
                         'id': profile.id,
-                        'specialization': profile.specialization,
+                        'specialization': profile.speciality,
                         'department': profile.department
                     }
                 except Doctor.DoesNotExist:

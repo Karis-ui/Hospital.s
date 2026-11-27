@@ -84,7 +84,7 @@ const GoldButton = styled(Button)({
 
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const resetPass = useAuth();
+  const { resetPass } = useAuth();
   const { uid, token } = useParams();
 
   const [formData, setFormData] = useState({

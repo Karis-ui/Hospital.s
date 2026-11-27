@@ -83,7 +83,7 @@ const GoldButton = styled(Button)({
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const forgotPass = useAuth();
+  const { forgotPass } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
