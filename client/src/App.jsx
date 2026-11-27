@@ -18,6 +18,7 @@ import ForgotPassword from './pages/authenticators/forgotPass';
 import ResetPassword from './pages/authenticators/resetPass';
 
 import { AdminDashboard } from './pages/dashboards/Admin';
+import { AdminProfile } from './pages/assets/Admin/AdminProfile';
 import { UserList } from './pages/assets/Admin/UsersList';
 import { UserDetails } from './pages/assets/Admin/UserDetails';
 import { GenerateReport } from './pages/assets/Admin/GenerateReport';
@@ -44,6 +45,8 @@ import { RequestList } from './pages/assets/LabTech/RequestList';
 import { ResultDetails } from './pages/assets/LabTech/ResultDetails';
 import { Search } from './pages/assets/LabTech/SearchResults';
 import { UploadResult } from './pages/assets/LabTech/UploadResults';
+import LabReports from './pages/assets/LabTech/LabReports';
+import LabStaffDirectory from './pages/assets/LabTech/LabStaffDirectory';
 
 import PatientDashboard from './pages/dashboards/Patient';
 import AppointmentList from './pages/assets/Patients/AppointmentList';
@@ -62,6 +65,7 @@ import { CreateBill } from './pages/assets/Staff/CreateBill';
 import { TransactionList } from './pages/assets/Staff/TransactionList';
 import StafffSearch from './pages/assets/Staff/StaffSearch';
 import { PatientList } from './pages/assets/Staff/PatientList';
+import { OperatorProfile } from './pages/assets/Staff/StaffProfile';
 import { ProcessPayment } from './pages/assets/Staff/ProcessPayment';
 import { ReceiptView } from './pages/assets/Staff/ReceiptView';
 
@@ -214,6 +218,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route element={<AdLayout />}>
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/profile" element={<AdminProfile />} />
                   <Route path="/admin/users" element={<UserList />} />
                   <Route path="/admin/users/:id" element={<UserDetails />} />
                   <Route path="/admin/approvals" element={<SetApproval />} />
@@ -248,6 +253,8 @@ function App() {
                   <Route path="/lab/profile" element={<Profile />} />
                   <Route path="/lab/results/:id" element={<ResultDetails />} />
                   <Route path="/lab/search" element={<Search />} />
+                  <Route path="/lab/reports" element={<LabReports />} />
+                  <Route path="/lab/staff" element={<LabStaffDirectory />} />
                 </Route>
               </Route>
 
@@ -272,6 +279,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['operator']} />}>
                 <Route element={<AppLayout />}>
                   <Route path="/operator/dashboard" element={<OperatorDashboard />} />
+                  <Route path="/operator/profile" element={<OperatorProfile />} />
                   <Route path="/operator/history/billing" element={<BillingHistory />} />
                   <Route path="/operator/detail-view/:id" element={<PatientBillDetails />} />
                   <Route path="/operator/bills" element={<BillList />} />

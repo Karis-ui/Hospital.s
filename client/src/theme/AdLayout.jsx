@@ -332,6 +332,8 @@ export const AdLayout = () => {
       { section: 'System' },
       { name: 'System Settings', path: '/admin/settings', icon: <SettingsIcon /> },
       { name: 'Search', path: '/admin/search', icon: <SearchIcon /> },
+      { section: 'Account' },
+      { name: 'Profile', path: '/admin/profile', icon: <ProfileIcon /> },
     ];
   };
 

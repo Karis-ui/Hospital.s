@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
+from .models import LabTech
 
 
 class LabTechnicianReadApiTests(APITestCase):
@@ -21,6 +22,7 @@ class LabTechnicianReadApiTests(APITestCase):
             'lab_report_list',
             'lab_stats',
             'profile',
+            'lab_staff_directory',
         )
 
         for endpoint_name in endpoint_names:
@@ -50,10 +52,49 @@ class LabTechnicianReadApiTests(APITestCase):
             self.client.get(reverse('lab_stats')).data['data']['test_type_stats'],
             [],
         )
+        self.assertEqual(
+            self.client.get(reverse('lab_staff_directory')).data['data'],
+            [],
+        )
+
+    def test_lab_staff_directory_returns_active_technician_summary(self):
+        staff_user = get_user_model().objects.create_user(
+            username='lab-directory-tech',
+            email='lab-directory-tech@example.com',
+            password='test-password',
+            phone='1234567892',
+            user_type='lab_technician',
+        )
+        technician = LabTech.objects.create(
+            user=staff_user,
+            full_name='Directory Technician',
+            email='lab-directory-tech@example.com',
+            gender='Female',
+            phone_number='1234567892',
+            license_number='LAB-123',
+            department='Hematology',
+            shift_time='Day',
+            experience_years=4,
+        )
+        self.client.force_authenticate(user=self.lab_user)
+
+        response = self.client.get(reverse('lab_staff_directory'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['data'], [{
+            'id': technician.id,
+            'name': 'Directory Technician',
+            'department': 'Hematology',
+            'shift_time': 'Day',
+            'experience_years': 4,
+            'available': True,
+        }])
 
     def test_lab_read_endpoints_still_require_authentication_and_lab_role(self):
         dashboard_url = reverse('lab_dashboard')
         self.assertEqual(self.client.get(dashboard_url).status_code, 401)
+        staff_url = reverse('lab_staff_directory')
+        self.assertEqual(self.client.get(staff_url).status_code, 401)
 
         other_user = get_user_model().objects.create_user(
             username='patient-test',
@@ -64,6 +105,7 @@ class LabTechnicianReadApiTests(APITestCase):
         )
         self.client.force_authenticate(user=other_user)
         self.assertEqual(self.client.get(dashboard_url).status_code, 403)
+        self.assertEqual(self.client.get(staff_url).status_code, 403)
 
     def test_lab_request_list_paginates_without_string_arithmetic(self):
         self.client.force_authenticate(user=self.lab_user)

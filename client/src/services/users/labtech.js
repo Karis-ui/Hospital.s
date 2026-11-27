@@ -13,6 +13,7 @@ export const labServices = {
     searchItems: () => api.get(`lab/search/lab-views/`),
     getLabRequestList: (params) => api.get(`lab/request-list/`, { params }),
     getLabReportList: () => api.get(`lab/report-list/`),
+    getStaffDirectory: () => api.get(`lab/staff/`),
     patientLabHistory: (id) => api.get(`lab/patient/${id}/history/`),
     labProfile: () => api.get(`lab/profile/`),
     getProfilePhoto: (cacheKey) => api.get(`lab/profile/photo/`, {

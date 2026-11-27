@@ -5,12 +5,6 @@ import {
   Grid,
   Paper,
   Typography,
-  Avatar,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
   Badge,
   IconButton,
   Button,
@@ -23,7 +17,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Divider,
   Alert,
   CircularProgress,
   Menu,
@@ -44,7 +37,6 @@ import {
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import {
-  Dashboard as DashboardIcon,
   Science as LabIcon,
   Timeline as PendingIcon,
   CheckCircle as CompletedIcon,
@@ -60,12 +52,6 @@ import {
   Add as AddIcon,
   Notifications as NotificationsIcon,
   Email as EmailIcon,
-  Logout as LogoutIcon,
-  Settings as SettingsIcon,
-  Assessment as ReportsIcon,
-  Inventory as InventoryIcon,
-  People as StaffIcon,
-  Build as EquipmentIcon,
   Print as PrintIcon,
   Visibility as ViewIcon,
   PlayArrow as ProcessIcon,
@@ -82,7 +68,6 @@ import {
   FilterList as FilterIcon,
   FileDownload as DownloadIcon,
   NotificationsActive as NotifyIcon,
-  Diamond as DiamondIcon,
   Science as FlaskIcon,
   Upload as UploadIcon,
   Send as SendIcon,
@@ -139,34 +124,6 @@ const labTheme = {
   background: { default: '#f8f9ff', paper: '#ffffff', elevated: '#f0f2f9', dark: '#0d1b36' },
   text: { primary: '#1a237e', secondary: '#5c6bc0', disabled: '#9fa8da', light: '#ffffff' },
 };
-
-const LabSidebar = styled(Box)(({ theme }) => ({
-  width: 280,
-  background: `linear-gradient(180deg, ${labTheme.primary.main} 0%, ${labTheme.primary.dark} 100%)`,
-  color: labTheme.text.light,
-  position: 'fixed',
-  height: '100vh',
-  overflowY: 'auto',
-  boxShadow: `5px 0 25px ${alpha(labTheme.primary.main, 0.3)}`,
-  zIndex: 1200,
-  '&::-webkit-scrollbar': { width: '8px' },
-  '&::-webkit-scrollbar-track': { background: alpha(labTheme.text.light, 0.1) },
-  '&::-webkit-scrollbar-thumb': { background: labTheme.secondary.main, borderRadius: '4px' },
-}));
-
-const LabAvatar = styled(Avatar)(({ theme }) => ({
-  width: 70,
-  height: 70,
-  margin: '0 auto 15px',
-  background: `linear-gradient(135deg, ${labTheme.secondary.main} 0%, ${labTheme.primary.main} 100%)`,
-  border: `4px solid ${alpha(labTheme.text.light, 0.3)}`,
-  boxShadow: `0 10px 25px ${alpha(labTheme.secondary.main, 0.3)}`,
-  fontSize: '2rem',
-  fontWeight: 700,
-  color: labTheme.text.light,
-  transition: 'all 0.3s ease',
-  '&:hover': { transform: 'scale(1.05)', boxShadow: `0 15px 35px ${alpha(labTheme.secondary.main, 0.4)}` },
-}));
 
 const LabStatCard = styled(Card)(({ theme, status }) => ({
   background: labTheme.background.paper,
@@ -260,7 +217,7 @@ const EquipmentItem = styled(Box)(({ theme, status }) => ({
 
 export const LabDashboard = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { confirm, ConfrimDialogComponent } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -440,11 +397,6 @@ export const LabDashboard = () => {
     navigate(`/lab/results/${id}`);
   };
 
-  const handleLogout = () => {
-    logout();
-    toast.info('Logged out successfully');
-  };
-
   const handleNotificationClick = (event) => {
     setNotificationAnchor(event.currentTarget);
   };
@@ -585,137 +537,8 @@ export const LabDashboard = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', bgcolor: labTheme.background.default, minHeight: '100vh' }}>
-      <LabSidebar>
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <LabAvatar>
-            {labTech.name?.split(' ').map(n => n[0]).join('') || 'LT'}
-          </LabAvatar>
-
-          <Typography variant="h5" sx={{ fontWeight: 700, color: labTheme.text.light, mb: 0.5 }}>
-            {labTech.name}
-          </Typography>
-
-          <Chip icon={<FlaskIcon />} label={labTech.role}
-            sx={{
-              background: alpha(labTheme.secondary.main, 0.2), color: labTheme.secondary.main,
-              border: `1px solid ${labTheme.secondary.main}`, fontWeight: 600, mb: 2
-            }}
-          />
-
-          {labTech.isSupervisor && (
-            <Chip icon={<DiamondIcon />} label="Lab Supervisor" size="small"
-              sx={{
-                background: alpha(labTheme.accent.success, 0.2), color: labTheme.accent.success,
-                border: `1px solid ${labTheme.accent.success}`
-              }}
-            />
-          )}
-        </Box>
-
-        <Divider sx={{ borderColor: alpha(labTheme.text.light, 0.1) }} />
-
-        <List sx={{ px: 2, py: 2 }}>
-          <Typography variant="caption" sx={{ px: 2, color: alpha(labTheme.text.light, 0.5), fontWeight: 600 }}>
-            DASHBOARD
-          </Typography>
-
-          <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemButton selected sx={{
-              borderRadius: 2, color: labTheme.text.light,
-              bgcolor: alpha(labTheme.secondary.main, 0.15), '&:hover': { bgcolor: alpha(labTheme.secondary.main, 0.25) }
-            }}>
-              <ListItemIcon sx={{ color: labTheme.secondary.main, minWidth: 40 }}><DashboardIcon /></ListItemIcon>
-              <ListItemText primary="Dashboard Overview" />
-            </ListItemButton>
-          </ListItem>
-
-          <Typography variant="caption" sx={{ px: 2, mt: 2, color: alpha(labTheme.text.light, 0.5), fontWeight: 600 }}>
-            TEST MANAGEMENT
-          </Typography>
-
-          {[
-            { icon: <TestIcon />, text: 'All Tests', badge: stats.totalTests },
-            { icon: <PendingIcon />, text: 'Pending Tests', badge: stats.pendingTests },
-            { icon: <CompletedIcon />, text: 'Completed Tests', badge: stats.completedTests },
-            { icon: <CriticalIcon />, text: 'Critical Results', badge: stats.criticalResults },
-          ].map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{
-                borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) }
-              }}>
-                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-                {item.badge && (
-                  <Chip label={item.badge} size="small"
-                    sx={{
-                      bgcolor: item.text === 'Critical Results' ? labTheme.accent.danger : labTheme.secondary.main,
-                      color: labTheme.text.light, fontWeight: 600, fontSize: '0.7rem', height: 20
-                    }}
-                  />
-                )}
-              </ListItemButton>
-            </ListItem>
-          ))}
-
-          <Typography variant="caption" sx={{ px: 2, mt: 2, color: alpha(labTheme.text.light, 0.5), fontWeight: 600 }}>
-            LABORATORY SECTIONS
-          </Typography>
-
-          {[
-            { icon: <HematologyIcon />, text: 'Hematology' },
-            { icon: <BiochemistryIcon />, text: 'Biochemistry' },
-            { icon: <MicrobiologyIcon />, text: 'Microbiology' },
-            { icon: <PathologyIcon />, text: 'Pathology' },
-            { icon: <RadiologyIcon />, text: 'Radiology' },
-          ].map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{
-                borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) }
-              }}>
-                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-
-          <Typography variant="caption" sx={{ px: 2, mt: 2, color: alpha(labTheme.text.light, 0.5), fontWeight: 600 }}>
-            MANAGEMENT
-          </Typography>
-
-          {[
-            { icon: <ReportsIcon />, text: 'Reports & Analytics' },
-            { icon: <EquipmentIcon />, text: 'Equipment Management' },
-            { icon: <InventoryIcon />, text: 'Inventory & Supplies' },
-            { icon: <StaffIcon />, text: 'Lab Staff' },
-            { icon: <SettingsIcon />, text: 'Settings' },
-          ].map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton sx={{
-                borderRadius: 2, color: alpha(labTheme.text.light, 0.85),
-                '&:hover': { bgcolor: alpha(labTheme.text.light, 0.1) }
-              }}>
-                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-
-        <Box sx={{ position: 'absolute', bottom: 20, left: 0, right: 0, px: 3 }}>
-          <Button fullWidth variant="contained" startIcon={<LogoutIcon />} onClick={handleLogout}
-            sx={{
-              bgcolor: alpha(labTheme.text.light, 0.1), color: labTheme.text.light,
-              '&:hover': { bgcolor: labTheme.accent.danger }
-            }}>
-            Logout
-          </Button>
-        </Box>
-      </LabSidebar>
-
-      <Box sx={{ flexGrow: 1, ml: '280px', p: 4 }}>
+    <Box sx={{ bgcolor: labTheme.background.default, minHeight: '100vh' }}>
+      <Box sx={{ flexGrow: 1, p: 4 }}>
         <LabNavbar>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700, color: labTheme.primary.main }}>

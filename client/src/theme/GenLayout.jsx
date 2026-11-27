@@ -329,11 +329,14 @@ export const AppLayout = () => {
         return [
           { section: 'Main' },
           { name: 'Dashboard', path: '/lab/dashboard', icon: <DashboardIcon /> },
-          { name: 'Requests', path: '/lab/requests', icon: <RequestIcon /> },
           { section: 'Lab Work' },
-          { name: 'Search', path: '/lab/search', icon: <SearchIcon /> },
+          { name: 'Request List', path: '/lab/requests', icon: <RequestIcon /> },
+          { name: 'Search Results', path: '/lab/search', icon: <SearchIcon /> },
+          { name: 'Reports & Analytics', path: '/lab/reports', icon: <ReportsIcon /> },
+          { name: 'Lab Staff', path: '/lab/staff', icon: <PeopleIcon /> },
           { section: 'Account' },
           { name: 'Profile', path: '/lab/profile', icon: <ProfileIcon /> },
+          { name: 'Settings', path: '/settings', icon: <SettingsIcon /> },
         ];
       case 'patient':
         return [
@@ -365,6 +368,8 @@ export const AppLayout = () => {
           { section: 'Patients' },
           { name: 'Patient List', path: '/operator/patients', icon: <PatientListIcon /> },
           { name: 'Search', path: '/operator/search', icon: <SearchIcon /> },
+          { section: 'Account' },
+          { name: 'Profile', path: '/operator/profile', icon: <ProfileIcon /> },
         ];
       default:
         return [

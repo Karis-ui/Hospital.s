@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import OperatorService from '../../../services/users/operator';
 import authService from '../../../services/authService';
-import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/adminComponents';
+import { platinumTheme, PremiumHeader, PremiumCard, PlatinumButton, SectionTitle } from '../../../theme/GenLayout';
 import { useProfilePhoto } from '../../../hooks/useProfilePhoto';
 
 export const OperatorProfile = () => {

@@ -595,6 +595,25 @@ class LabStats(APIView):
                 'technician_stats': list(technician_stats)
             }
         })
+
+class LabStaffDirectory(APIView):
+    permission_classes = [IsAuthenticated, IsLabTechnician]
+
+    def get(self, request):
+        technicians = LabTech.objects.select_related('user').filter(
+            user__is_active=True
+        ).order_by('full_name', 'id')
+        return Response({
+            'status': 'success',
+            'data': [{
+                'id': technician.id,
+                'name': technician.full_name or technician.user.get_full_name() or technician.user.username,
+                'department': technician.department,
+                'shift_time': technician.shift_time,
+                'experience_years': technician.experience_years,
+                'available': technician.available and technician.is_available,
+            } for technician in technicians],
+        })
             
 class GetLabTechProfile(APIView):
     permission_classes = [IsAuthenticated,IsLabTechnician]

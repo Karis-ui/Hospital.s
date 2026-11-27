@@ -19,6 +19,7 @@ urlpatterns = [
     path('report-list/',API.LabReportListView.as_view(),name='lab_report_list'),
     path('patient/<int:patient_id>/history/',API.PatientLabHistory.as_view(),name='patient_lab_history'),
     path('profile/',API.GetLabTechProfile.as_view(),name='profile'),
+    path('staff/',API.LabStaffDirectory.as_view(),name='lab_staff_directory'),
     path('profile/photo/',API.GetLabTechProfilePhoto.as_view(),name='profile-photo'),
     path('profile/update/',API.UpdateLabProfile.as_view(),name='update-profile'),
     path('update/profile/upload-photo/',API.UpdateLabProfile.as_view(),name='upload-photo_lab'),
